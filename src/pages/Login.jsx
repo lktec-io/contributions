@@ -48,7 +48,7 @@ export default function Login() {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="admin@example.com"
+              placeholder="contributor@admin.com"
               autoComplete="email"
               disabled={loading}
               required
