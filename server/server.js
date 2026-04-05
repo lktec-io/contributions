@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 8001;
 
 // ── Middleware ─────────────────────────────────────────────
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5757',
+  origin: process.env.CORS_ORIGIN || 'https://contribution.nardio.online',
   credentials: true,
 }));
 
