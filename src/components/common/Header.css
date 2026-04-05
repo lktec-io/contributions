@@ -1,0 +1,126 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: var(--sidebar-width);
+  right: 0;
+  height: var(--header-height);
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 100;
+  transition: left 0.25s ease;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hamburger-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: var(--border-radius);
+  line-height: 1;
+  display: none;
+  transition: var(--transition);
+}
+
+.hamburger-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--border-color);
+}
+
+.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  font-size: 16px;
+  padding: 5px 8px;
+  cursor: pointer;
+  border-radius: var(--border-radius);
+  line-height: 1;
+  color: var(--text-secondary);
+  transition: var(--transition);
+}
+
+.theme-toggle:hover {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: var(--border-radius);
+}
+
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: var(--accent-green);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logout-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 16px;
+  padding: 5px 9px;
+  cursor: pointer;
+  border-radius: var(--border-radius);
+  line-height: 1;
+  transition: var(--transition);
+}
+
+.logout-btn:hover {
+  color: var(--accent-red);
+  border-color: var(--accent-red);
+  background-color: rgba(255, 76, 76, 0.08);
+}
+
+@media (max-width: 768px) {
+  .header {
+    left: 0;
+  }
+
+  .hamburger-btn {
+    display: flex;
+  }
+
+  .user-name {
+    display: none;
+  }
+}

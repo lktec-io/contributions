@@ -1,0 +1,59 @@
+.client-contributions {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cc-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filters-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-search {
+  width: 220px;
+}
+
+.filter-select {
+  width: 160px;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-export {
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+@media (max-width: 768px) {
+  .cc-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .export-buttons {
+    flex-wrap: wrap;
+  }
+
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-search,
+  .filter-select {
+    width: 100%;
+  }
+}

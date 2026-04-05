@@ -1,0 +1,30 @@
+.contributor-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.cf-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field-error {
+  font-size: 12px;
+  color: var(--accent-red);
+  margin-top: 3px;
+  display: block;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+@media (max-width: 480px) {
+  .cf-row {
+    grid-template-columns: 1fr;
+  }
+}

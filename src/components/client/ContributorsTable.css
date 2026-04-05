@@ -1,0 +1,62 @@
+.contributors-table-wrap {
+  overflow-x: auto;
+}
+
+.ct-loading {
+  display: flex;
+  justify-content: center;
+  padding: 60px 0;
+}
+
+.contributors-table .td-secondary {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.contributors-table .td-paid {
+  color: var(--accent-green);
+}
+
+.contributors-table .td-outstanding {
+  color: var(--accent-orange);
+}
+
+.td-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.icon-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 4px 7px;
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1;
+  transition: var(--transition);
+  color: var(--text-secondary);
+}
+
+.icon-btn:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--text-muted);
+}
+
+.icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.icon-btn-green:hover {
+  border-color: var(--accent-green);
+  background-color: rgba(0, 184, 148, 0.1);
+}
+
+.icon-btn-red:hover {
+  border-color: var(--accent-red);
+  background-color: rgba(255, 76, 76, 0.1);
+}
