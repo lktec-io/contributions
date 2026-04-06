@@ -60,6 +60,7 @@
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -116,6 +117,28 @@ img, svg {
 }
 
 /* ============================================================
+   Global Keyframes
+   ============================================================ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-15px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
    Global Button Styles
    ============================================================ */
 button {
@@ -144,6 +167,10 @@ button:disabled {
 button:focus-visible {
   outline: 2px solid var(--accent-green);
   outline-offset: 2px;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .btn {
@@ -294,6 +321,69 @@ label {
   }
 }
 
+@media (max-width: 480px) {
+  button {
+    min-height: 40px;
+  }
+}
+
+/* ============================================================
+   Input with icon wrapper
+   ============================================================ */
+.input-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.input-icon-wrap input {
+  padding-left: 38px;
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+.input-wrapper input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: unset;
+  border-radius: 4px;
+  transition: var(--transition);
+}
+
+.password-toggle:hover {
+  color: var(--text-primary);
+  background-color: transparent;
+}
+
+.password-toggle:active:not(:disabled) {
+  transform: translateY(-50%) scale(1);
+}
+
 /* ============================================================
    Scrollbar Styling
    ============================================================ */
@@ -350,6 +440,11 @@ label {
   border: 1px solid rgba(0, 184, 148, 0.3);
 }
 
+/* Also support bare class names for grid cards */
+.status-badge.pledge  { background-color: rgba(255, 165, 0, 0.15); color: var(--accent-orange); border: 1px solid rgba(255, 165, 0, 0.3); }
+.status-badge.partial { background-color: rgba(59, 130, 246, 0.15); color: var(--accent-blue); border: 1px solid rgba(59, 130, 246, 0.3); }
+.status-badge.paid    { background-color: rgba(0, 184, 148, 0.15); color: var(--accent-green); border: 1px solid rgba(0, 184, 148, 0.3); }
+
 /* ============================================================
    Shared page / layout patterns
    ============================================================ */
@@ -361,7 +456,7 @@ label {
   flex-wrap: wrap;
 }
 
-.page-title  { font-size: 18px; font-weight: 600; margin-bottom: 3px; }
+.page-title    { font-size: 18px; font-weight: 600; margin-bottom: 3px; }
 .page-subtitle { font-size: 13px; color: var(--text-secondary); }
 
 .section-card {
@@ -378,6 +473,21 @@ label {
   margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border-color);
+}
+
+/* ============================================================
+   Table container (scrollable)
+   ============================================================ */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--border-radius);
+}
+
+.table-container table {
+  min-width: 650px;
+  width: 100%;
 }
 
 /* ============================================================
@@ -418,7 +528,18 @@ label {
 
 .data-table tbody tr:last-child td { border-bottom: none; }
 .data-table tbody tr:nth-child(even) td { background-color: rgba(255,255,255,0.015); }
-.data-table tbody tr:hover td { background-color: rgba(255,255,255,0.03); }
+
+.data-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.data-table tbody tr:hover td {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="light"] .data-table tbody tr:hover td {
+  background-color: rgba(0, 0, 0, 0.02);
+}
 
 .td-name   { font-weight: 500; }
 .td-money  { font-variant-numeric: tabular-nums; color: var(--accent-green); }
@@ -469,6 +590,30 @@ label {
 @media (max-width: 768px) {
   .filters-bar { flex-direction: column; align-items: stretch; }
   .filter-search, .filter-select { width: 100%; }
+}
+
+/* ============================================================
+   Tab bar (dashboard navigation)
+   ============================================================ */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .tab-bar {
+    gap: 6px;
+  }
+
+  .tab-button {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    padding: 8px 10px;
+    text-align: center;
+    justify-content: center;
+  }
 }
 
 /* ============================================================

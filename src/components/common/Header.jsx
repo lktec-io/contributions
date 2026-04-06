@@ -18,7 +18,11 @@ export default function Header({ onMenuToggle }) {
       </div>
 
       <div className="header-right">
-        <button className="header-icon-btn theme-toggle" onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
+        <button
+          className="header-icon-btn theme-toggle"
+          onClick={toggleTheme}
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        >
           {theme === 'dark' ? <FiSun size={18} /> : <FiMoon size={18} />}
         </button>
 
@@ -29,8 +33,9 @@ export default function Header({ onMenuToggle }) {
           <span className="user-name">{user?.name}</span>
         </div>
 
-        <button className="header-icon-btn logout-btn" onClick={logout} title="Logout">
-          <FiLogOut size={18} />
+        <button className="logout-btn" onClick={logout} title="Logout">
+          <FiLogOut size={16} />
+          <span>Logout</span>
         </button>
       </div>
     </header>

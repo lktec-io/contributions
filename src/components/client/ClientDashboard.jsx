@@ -18,11 +18,11 @@ import ClientContributions from './ClientContributions';
 import './ClientDashboard.css';
 
 const CLIENT_STATS = [
-  { key: 'myEvents',        label: 'My Events',       Icon: FiCalendar,    color: '#A78BFA' },
-  { key: 'myContributors',  label: 'Contributors',    Icon: FiUsers,       color: '#3B82F6' },
-  { key: 'totalPledged',    label: 'Total Pledged',   Icon: FiDollarSign,  color: '#FFA500', money: true },
-  { key: 'totalPaid',       label: 'Total Paid',      Icon: FiCheckCircle, color: '#00B894', money: true },
-  { key: 'outstanding',     label: 'Outstanding',     Icon: FiAlertCircle, color: '#FF4C4C', money: true },
+  { key: 'myEvents',       label: 'My Events',     Icon: FiCalendar,    color: '#A78BFA' },
+  { key: 'myContributors', label: 'Contributors',  Icon: FiUsers,       color: '#3B82F6' },
+  { key: 'totalPledged',   label: 'Total Pledged', Icon: FiDollarSign,  color: '#FFA500', money: true },
+  { key: 'totalPaid',      label: 'Total Paid',    Icon: FiCheckCircle, color: '#00B894', money: true },
+  { key: 'outstanding',    label: 'Outstanding',   Icon: FiAlertCircle, color: '#FF4C4C', money: true },
 ];
 
 export default function ClientDashboard() {
@@ -72,7 +72,7 @@ export default function ClientDashboard() {
         <div className="welcome-banner">
           <div className="welcome-banner-inner">
             <div className="welcome-text">
-              <h1>Welcome back, {user?.name} 👋</h1>
+              <h1>Welcome back, {user?.name}!</h1>
               <p>{today}</p>
             </div>
           </div>

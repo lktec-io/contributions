@@ -19,10 +19,10 @@ import AdminContributions from './AdminContributions';
 import './AdminDashboard.css';
 
 const STAT_CARDS = [
-  { key: 'totalUsers',         label: 'Total Users',         Icon: FiUsers,        color: '#3B82F6' },
-  { key: 'totalEvents',        label: 'Total Events',        Icon: FiCalendar,     color: '#A78BFA' },
-  { key: 'totalContributions', label: 'Contributions',       Icon: FiDollarSign,   color: '#FFA500' },
-  { key: 'totalCollected',     label: 'Total Collected',     Icon: FiCheckCircle,  color: '#00B894', money: true },
+  { key: 'totalUsers',         label: 'Total Users',     Icon: FiUsers,       color: '#3B82F6' },
+  { key: 'totalEvents',        label: 'Total Events',    Icon: FiCalendar,    color: '#A78BFA' },
+  { key: 'totalContributions', label: 'Contributions',   Icon: FiDollarSign,  color: '#FFA500' },
+  { key: 'totalCollected',     label: 'Total Collected', Icon: FiCheckCircle, color: '#00B894', money: true },
 ];
 
 export default function AdminDashboard() {
@@ -72,7 +72,7 @@ export default function AdminDashboard() {
         <div className="welcome-banner">
           <div className="welcome-banner-inner">
             <div className="welcome-text">
-              <h1>Welcome back, {user?.name} 👋</h1>
+              <h1>Welcome back, {user?.name}!</h1>
               <p>{today}</p>
             </div>
           </div>

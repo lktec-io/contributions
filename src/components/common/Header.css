@@ -19,6 +19,7 @@
 
 [data-theme="light"] .header {
   background: rgba(245, 247, 250, 0.85);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
 }
 
 .header-left,
@@ -58,12 +59,6 @@
   border: 1px solid var(--border-color);
 }
 
-/* ── Logout ──────────────────────────────────── */
-.logout-btn:hover {
-  color: var(--accent-red) !important;
-  background-color: rgba(255, 76, 76, 0.08) !important;
-}
-
 /* ── User info ───────────────────────────────── */
 .header-user {
   display: flex;
@@ -97,6 +92,33 @@
   white-space: nowrap;
 }
 
+/* ── Logout button ───────────────────────────── */
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid rgba(255, 76, 76, 0.4);
+  color: var(--accent-red);
+  padding: 6px 12px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-body);
+}
+
+.logout-btn:hover {
+  background: var(--accent-red);
+  color: #fff;
+  border-color: var(--accent-red);
+}
+
+.logout-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
 /* ── Mobile ──────────────────────────────────── */
 @media (max-width: 768px) {
   .header {
@@ -110,5 +132,16 @@
 
   .user-name {
     display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .logout-btn span {
+    display: none;
+  }
+
+  .logout-btn {
+    padding: 7px;
+    border-radius: var(--border-radius);
   }
 }

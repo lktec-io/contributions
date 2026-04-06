@@ -18,17 +18,7 @@
   animation: fadeInUp 0.4s ease both;
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* ── Logo ────────────────────────────────────── */
 .login-logo {
   text-align: center;
   margin-bottom: 36px;
@@ -62,31 +52,32 @@
   color: var(--text-secondary);
 }
 
+/* ── Form ────────────────────────────────────── */
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 0;
 }
 
-.input-icon-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
+/* password field: icon-wrap wraps lock icon + input-wrapper */
+.login-pass-wrap {
+  flex: 1;
 }
 
-.input-icon {
-  position: absolute;
-  left: 12px;
-  color: var(--text-muted);
-  pointer-events: none;
-  flex-shrink: 0;
+.input-icon-wrap .input-wrapper {
+  flex: 1;
 }
 
-.input-icon-wrap input {
+.input-icon-wrap .input-wrapper input {
+  padding-left: 0;
+}
+
+/* Override: when inside icon-wrap, shift input left padding from the outer wrap */
+.input-icon-wrap > input,
+.input-icon-wrap .input-wrapper input {
   padding-left: 38px;
-  width: 100%;
 }
 
+/* ── Submit button ───────────────────────────── */
 .login-submit-btn {
   width: 100%;
   padding: 12px;
@@ -125,19 +116,21 @@
   animation: spin 0.7s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.login-footer {
+/* ── Footer text ─────────────────────────────── */
+.login-footer-text {
   text-align: center;
   margin-top: 24px;
   font-size: 12px;
   color: var(--text-muted);
 }
 
+/* ── Mobile ──────────────────────────────────── */
 @media (max-width: 480px) {
   .login-card {
     padding: 32px 24px;
+  }
+
+  .login-app-name {
+    font-size: 20px;
   }
 }

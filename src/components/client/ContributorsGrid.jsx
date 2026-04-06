@@ -1,5 +1,5 @@
-import { FiEdit2, FiCreditCard, FiTrash2, FiUser } from 'react-icons/fi';
-import { formatCurrency, formatDate, getStatusBadgeClass } from '../../utils/formatters';
+import { FiEdit2, FiCreditCard, FiTrash2, FiUser, FiPhone, FiMail } from 'react-icons/fi';
+import { formatCurrency, formatDate } from '../../utils/formatters';
 import LoadingSpinner from '../common/LoadingSpinner';
 import EmptyState from '../common/EmptyState';
 import './ContributorsGrid.css';
@@ -23,37 +23,43 @@ export default function ContributorsGrid({ contributions, loading, hasFilters, o
         const outstanding = parseFloat(c.amount) - parseFloat(c.paid_amount);
         return (
           <div key={c.id} className="contributor-card">
-            <div className="ccard-header">
+            <div className="card-header">
               <div className="ccard-avatar">{c.contributor_name?.[0]?.toUpperCase()}</div>
               <div className="ccard-identity">
-                <span className="ccard-name">{c.contributor_name}</span>
-                {c.phone && <span className="ccard-phone">{c.phone}</span>}
+                <h4>{c.contributor_name}</h4>
+                {c.event_name && <span className="ccard-event-tag">{c.event_name}</span>}
               </div>
-              <span className={getStatusBadgeClass(c.status)}>{c.status}</span>
+              <span className={`status-badge ${c.status}`}>{c.status}</span>
             </div>
 
-            {c.event_name && (
-              <div className="ccard-event">{c.event_name}</div>
-            )}
-
-            <div className="ccard-amounts">
-              <div className="ccard-amount-item">
-                <span className="ccard-amount-label">Pledged</span>
-                <span className="ccard-amount-value">{formatCurrency(c.amount)}</span>
-              </div>
-              <div className="ccard-amount-item">
-                <span className="ccard-amount-label">Paid</span>
-                <span className="ccard-amount-value ccard-paid">{formatCurrency(c.paid_amount)}</span>
-              </div>
-              <div className="ccard-amount-item">
-                <span className="ccard-amount-label">Outstanding</span>
-                <span className="ccard-amount-value ccard-outstanding">{formatCurrency(outstanding)}</span>
+            <div className="card-body">
+              <p>
+                <FiPhone size={14} />
+                <span>{c.phone || 'N/A'}</span>
+              </p>
+              <p>
+                <FiMail size={14} />
+                <span>{c.email || 'N/A'}</span>
+              </p>
+              <div className="card-amounts">
+                <div className="card-amount-item">
+                  <span className="card-amount-label">Pledged</span>
+                  <span className="card-amount-value">{formatCurrency(c.amount)}</span>
+                </div>
+                <div className="card-amount-item">
+                  <span className="card-amount-label">Paid</span>
+                  <span className="card-amount-value ccard-paid">{formatCurrency(c.paid_amount)}</span>
+                </div>
+                <div className="card-amount-item">
+                  <span className="card-amount-label">Outstanding</span>
+                  <span className="card-amount-value ccard-outstanding">{formatCurrency(outstanding)}</span>
+                </div>
               </div>
             </div>
 
-            <div className="ccard-footer">
+            <div className="card-actions">
               <span className="ccard-date">{formatDate(c.created_at)}</span>
-              <div className="ccard-actions">
+              <div className="ccard-btns">
                 <button className="icon-btn" onClick={() => onEdit(c)} title="Edit contributor">
                   <FiEdit2 size={14} />
                 </button>

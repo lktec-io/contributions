@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { FiPlus, FiUsers, FiAlertTriangle } from 'react-icons/fi';
+import { FiPlus, FiUsers, FiAlertTriangle, FiEye, FiEyeOff } from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
 import { userService } from '../../services/userService';
 import { formatDate } from '../../utils/formatters';
@@ -25,6 +25,7 @@ export default function UserManagement() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => { fetchUsers(); }, []);
 
@@ -105,6 +106,13 @@ export default function UserManagement() {
     if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
   };
 
+  const openModal = () => {
+    setFormData(EMPTY_FORM);
+    setFormErrors({});
+    setShowPassword(false);
+    setShowModal(true);
+  };
+
   if (loading) return <div className="tab-loading"><LoadingSpinner size="large" /></div>;
   if (error) return (
     <div className="error-state">
@@ -121,7 +129,7 @@ export default function UserManagement() {
           <h2 className="page-title">User Management</h2>
           <p className="page-subtitle">{users.length} user{users.length !== 1 ? 's' : ''} registered</p>
         </div>
-        <button className="btn" onClick={() => { setFormData(EMPTY_FORM); setFormErrors({}); setShowModal(true); }}>
+        <button className="btn" onClick={openModal}>
           <FiPlus size={16} /> Add User
         </button>
       </div>
@@ -182,17 +190,45 @@ export default function UserManagement() {
         <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label>Full Name *</label>
-            <input name="name" value={formData.name} onChange={handleChange} placeholder="John Doe" />
+            <input
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="John Doe"
+            />
             {formErrors.name && <span className="field-error">{formErrors.name}</span>}
           </div>
           <div className="form-group">
             <label>Email Address *</label>
-            <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="john@example.com" />
+            <input
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="john@example.com"
+            />
             {formErrors.email && <span className="field-error">{formErrors.email}</span>}
           </div>
           <div className="form-group">
             <label>Password *</label>
-            <input name="password" type="password" value={formData.password} onChange={handleChange} placeholder="Min. 8 characters" autoComplete="new-password" />
+            <div className="input-wrapper">
+              <input
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Min. 8 characters"
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(v => !v)}
+                tabIndex={-1}
+              >
+                {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+              </button>
+            </div>
             {formErrors.password && <span className="field-error">{formErrors.password}</span>}
           </div>
           <div className="form-group">
