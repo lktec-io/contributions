@@ -627,3 +627,199 @@ label {
 .text-info      { color: var(--accent-blue); }
 .font-medium    { font-weight: 500; }
 .font-semibold  { font-weight: 600; }
+
+
+
+/* ============================================================
+   🔥 GLOBAL MOBILE FIX (DO NOT TOUCH ABOVE CODE)
+   ============================================================ */
+
+/* Prevent horizontal scroll kabisa */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Make text readable on mobile */
+@media (max-width: 768px) {
+  body {
+    font-size: 15px;
+  }
+
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.1rem; }
+}
+
+/* ============================================================
+   🔥 LAYOUT STABILITY FIX
+   ============================================================ */
+
+.main-area {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.main-content {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Fix content jumping */
+.section-card,
+.stat-card,
+.welcome-banner {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ============================================================
+   🔥 GRID RESPONSIVENESS FIX (VERY IMPORTANT)
+   ============================================================ */
+
+/* Universal grid fix */
+.stats-grid,
+.stats-grid-5 {
+  display: grid;
+  gap: 12px;
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   🔥 TABLE FIX (SCROLL INSTEAD OF BREAKING UI)
+   ============================================================ */
+
+.table-container,
+.table-wrap,
+.contributors-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.data-table {
+  min-width: 600px;
+}
+
+/* ============================================================
+   🔥 HEADER FIX (NO SHIFT / CLEAN MOBILE)
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .header {
+    left: 0 !important;
+    width: 100%;
+  }
+}
+
+/* ============================================================
+   🔥 SIDEBAR FIX (SMOOTH MOBILE)
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 260px;
+  }
+}
+
+/* ============================================================
+   🔥 BUTTON & INPUT MOBILE FIX
+   ============================================================ */
+
+@media (max-width: 768px) {
+  button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn,
+  .btn-secondary,
+  .btn-danger {
+    width: 100%;
+  }
+}
+
+/* ============================================================
+   🔥 CONTRIBUTORS (GRID + LIST STABILITY)
+   ============================================================ */
+
+.client-contributions {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.view-toggle {
+  width: fit-content;
+}
+
+/* ============================================================
+   🔥 FORM FIX (NO BREAKING)
+   ============================================================ */
+
+.form-group {
+  width: 100%;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+}
+
+/* ============================================================
+   🔥 WELCOME BANNER FIX
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .welcome-banner {
+    padding: 20px;
+  }
+
+  .welcome-banner h1 {
+    font-size: 1.2rem;
+  }
+
+  .welcome-banner p {
+    font-size: 0.85rem;
+  }
+}
+
+/* ============================================================
+   🔥 FOOTER FIX (ALWAYS BOTTOM)
+   ============================================================ */
+
+.app-footer {
+  margin-top: auto;
+}
+
+/* ============================================================
+   🔥 FINAL SAFETY (ANTI-BREAK SYSTEM)
+   ============================================================ */
+
+img, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+* {
+  word-wrap: break-word;
+}
