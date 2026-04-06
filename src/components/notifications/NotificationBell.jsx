@@ -1,5 +1,5 @@
 import { useState, useContext, useEffect, useRef } from 'react';
-import { FiEdit, FiTrash2, FiBell } from "react-icons/fi";
+import {  FiBell } from "react-icons/fi";
 import { AuthContext } from '../../context/AuthContext';
 import { useNotifications } from '../../hooks/useNotifications';
 import NotificationPanel from './NotificationPanel';
