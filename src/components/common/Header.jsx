@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { FiMenu, FiSun, FiMoon, FiLogOut } from 'react-icons/fi';
+import { FiMenu, FiSun, FiMoon, FiLogOut, FiEdit, FiTrash2, FiBell } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import { ThemeContext } from '../../context/ThemeContext';
 import NotificationBell from '../notifications/NotificationBell';

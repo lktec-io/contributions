@@ -1,4 +1,4 @@
-import { FiEdit2, FiCreditCard, FiTrash2, FiUser } from 'react-icons/fi';
+import { FiEdit2, FiCreditCard, FiTrash2, FiUser, FiEdit, FiTrash2, FiBell } from 'react-icons/fi';
 import { formatCurrency, formatDate, getStatusBadgeClass } from '../../utils/formatters';
 import LoadingSpinner from '../common/LoadingSpinner';
 import EmptyState from '../common/EmptyState';

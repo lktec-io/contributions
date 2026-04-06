@@ -143,14 +143,22 @@
 }
 
 .input-wrapper input {
-  padding-right: 42px;
+  padding-right: 44px;
 }
 
 .password-toggle {
   position: absolute;
-  right: 10px;
-  top: 0;
-  bottom: 0;
-  margin: auto;
-  height: fit-content;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  width: 24px;
 }

@@ -857,3 +857,11 @@ img, svg {
   margin: auto;
   height: fit-content;
 }
+
+.icon-btn svg,
+.header-icon-btn svg,
+.sidebar-item-icon svg {
+  width: 18px;
+  height: 18px;
+  color: var(--text-primary);
+}
