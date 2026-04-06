@@ -823,3 +823,37 @@ img, svg {
 * {
   word-wrap: break-word;
 }
+
+/* 🔥 FIX: password toggle alignment */
+.password-toggle {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Mobile fix */
+@media (max-width: 768px) {
+  .password-toggle {
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-wrapper input {
+  padding-right: 42px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 0;
+  bottom: 0;
+  margin: auto;
+  height: fit-content;
+}
