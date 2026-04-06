@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
+import { FiPlus, FiCalendar, FiAlertTriangle } from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
 import { eventService } from '../../services/eventService';
 import { userService } from '../../services/userService';
@@ -107,7 +108,7 @@ export default function AdminEvents() {
   if (loading) return <div className="tab-loading"><LoadingSpinner size="large" /></div>;
   if (error) return (
     <div className="error-state">
-      <span className="error-icon">⚠️</span>
+      <FiAlertTriangle size={36} color="var(--accent-orange)" />
       <p>{error}</p>
       <button className="btn" onClick={fetchData}>Retry</button>
     </div>
@@ -121,12 +122,12 @@ export default function AdminEvents() {
           <p className="page-subtitle">{events.length} event{events.length !== 1 ? 's' : ''} across all clients</p>
         </div>
         <button className="btn" onClick={() => { setFormData(EMPTY_FORM); setFormErrors({}); setShowModal(true); }}>
-          + Create Event
+          <FiPlus size={16} /> Create Event
         </button>
       </div>
 
       {events.length === 0 ? (
-        <EmptyState icon="🎉" title="No events yet" description="Create an event and assign it to a client user." />
+        <EmptyState IconComponent={FiCalendar} title="No events yet" description="Create an event and assign it to a client user." />
       ) : (
         <div className="section-card">
           <div className="table-wrap">
@@ -165,7 +166,6 @@ export default function AdminEvents() {
         </div>
       )}
 
-      {/* Create event modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Create New Event" size="medium">
         <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">

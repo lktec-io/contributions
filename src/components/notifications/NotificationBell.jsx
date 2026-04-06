@@ -1,4 +1,5 @@
 import { useState, useContext, useEffect, useRef } from 'react';
+import { FiBell } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import { useNotifications } from '../../hooks/useNotifications';
 import NotificationPanel from './NotificationPanel';
@@ -27,8 +28,8 @@ export default function NotificationBell() {
 
   return (
     <div className="notification-bell" ref={bellRef}>
-      <button className="bell-btn" onClick={handleBellClick} aria-label="Notifications">
-        🔔
+      <button className="bell-btn header-icon-btn" onClick={handleBellClick} aria-label="Notifications">
+        <FiBell size={18} />
         {unreadCount > 0 && (
           <span className="bell-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
         )}

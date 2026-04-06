@@ -1,48 +1,54 @@
 import { useContext } from 'react';
+import {
+  FiGrid, FiUsers, FiCalendar, FiList, FiHome,
+} from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import './Sidebar.css';
 
+const ADMIN_ITEMS = [
+  { id: 'dashboard',     label: 'Dashboard',       Icon: FiHome },
+  { id: 'users',         label: 'User Management', Icon: FiUsers },
+  { id: 'events',        label: 'Events',           Icon: FiCalendar },
+  { id: 'contributions', label: 'Contributions',    Icon: FiGrid },
+];
+
+const CLIENT_ITEMS = [
+  { id: 'dashboard',     label: 'Dashboard',         Icon: FiHome },
+  { id: 'events',        label: 'My Events',          Icon: FiCalendar },
+  { id: 'contributions', label: 'My Contributions',   Icon: FiList },
+];
+
 export default function Sidebar({ activeTab, onTabChange, isOpen, onClose }) {
   const { user } = useContext(AuthContext);
-
-  const adminItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'users', label: 'User Management', icon: '👥' },
-    { id: 'events', label: 'Events', icon: '🎉' },
-    { id: 'contributions', label: 'Contributions', icon: '💰' },
-  ];
-
-  const clientItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'events', label: 'My Events', icon: '🎉' },
-    { id: 'contributions', label: 'My Contributions', icon: '💰' },
-  ];
-
-  const items = user?.role === 'super_admin' ? adminItems : clientItems;
+  const items = user?.role === 'super_admin' ? ADMIN_ITEMS : CLIENT_ITEMS;
 
   return (
     <>
-      {isOpen && <div className="sidebar-overlay" onClick={onClose} />}
+      {isOpen && (
+        <div className="sidebar-overlay" onClick={onClose} aria-hidden="true" />
+      )}
       <aside className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}>
         <div className="sidebar-logo">
-          <span className="sidebar-logo-icon">🏦</span>
+          <span className="sidebar-logo-mark">CT</span>
           <span className="sidebar-logo-text">ContribTrack</span>
         </div>
+
         <nav className="sidebar-nav">
-          {items.map(item => (
+          {items.map(({ id, label, Icon }) => (
             <button
-              key={item.id}
-              className={`sidebar-item ${activeTab === item.id ? 'sidebar-item-active' : ''}`}
-              onClick={() => {
-                onTabChange(item.id);
-                onClose && onClose();
-              }}
+              key={id}
+              className={`sidebar-item ${activeTab === id ? 'sidebar-item-active' : ''}`}
+              onClick={() => { onTabChange(id); onClose && onClose(); }}
             >
-              <span className="sidebar-item-icon">{item.icon}</span>
-              <span className="sidebar-item-label">{item.label}</span>
+              <Icon
+                size={20}
+                className="sidebar-item-icon"
+              />
+              <span className="sidebar-item-label">{label}</span>
             </button>
           ))}
         </nav>
+
         <div className="sidebar-footer">
           <span className="sidebar-version">v1.0.0</span>
         </div>

@@ -12,9 +12,21 @@
   max-width: 420px;
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  padding: 40px 36px;
+  border-radius: 14px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  padding: 44px 40px;
+  animation: fadeInUp 0.4s ease both;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .login-logo {
@@ -22,10 +34,20 @@
   margin-bottom: 36px;
 }
 
-.login-logo-icon {
-  font-size: 48px;
-  display: block;
-  margin-bottom: 12px;
+.login-logo-mark {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent-green), #0096c7);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+  box-shadow: 0 4px 16px rgba(0, 184, 148, 0.3);
 }
 
 .login-app-name {
@@ -46,6 +68,25 @@
   gap: 0;
 }
 
+.input-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.input-icon-wrap input {
+  padding-left: 38px;
+  width: 100%;
+}
+
 .login-submit-btn {
   width: 100%;
   padding: 12px;
@@ -56,12 +97,16 @@
   color: #fff;
   border-radius: var(--border-radius);
   transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .login-submit-btn:hover:not(:disabled) {
   background-color: var(--accent-green-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 184, 148, 0.35);
 }
 
 .login-loading {
@@ -93,6 +138,6 @@
 
 @media (max-width: 480px) {
   .login-card {
-    padding: 28px 20px;
+    padding: 32px 24px;
   }
 }

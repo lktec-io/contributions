@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
+import { FiDownload, FiAlertTriangle, FiDollarSign } from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
 import { contributionService } from '../../services/contributionService';
 import { eventService } from '../../services/eventService';
@@ -92,18 +93,17 @@ export default function AdminContributions() {
         </div>
         <div className="export-buttons">
           <button className="btn btn-secondary btn-export" onClick={() => handleExport('csv')} disabled={!!exporting}>
-            {exporting === 'csv' ? '…' : '⬇ CSV'}
+            <FiDownload size={13} /> {exporting === 'csv' ? '…' : 'CSV'}
           </button>
           <button className="btn btn-secondary btn-export" onClick={() => handleExport('xlsx')} disabled={!!exporting}>
-            {exporting === 'xlsx' ? '…' : '⬇ Excel'}
+            <FiDownload size={13} /> {exporting === 'xlsx' ? '…' : 'Excel'}
           </button>
           <button className="btn btn-secondary btn-export" onClick={() => handleExport('pdf')} disabled={!!exporting}>
-            {exporting === 'pdf' ? '…' : '⬇ PDF'}
+            <FiDownload size={13} /> {exporting === 'pdf' ? '…' : 'PDF'}
           </button>
         </div>
       </div>
 
-      {/* Filters */}
       <div className="filters-bar">
         <input
           type="text"
@@ -131,12 +131,12 @@ export default function AdminContributions() {
         <div className="tab-loading"><LoadingSpinner size="large" /></div>
       ) : error ? (
         <div className="error-state">
-          <span className="error-icon">⚠️</span>
+          <FiAlertTriangle size={36} color="var(--accent-orange)" />
           <p>{error}</p>
           <button className="btn" onClick={() => fetchContributions({ search, eventId: selectedEvent, status: selectedStatus })}>Retry</button>
         </div>
       ) : contributions.length === 0 ? (
-        <EmptyState icon="💰" title="No contributions found" description={hasFilters ? 'Try adjusting your filters.' : 'No contributions recorded yet.'} />
+        <EmptyState IconComponent={FiDollarSign} title="No contributions found" description={hasFilters ? 'Try adjusting your filters.' : 'No contributions recorded yet.'} />
       ) : (
         <div className="section-card">
           <div className="table-wrap">

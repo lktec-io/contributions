@@ -1,3 +1,4 @@
+import { FiEdit2, FiCreditCard, FiTrash2, FiUser } from 'react-icons/fi';
 import { formatCurrency, formatDate, getStatusBadgeClass } from '../../utils/formatters';
 import LoadingSpinner from '../common/LoadingSpinner';
 import EmptyState from '../common/EmptyState';
@@ -9,7 +10,7 @@ export default function ContributorsTable({ contributions, loading, onEdit, onRe
   if (!contributions?.length) {
     return (
       <EmptyState
-        icon="👤"
+        IconComponent={FiUser}
         title="No contributors found"
         description="Try adjusting your filters or add a new contributor."
       />
@@ -49,7 +50,7 @@ export default function ContributorsTable({ contributions, loading, onEdit, onRe
                 <td className="td-date">{formatDate(c.created_at)}</td>
                 <td className="td-actions">
                   <button className="icon-btn" onClick={() => onEdit(c)} title="Edit contributor">
-                    ✏️
+                    <FiEdit2 size={14} />
                   </button>
                   <button
                     className="icon-btn icon-btn-green"
@@ -57,10 +58,10 @@ export default function ContributorsTable({ contributions, loading, onEdit, onRe
                     title={c.status === 'paid' ? 'Fully paid' : 'Record payment'}
                     disabled={c.status === 'paid'}
                   >
-                    💳
+                    <FiCreditCard size={14} />
                   </button>
                   <button className="icon-btn icon-btn-red" onClick={() => onDelete(c)} title="Delete">
-                    🗑️
+                    <FiTrash2 size={14} />
                   </button>
                 </td>
               </tr>

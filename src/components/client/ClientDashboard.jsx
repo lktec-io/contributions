@@ -1,4 +1,8 @@
 import { useState, useEffect, useContext } from 'react';
+import {
+  FiCalendar, FiUsers, FiDollarSign, FiCheckCircle,
+  FiAlertCircle, FiAlertTriangle,
+} from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import { ToastContext } from '../../context/ToastContext';
 import api from '../../services/api';
@@ -6,11 +10,20 @@ import { formatCurrency, formatDate, getStatusBadgeClass } from '../../utils/for
 import { getErrorMessage } from '../../utils/helpers';
 import Sidebar from '../common/Sidebar';
 import Header from '../common/Header';
+import Footer from '../common/Footer';
 import LoadingSpinner from '../common/LoadingSpinner';
 import EmptyState from '../common/EmptyState';
 import ClientEvents from './ClientEvents';
 import ClientContributions from './ClientContributions';
 import './ClientDashboard.css';
+
+const CLIENT_STATS = [
+  { key: 'myEvents',        label: 'My Events',       Icon: FiCalendar,    color: '#A78BFA' },
+  { key: 'myContributors',  label: 'Contributors',    Icon: FiUsers,       color: '#3B82F6' },
+  { key: 'totalPledged',    label: 'Total Pledged',   Icon: FiDollarSign,  color: '#FFA500', money: true },
+  { key: 'totalPaid',       label: 'Total Paid',      Icon: FiCheckCircle, color: '#00B894', money: true },
+  { key: 'outstanding',     label: 'Outstanding',     Icon: FiAlertCircle, color: '#FF4C4C', money: true },
+];
 
 export default function ClientDashboard() {
   const { user } = useContext(AuthContext);
@@ -48,7 +61,7 @@ export default function ClientDashboard() {
     if (loading) return <div className="tab-loading"><LoadingSpinner size="large" /></div>;
     if (error) return (
       <div className="error-state">
-        <span className="error-icon">⚠️</span>
+        <FiAlertTriangle size={36} color="var(--accent-orange)" />
         <p>{error}</p>
         <button className="btn" onClick={fetchStats}>Retry</button>
       </div>
@@ -57,55 +70,38 @@ export default function ClientDashboard() {
     return (
       <>
         <div className="welcome-banner">
-          <div className="welcome-text">
-            <h1>Welcome back, {user?.name} 👋</h1>
-            <p>{today}</p>
+          <div className="welcome-banner-inner">
+            <div className="welcome-text">
+              <h1>Welcome back, {user?.name} 👋</h1>
+              <p>{today}</p>
+            </div>
           </div>
-          <span className="welcome-emoji">💰</span>
         </div>
 
         <div className="stats-grid stats-grid-5">
-          <div className="stat-card">
-            <span className="stat-icon">🎉</span>
-            <div className="stat-info">
-              <span className="stat-label">My Events</span>
-              <span className="stat-value">{stats?.myEvents ?? 0}</span>
+          {CLIENT_STATS.map(({ key, label, Icon, color, money }) => (
+            <div key={key} className="stat-card">
+              <div className="stat-icon-wrap" style={{ background: `${color}1F` }}>
+                <Icon size={24} color={color} />
+              </div>
+              <div className="stat-info">
+                <span className="stat-label">{label}</span>
+                <span className="stat-value" style={money ? { color, fontSize: '17px' } : {}}>
+                  {money ? formatCurrency(stats?.[key] ?? 0) : (stats?.[key] ?? 0)}
+                </span>
+              </div>
             </div>
-          </div>
-          <div className="stat-card">
-            <span className="stat-icon">👥</span>
-            <div className="stat-info">
-              <span className="stat-label">Contributors</span>
-              <span className="stat-value">{stats?.myContributors ?? 0}</span>
-            </div>
-          </div>
-          <div className="stat-card">
-            <span className="stat-icon">💰</span>
-            <div className="stat-info">
-              <span className="stat-label">Total Pledged</span>
-              <span className="stat-value stat-money">{formatCurrency(stats?.totalPledged ?? 0)}</span>
-            </div>
-          </div>
-          <div className="stat-card stat-card-accent">
-            <span className="stat-icon">✅</span>
-            <div className="stat-info">
-              <span className="stat-label">Total Paid</span>
-              <span className="stat-value stat-money">{formatCurrency(stats?.totalPaid ?? 0)}</span>
-            </div>
-          </div>
-          <div className="stat-card stat-card-warning">
-            <span className="stat-icon">⏳</span>
-            <div className="stat-info">
-              <span className="stat-label">Outstanding</span>
-              <span className="stat-value stat-money-warning">{formatCurrency(stats?.outstanding ?? 0)}</span>
-            </div>
-          </div>
+          ))}
         </div>
 
         <div className="section-card">
           <h2 className="section-title">Recent Contributions</h2>
           {!stats?.recentContributions?.length ? (
-            <EmptyState icon="📋" title="No contributions yet" description="Contributions will appear here once added." />
+            <EmptyState
+              IconComponent={FiDollarSign}
+              title="No contributions yet"
+              description="Contributions will appear here once added."
+            />
           ) : (
             <div className="table-wrap">
               <table className="data-table">
@@ -158,6 +154,7 @@ export default function ClientDashboard() {
       <div className="main-area">
         <Header onMenuToggle={() => setSidebarOpen(prev => !prev)} />
         <main className="main-content">{renderContent()}</main>
+        <Footer />
       </div>
     </div>
   );

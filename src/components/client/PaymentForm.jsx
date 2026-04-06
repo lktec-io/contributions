@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FiCheckCircle } from 'react-icons/fi';
 import { formatCurrency } from '../../utils/formatters';
 import './PaymentForm.css';
 
@@ -52,7 +53,7 @@ export default function PaymentForm({ contribution, onSubmit, onCancel, loading 
 
       {isFullyPaid ? (
         <div className="pf-fully-paid">
-          <span>✅</span>
+          <FiCheckCircle size={32} color="var(--accent-green)" />
           <p>This contribution is fully paid.</p>
         </div>
       ) : (

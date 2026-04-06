@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { FiX } from 'react-icons/fi';
 import './Modal.css';
 
 export default function Modal({ isOpen, onClose, title, children, size = 'medium' }) {
@@ -18,7 +19,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'medium
       <div className={`modal modal-${size}`} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose}><FiX size={18} /></button>
         </div>
         <div className="modal-body">{children}</div>
       </div>

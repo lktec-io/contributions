@@ -1,71 +1,75 @@
 .header {
   position: fixed;
   top: 0;
-  left: var(--sidebar-width);
   right: 0;
+  left: var(--sidebar-width);
   height: var(--header-height);
-  background-color: var(--bg-secondary);
+  background: rgba(13, 27, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.2);
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  z-index: 100;
-  transition: left 0.25s ease;
+  padding: 0 24px;
+  transition: left 0.25s ease, background 0.2s ease;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+[data-theme="light"] .header {
+  background: rgba(245, 247, 250, 0.85);
 }
 
+.header-left,
 .header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.hamburger-btn {
+/* ── Icon buttons ────────────────────────────── */
+.header-icon-btn {
   background: transparent;
   border: none;
   color: var(--text-secondary);
-  font-size: 20px;
-  padding: 6px 8px;
-  cursor: pointer;
+  padding: 7px;
   border-radius: var(--border-radius);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
   line-height: 1;
+}
+
+.header-icon-btn:hover {
+  color: var(--text-primary);
+  background-color: rgba(255, 255, 255, 0.07);
+}
+
+/* ── Hamburger: hidden on desktop ────────────── */
+.hamburger-btn {
   display: none;
-  transition: var(--transition);
 }
 
-.hamburger-btn:hover {
-  color: var(--text-primary);
-  background-color: var(--border-color);
-}
-
+/* ── Theme toggle ────────────────────────────── */
 .theme-toggle {
-  background: transparent;
   border: 1px solid var(--border-color);
-  font-size: 16px;
-  padding: 5px 8px;
-  cursor: pointer;
-  border-radius: var(--border-radius);
-  line-height: 1;
-  color: var(--text-secondary);
-  transition: var(--transition);
 }
 
-.theme-toggle:hover {
-  background-color: var(--border-color);
-  color: var(--text-primary);
+/* ── Logout ──────────────────────────────────── */
+.logout-btn:hover {
+  color: var(--accent-red) !important;
+  background-color: rgba(255, 76, 76, 0.08) !important;
 }
 
+/* ── User info ───────────────────────────────── */
 .header-user {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: var(--border-radius);
 }
 
@@ -73,10 +77,10 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background-color: var(--accent-green);
+  background: linear-gradient(135deg, var(--accent-green), var(--accent-green-hover));
   color: #fff;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -93,27 +97,11 @@
   white-space: nowrap;
 }
 
-.logout-btn {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  font-size: 16px;
-  padding: 5px 9px;
-  cursor: pointer;
-  border-radius: var(--border-radius);
-  line-height: 1;
-  transition: var(--transition);
-}
-
-.logout-btn:hover {
-  color: var(--accent-red);
-  border-color: var(--accent-red);
-  background-color: rgba(255, 76, 76, 0.08);
-}
-
+/* ── Mobile ──────────────────────────────────── */
 @media (max-width: 768px) {
   .header {
     left: 0;
+    padding: 0 16px;
   }
 
   .hamburger-btn {

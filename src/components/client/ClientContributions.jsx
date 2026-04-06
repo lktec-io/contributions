@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext, useCallback, useRef } from 'react';
+import { FiPlus, FiDownload, FiGrid, FiList } from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
 import { useContributions } from '../../hooks/useContributions';
 import { eventService } from '../../services/eventService';
@@ -10,6 +11,7 @@ import ConfirmDialog from '../common/ConfirmDialog';
 import ContributorForm from './ContributorForm';
 import PaymentForm from './PaymentForm';
 import ContributorsTable from './ContributorsTable';
+import ContributorsGrid from './ContributorsGrid';
 import './ClientContributions.css';
 
 export default function ClientContributions() {
@@ -20,6 +22,7 @@ export default function ClientContributions() {
   const [search, setSearch] = useState('');
   const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [viewMode, setViewMode] = useState('table');
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -76,7 +79,6 @@ export default function ClientContributions() {
 
   const hasFilters = search || selectedEvent || selectedStatus;
 
-  // ── Add contributor ────────────────────────────────────────
   const handleAddSubmit = async (data) => {
     setAddLoading(true);
     try {
@@ -91,7 +93,6 @@ export default function ClientContributions() {
     }
   };
 
-  // ── Edit contributor ───────────────────────────────────────
   const handleEditSubmit = async (data) => {
     setAddLoading(true);
     try {
@@ -107,7 +108,6 @@ export default function ClientContributions() {
     }
   };
 
-  // ── Record payment ─────────────────────────────────────────
   const handlePaymentSubmit = async (data) => {
     setPayLoading(true);
     try {
@@ -123,7 +123,6 @@ export default function ClientContributions() {
     }
   };
 
-  // ── Delete contributor ─────────────────────────────────────
   const handleDeleteConfirm = async () => {
     setDeleteLoading(true);
     try {
@@ -139,7 +138,6 @@ export default function ClientContributions() {
     }
   };
 
-  // ── Export ─────────────────────────────────────────────────
   const handleExport = async (type) => {
     setExporting(type);
     try {
@@ -155,9 +153,14 @@ export default function ClientContributions() {
     }
   };
 
+  const tableActions = {
+    onEdit: (c) => { setSelectedContrib(c); setShowEditModal(true); },
+    onRecordPayment: (c) => { setSelectedContrib(c); setShowPaymentModal(true); },
+    onDelete: (c) => { setSelectedContrib(c); setShowDeleteConfirm(true); },
+  };
+
   return (
     <div className="client-contributions">
-      {/* Page header */}
       <div className="page-header">
         <div>
           <h2 className="page-title">My Contributions</h2>
@@ -166,22 +169,39 @@ export default function ClientContributions() {
           </p>
         </div>
         <div className="cc-header-actions">
-          <div className="export-buttons">
-            <button className="btn btn-secondary btn-export" onClick={() => handleExport('csv')} disabled={!!exporting}>
-              {exporting === 'csv' ? '…' : '⬇ CSV'}
+          <div className="view-toggle">
+            <button
+              className={`view-toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
+              onClick={() => setViewMode('table')}
+              title="Table view"
+            >
+              <FiList size={16} />
             </button>
-            <button className="btn btn-secondary btn-export" onClick={() => handleExport('xlsx')} disabled={!!exporting}>
-              {exporting === 'xlsx' ? '…' : '⬇ Excel'}
-            </button>
-            <button className="btn btn-secondary btn-export" onClick={() => handleExport('pdf')} disabled={!!exporting}>
-              {exporting === 'pdf' ? '…' : '⬇ PDF'}
+            <button
+              className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid')}
+              title="Grid view"
+            >
+              <FiGrid size={16} />
             </button>
           </div>
-          <button className="btn" onClick={() => setShowAddModal(true)}>+ Add Contributor</button>
+          <div className="export-buttons">
+            <button className="btn btn-secondary btn-export" onClick={() => handleExport('csv')} disabled={!!exporting}>
+              <FiDownload size={13} /> {exporting === 'csv' ? '…' : 'CSV'}
+            </button>
+            <button className="btn btn-secondary btn-export" onClick={() => handleExport('xlsx')} disabled={!!exporting}>
+              <FiDownload size={13} /> {exporting === 'xlsx' ? '…' : 'Excel'}
+            </button>
+            <button className="btn btn-secondary btn-export" onClick={() => handleExport('pdf')} disabled={!!exporting}>
+              <FiDownload size={13} /> {exporting === 'pdf' ? '…' : 'PDF'}
+            </button>
+          </div>
+          <button className="btn" onClick={() => setShowAddModal(true)}>
+            <FiPlus size={16} /> Add Contributor
+          </button>
         </div>
       </div>
 
-      {/* Filters */}
       <div className="filters-bar">
         <input
           type="text"
@@ -205,18 +225,23 @@ export default function ClientContributions() {
         )}
       </div>
 
-      {/* Table */}
-      <div className="section-card">
-        <ContributorsTable
+      {viewMode === 'table' ? (
+        <div className="section-card">
+          <ContributorsTable
+            contributions={contributions}
+            loading={loading}
+            {...tableActions}
+          />
+        </div>
+      ) : (
+        <ContributorsGrid
           contributions={contributions}
           loading={loading}
-          onEdit={(c) => { setSelectedContrib(c); setShowEditModal(true); }}
-          onRecordPayment={(c) => { setSelectedContrib(c); setShowPaymentModal(true); }}
-          onDelete={(c) => { setSelectedContrib(c); setShowDeleteConfirm(true); }}
+          hasFilters={hasFilters}
+          {...tableActions}
         />
-      </div>
+      )}
 
-      {/* Add modal */}
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add Contributor" size="medium">
         <ContributorForm
           events={events}
@@ -226,7 +251,6 @@ export default function ClientContributions() {
         />
       </Modal>
 
-      {/* Edit modal */}
       <Modal isOpen={showEditModal} onClose={() => { setShowEditModal(false); setSelectedContrib(null); }} title="Edit Contributor" size="medium">
         <ContributorForm
           initialData={selectedContrib}
@@ -237,7 +261,6 @@ export default function ClientContributions() {
         />
       </Modal>
 
-      {/* Payment modal */}
       <Modal isOpen={showPaymentModal} onClose={() => { setShowPaymentModal(false); setSelectedContrib(null); }} title="Record Payment" size="small">
         <PaymentForm
           contribution={selectedContrib}
@@ -247,7 +270,6 @@ export default function ClientContributions() {
         />
       </Modal>
 
-      {/* Delete confirm */}
       <ConfirmDialog
         isOpen={showDeleteConfirm}
         onClose={() => { setShowDeleteConfirm(false); setSelectedContrib(null); }}

@@ -11,6 +11,35 @@
   flex-wrap: wrap;
 }
 
+.view-toggle {
+  display: flex;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.view-toggle-btn {
+  background: transparent;
+  border: none;
+  padding: 7px 10px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.view-toggle-btn:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.view-toggle-btn.active {
+  background-color: var(--accent-green);
+  color: #fff;
+}
+
 .filters-bar {
   display: flex;
   gap: 10px;
@@ -34,6 +63,9 @@
 .btn-export {
   font-size: 12px;
   padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 @media (max-width: 768px) {
@@ -45,6 +77,10 @@
 
   .export-buttons {
     flex-wrap: wrap;
+  }
+
+  .view-toggle {
+    align-self: flex-start;
   }
 
   .filters-bar {

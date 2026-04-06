@@ -1,5 +1,6 @@
 import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FiMail, FiLock, FiLogIn } from 'react-icons/fi';
 import { AuthContext } from '../context/AuthContext';
 import { ToastContext } from '../context/ToastContext';
 import { getErrorMessage } from '../utils/helpers';
@@ -35,7 +36,7 @@ export default function Login() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <span className="login-logo-icon">🏦</span>
+          <div className="login-logo-mark">CT</div>
           <h1 className="login-app-name">ContribTrack</h1>
           <p className="login-tagline">Contribution Management System</p>
         </div>
@@ -43,30 +44,36 @@ export default function Login() {
         <form className="login-form" onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="contributor@admin.com"
-              autoComplete="email"
-              disabled={loading}
-              required
-            />
+            <div className="input-icon-wrap">
+              <FiMail className="input-icon" size={16} />
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="contributor@admin.com"
+                autoComplete="email"
+                disabled={loading}
+                required
+              />
+            </div>
           </div>
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
-              disabled={loading}
-              required
-            />
+            <div className="input-icon-wrap">
+              <FiLock className="input-icon" size={16} />
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                disabled={loading}
+                required
+              />
+            </div>
           </div>
 
           <button type="submit" className="btn login-submit-btn" disabled={loading}>
@@ -76,7 +83,10 @@ export default function Login() {
                 Signing in…
               </span>
             ) : (
-              'Sign In'
+              <>
+                <FiLogIn size={16} />
+                Sign In
+              </>
             )}
           </button>
         </form>

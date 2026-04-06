@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
+import { FiCalendar, FiAlertTriangle, FiEye } from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
 import { eventService } from '../../services/eventService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
@@ -33,7 +34,7 @@ export default function ClientEvents({ onViewContributions }) {
   if (loading) return <div className="tab-loading"><LoadingSpinner size="large" /></div>;
   if (error) return (
     <div className="error-state">
-      <span className="error-icon">⚠️</span>
+      <FiAlertTriangle size={36} color="var(--accent-orange)" />
       <p>{error}</p>
       <button className="btn" onClick={fetchEvents}>Retry</button>
     </div>
@@ -50,7 +51,7 @@ export default function ClientEvents({ onViewContributions }) {
 
       {events.length === 0 ? (
         <EmptyState
-          icon="🎉"
+          IconComponent={FiCalendar}
           title="No events assigned"
           description="Your events will appear here once the admin assigns them to you."
         />
@@ -75,7 +76,7 @@ export default function ClientEvents({ onViewContributions }) {
                 className="btn event-view-btn"
                 onClick={() => onViewContributions && onViewContributions(ev)}
               >
-                View Contributors
+                <FiEye size={14} /> View Contributors
               </button>
             </div>
           ))}

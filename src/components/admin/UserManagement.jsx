@@ -1,7 +1,8 @@
 import { useState, useEffect, useContext } from 'react';
+import { FiPlus, FiUsers, FiAlertTriangle } from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
 import { userService } from '../../services/userService';
-import { formatDate, getStatusBadgeClass } from '../../utils/formatters';
+import { formatDate } from '../../utils/formatters';
 import { getErrorMessage } from '../../utils/helpers';
 import Modal from '../common/Modal';
 import ConfirmDialog from '../common/ConfirmDialog';
@@ -81,10 +82,7 @@ export default function UserManagement() {
     }
   };
 
-  const handleDeleteClick = (user) => {
-    setSelectedUser(user);
-    setShowConfirm(true);
-  };
+  const handleDeleteClick = (user) => { setSelectedUser(user); setShowConfirm(true); };
 
   const handleDeleteConfirm = async () => {
     setDeleting(true);
@@ -110,7 +108,7 @@ export default function UserManagement() {
   if (loading) return <div className="tab-loading"><LoadingSpinner size="large" /></div>;
   if (error) return (
     <div className="error-state">
-      <span className="error-icon">⚠️</span>
+      <FiAlertTriangle size={36} color="var(--accent-orange)" />
       <p>{error}</p>
       <button className="btn" onClick={fetchUsers}>Retry</button>
     </div>
@@ -124,12 +122,12 @@ export default function UserManagement() {
           <p className="page-subtitle">{users.length} user{users.length !== 1 ? 's' : ''} registered</p>
         </div>
         <button className="btn" onClick={() => { setFormData(EMPTY_FORM); setFormErrors({}); setShowModal(true); }}>
-          + Add User
+          <FiPlus size={16} /> Add User
         </button>
       </div>
 
       {users.length === 0 ? (
-        <EmptyState icon="👥" title="No users yet" description="Create the first client user." />
+        <EmptyState IconComponent={FiUsers} title="No users yet" description="Create the first client user." />
       ) : (
         <div className="section-card">
           <div className="table-wrap">
@@ -165,15 +163,10 @@ export default function UserManagement() {
                         className={`btn-sm ${u.is_active ? 'btn-sm-warning' : 'btn-sm-success'}`}
                         onClick={() => handleToggleStatus(u)}
                         disabled={togglingId === u.id}
-                        title={u.is_active ? 'Deactivate' : 'Activate'}
                       >
                         {togglingId === u.id ? '…' : u.is_active ? 'Deactivate' : 'Activate'}
                       </button>
-                      <button
-                        className="btn-sm btn-sm-danger"
-                        onClick={() => handleDeleteClick(u)}
-                        title="Delete user"
-                      >
+                      <button className="btn-sm btn-sm-danger" onClick={() => handleDeleteClick(u)}>
                         Delete
                       </button>
                     </td>
@@ -185,7 +178,6 @@ export default function UserManagement() {
         </div>
       )}
 
-      {/* Create user modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Add New User" size="small">
         <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
@@ -217,7 +209,6 @@ export default function UserManagement() {
         </form>
       </Modal>
 
-      {/* Delete confirmation */}
       <ConfirmDialog
         isOpen={showConfirm}
         onClose={() => { setShowConfirm(false); setSelectedUser(null); }}

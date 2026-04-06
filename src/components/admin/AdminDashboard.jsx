@@ -1,4 +1,8 @@
 import { useState, useEffect, useContext } from 'react';
+import {
+  FiUsers, FiCalendar, FiDollarSign, FiCheckCircle,
+  FiAlertTriangle,
+} from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import { ToastContext } from '../../context/ToastContext';
 import api from '../../services/api';
@@ -6,12 +10,20 @@ import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { getErrorMessage } from '../../utils/helpers';
 import Sidebar from '../common/Sidebar';
 import Header from '../common/Header';
+import Footer from '../common/Footer';
 import LoadingSpinner from '../common/LoadingSpinner';
 import EmptyState from '../common/EmptyState';
 import UserManagement from './UserManagement';
 import AdminEvents from './AdminEvents';
 import AdminContributions from './AdminContributions';
 import './AdminDashboard.css';
+
+const STAT_CARDS = [
+  { key: 'totalUsers',         label: 'Total Users',         Icon: FiUsers,        color: '#3B82F6' },
+  { key: 'totalEvents',        label: 'Total Events',        Icon: FiCalendar,     color: '#A78BFA' },
+  { key: 'totalContributions', label: 'Contributions',       Icon: FiDollarSign,   color: '#FFA500' },
+  { key: 'totalCollected',     label: 'Total Collected',     Icon: FiCheckCircle,  color: '#00B894', money: true },
+];
 
 export default function AdminDashboard() {
   const { user } = useContext(AuthContext);
@@ -49,7 +61,7 @@ export default function AdminDashboard() {
     if (loading) return <div className="tab-loading"><LoadingSpinner size="large" /></div>;
     if (error) return (
       <div className="error-state">
-        <span className="error-icon">⚠️</span>
+        <FiAlertTriangle size={36} color="var(--accent-orange)" />
         <p>{error}</p>
         <button className="btn" onClick={fetchStats}>Retry</button>
       </div>
@@ -58,48 +70,38 @@ export default function AdminDashboard() {
     return (
       <>
         <div className="welcome-banner">
-          <div className="welcome-text">
-            <h1>Welcome back, {user?.name} 👋</h1>
-            <p>{today}</p>
+          <div className="welcome-banner-inner">
+            <div className="welcome-text">
+              <h1>Welcome back, {user?.name} 👋</h1>
+              <p>{today}</p>
+            </div>
           </div>
-          <span className="welcome-emoji">📊</span>
         </div>
 
         <div className="stats-grid">
-          <div className="stat-card">
-            <span className="stat-icon">👥</span>
-            <div className="stat-info">
-              <span className="stat-label">Total Users</span>
-              <span className="stat-value">{stats?.totalUsers ?? 0}</span>
+          {STAT_CARDS.map(({ key, label, Icon, color, money }) => (
+            <div key={key} className="stat-card">
+              <div className="stat-icon-wrap" style={{ background: `${color}1F` }}>
+                <Icon size={24} color={color} />
+              </div>
+              <div className="stat-info">
+                <span className="stat-label">{label}</span>
+                <span className="stat-value" style={money ? { color } : {}}>
+                  {money ? formatCurrency(stats?.[key] ?? 0) : (stats?.[key] ?? 0)}
+                </span>
+              </div>
             </div>
-          </div>
-          <div className="stat-card">
-            <span className="stat-icon">🎉</span>
-            <div className="stat-info">
-              <span className="stat-label">Total Events</span>
-              <span className="stat-value">{stats?.totalEvents ?? 0}</span>
-            </div>
-          </div>
-          <div className="stat-card">
-            <span className="stat-icon">💰</span>
-            <div className="stat-info">
-              <span className="stat-label">Contributions</span>
-              <span className="stat-value">{stats?.totalContributions ?? 0}</span>
-            </div>
-          </div>
-          <div className="stat-card stat-card-accent">
-            <span className="stat-icon">✅</span>
-            <div className="stat-info">
-              <span className="stat-label">Total Collected</span>
-              <span className="stat-value stat-money">{formatCurrency(stats?.totalCollected ?? 0)}</span>
-            </div>
-          </div>
+          ))}
         </div>
 
         <div className="section-card">
           <h2 className="section-title">Recent Activity</h2>
           {!stats?.recentActivity?.length ? (
-            <EmptyState icon="📋" title="No activity yet" description="Contributions will appear here as they are added." />
+            <EmptyState
+              IconComponent={FiDollarSign}
+              title="No activity yet"
+              description="Contributions will appear here as they are added."
+            />
           ) : (
             <div className="table-wrap">
               <table className="data-table">
@@ -151,6 +153,7 @@ export default function AdminDashboard() {
       <div className="main-area">
         <Header onMenuToggle={() => setSidebarOpen(prev => !prev)} />
         <main className="main-content">{renderContent()}</main>
+        <Footer />
       </div>
     </div>
   );
