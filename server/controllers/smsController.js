@@ -1,5 +1,8 @@
 const Contribution = require('../models/Contribution');
 
+// ======================================================
+// Africa's Talking SMS Setup
+// ======================================================
 function getATSms() {
   const AfricasTalking = require('africastalking');
 
@@ -11,7 +14,9 @@ function getATSms() {
   return at.SMS;
 }
 
-// 🔥 FIX PHONE FORMAT
+// ======================================================
+// FORMAT PHONE (TZ format 255xxxxxxxxx)
+// ======================================================
 function formatPhone(phone) {
   if (!phone) return null;
 
@@ -28,6 +33,9 @@ function formatPhone(phone) {
   return cleaned;
 }
 
+// ======================================================
+// FORMAT MONEY
+// ======================================================
 function formatCurrency(amount) {
   return `KES ${parseFloat(amount || 0).toLocaleString('en-KE', {
     minimumFractionDigits: 2,
@@ -35,6 +43,9 @@ function formatCurrency(amount) {
   })}`;
 }
 
+// ======================================================
+// SEND SINGLE REMINDER
+// ======================================================
 async function sendReminder(req, res) {
   try {
     const { id } = req.params;
@@ -42,22 +53,31 @@ async function sendReminder(req, res) {
     const contribution = await Contribution.findById(id);
 
     if (!contribution) {
-      return res.status(404).json({ success: false, message: 'Contributor not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Contributor not found',
+      });
     }
 
     if (!contribution.phone) {
-      return res.status(400).json({ success: false, message: 'No phone number found' });
+      return res.status(400).json({
+        success: false,
+        message: 'No phone number found',
+      });
     }
 
     if (contribution.status === 'paid') {
-      return res.status(400).json({ success: false, message: 'Already paid' });
+      return res.status(400).json({
+        success: false,
+        message: 'Already paid',
+      });
     }
 
-    // 🔥 FIX PHONE
+    // ✅ FIX PHONE FORMAT
     const phone = formatPhone(contribution.phone);
 
-    const pledged = parseFloat(contribution.amount);
-    const paid = parseFloat(contribution.paid_amount);
+    const pledged = parseFloat(contribution.amount) || 0;
+    const paid = parseFloat(contribution.paid_amount) || 0;
     const balance = pledged - paid;
 
     const message =
@@ -65,7 +85,7 @@ async function sendReminder(req, res) {
       `You pledged: ${formatCurrency(pledged)}\n` +
       `You paid: ${formatCurrency(paid)}\n` +
       `Balance: ${formatCurrency(balance)}\n` +
-      `Please complete your contribution.`;
+      `Please complete your contribution.\nThank you.`;
 
     const sms = getATSms();
 
@@ -74,33 +94,36 @@ async function sendReminder(req, res) {
       message,
     };
 
+    // ⚠️ ONLY use sender ID if approved
     if (process.env.AT_SENDER_ID) {
       options.from = process.env.AT_SENDER_ID;
     }
 
-    // 🔥 DEBUG LOG
-    console.log("Sending SMS to:", phone);
-    console.log("Message:", message);
+    console.log("📤 Sending SMS to:", phone);
+    console.log("📩 Message:", message);
 
     const response = await sms.send(options);
 
-    console.log("SMS RESPONSE:", response);
+    console.log("✅ SMS RESPONSE:", JSON.stringify(response, null, 2));
 
-    res.json({
+    return res.json({
       success: true,
       message: `SMS sent to ${contribution.contributor_name}`,
     });
 
   } catch (err) {
-    console.error("SMS ERROR:", err.response?.data || err.message);
-    res.status(500).json({
+    console.error("❌ SMS ERROR:", err.response?.data || err.message);
+
+    return res.status(500).json({
       success: false,
       message: err.message,
     });
   }
 }
 
-// 🔥 BULK FIXED
+// ======================================================
+// SEND BULK REMINDERS
+// ======================================================
 async function sendBulkReminders(req, res) {
   try {
     const { eventId } = req.body;
@@ -109,7 +132,9 @@ async function sendBulkReminders(req, res) {
       eventId: eventId || undefined,
     });
 
-    const targets = contributions.filter(c => c.status !== 'paid' && c.phone);
+    const targets = contributions.filter(
+      (c) => c.status !== 'paid' && c.phone
+    );
 
     if (!targets.length) {
       return res.status(400).json({
@@ -121,31 +146,50 @@ async function sendBulkReminders(req, res) {
     const sms = getATSms();
 
     for (let c of targets) {
-      const phone = formatPhone(c.phone);
+      try {
+        const phone = formatPhone(c.phone);
 
-      const pledged = parseFloat(c.amount);
-      const paid = parseFloat(c.paid_amount);
-      const balance = pledged - paid;
+        const pledged = parseFloat(c.amount) || 0;
+        const paid = parseFloat(c.paid_amount) || 0;
+        const balance = pledged - paid;
 
-      const message =
-        `Hello ${c.contributor_name},\n` +
-        `Balance: ${formatCurrency(balance)}`;
+        const message =
+          `Hello ${c.contributor_name},\n` +
+          `Balance: ${formatCurrency(balance)}\n` +
+          `Please complete your contribution.`;
 
-      await sms.send({
-        to: [phone],
-        message,
-      });
+        const options = {
+          to: [phone],
+          message,
+        };
+
+        if (process.env.AT_SENDER_ID) {
+          options.from = process.env.AT_SENDER_ID;
+        }
+
+        await sms.send(options);
+
+      } catch (err) {
+        console.error("❌ BULK SMS ERROR (skipped):", err.message);
+      }
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: `Sent ${targets.length} SMS`,
     });
 
   } catch (err) {
-    console.error("BULK ERROR:", err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("❌ BULK ERROR:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 }
 
-module.exports = { sendReminder, sendBulkReminders };
+module.exports = {
+  sendReminder,
+  sendBulkReminders,
+};
