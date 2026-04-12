@@ -15,22 +15,32 @@ function getATSms() {
 }
 
 // ======================================================
-// FORMAT PHONE (TZ format 255xxxxxxxxx)
+// FORMAT PHONE — E.164 with + prefix (required by AT SDK)
+// google-libphonenumber rejects numbers without leading +
 // ======================================================
 function formatPhone(phone) {
   if (!phone) return null;
 
-  let cleaned = phone.replace(/\s+/g, '');
+  // Strip whitespace and non-digit/+ chars
+  let cleaned = phone.replace(/[\s\-().]/g, '');
 
+  // Already E.164
+  if (cleaned.startsWith('+')) {
+    return cleaned;
+  }
+
+  // Has country code but missing +  e.g. 255712345678
+  if (cleaned.startsWith('255') && cleaned.length >= 12) {
+    return '+' + cleaned;
+  }
+
+  // Local TZ format e.g. 0712345678
   if (cleaned.startsWith('0')) {
-    return '255' + cleaned.substring(1);
+    return '+255' + cleaned.substring(1);
   }
 
-  if (!cleaned.startsWith('255')) {
-    return '255' + cleaned;
-  }
-
-  return cleaned;
+  // Bare number — assume TZ
+  return '+255' + cleaned;
 }
 
 // ======================================================
