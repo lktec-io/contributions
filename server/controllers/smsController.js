@@ -2,15 +2,23 @@ const Contribution = require('../models/Contribution');
 
 // ======================================================
 // Africa's Talking SMS Setup
+// Validates credentials BEFORE calling AfricasTalking()
+// so a missing .env produces a 503, not a crash 500.
 // ======================================================
 function getATSms() {
+  const apiKey  = process.env.AT_API_KEY;
+  const username = process.env.AT_USERNAME;
+
+  if (!apiKey || !username) {
+    const missing = [!apiKey && 'AT_API_KEY', !username && 'AT_USERNAME']
+      .filter(Boolean).join(', ');
+    const err = new Error(`SMS service not configured — missing env vars: ${missing}`);
+    err.statusCode = 503;
+    throw err;
+  }
+
   const AfricasTalking = require('africastalking');
-
-  const at = AfricasTalking({
-    apiKey: process.env.AT_API_KEY,
-    username: process.env.AT_USERNAME,
-  });
-
+  const at = AfricasTalking({ apiKey, username });
   return at.SMS;
 }
 
@@ -41,6 +49,25 @@ function formatPhone(phone) {
 
   // Bare number — assume TZ
   return '+255' + cleaned;
+}
+
+// ======================================================
+// EXTRACT A READABLE MESSAGE FROM ANY THROW VALUE
+// AT SDK can reject with Error instances, plain objects,
+// or raw strings — this handles all three.
+// ======================================================
+function extractError(err) {
+  if (!err) return 'Unknown error';
+  if (typeof err === 'string') return err;
+  if (err instanceof Error) return err.message;
+  // Plain object from AT API (e.g. { SMSMessageData: {...} })
+  if (typeof err === 'object') {
+    return err.message
+      || err.errorMessage
+      || err.description
+      || JSON.stringify(err);
+  }
+  return String(err);
 }
 
 // ======================================================
@@ -122,12 +149,10 @@ async function sendReminder(req, res) {
     });
 
   } catch (err) {
-    console.error("❌ SMS ERROR:", err.response?.data || err.message);
-
-    return res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    const status  = err.statusCode || 500;
+    const message = extractError(err);
+    console.error("❌ SMS ERROR:", message);
+    return res.status(status).json({ success: false, message });
   }
 }
 
@@ -190,12 +215,10 @@ async function sendBulkReminders(req, res) {
     });
 
   } catch (err) {
-    console.error("❌ BULK ERROR:", err);
-
-    return res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    const status  = err.statusCode || 500;
+    const message = extractError(err);
+    console.error("❌ BULK ERROR:", message);
+    return res.status(status).json({ success: false, message });
   }
 }
 
