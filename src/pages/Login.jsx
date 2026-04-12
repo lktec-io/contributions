@@ -24,6 +24,8 @@ export default function Login() {
     setLoading(true);
     try {
       const user = await login(email.trim(), password);
+      // Persist name for welcome popup across page load
+      if (user.name) sessionStorage.setItem('justLoggedIn', user.name);
       toast.success(`Welcome back, ${user.name}!`);
       navigate('/dashboard', { replace: true });
     } catch (err) {

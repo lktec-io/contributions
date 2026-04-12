@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import {
   FiCalendar, FiUsers, FiDollarSign, FiCheckCircle,
-  FiAlertCircle, FiAlertTriangle,
+  FiAlertCircle, FiAlertTriangle, FiRefreshCw,
 } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import { ToastContext } from '../../context/ToastContext';
@@ -11,6 +11,7 @@ import { getErrorMessage } from '../../utils/helpers';
 import Sidebar from '../common/Sidebar';
 import Header from '../common/Header';
 import Footer from '../common/Footer';
+import WelcomePopup from '../common/WelcomePopup';
 import LoadingSpinner from '../common/LoadingSpinner';
 import EmptyState from '../common/EmptyState';
 import ClientEvents from './ClientEvents';
@@ -32,24 +33,35 @@ export default function ClientDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+
+  // Welcome popup — shown once per login session
+  const [showWelcome, setShowWelcome] = useState(() => {
+    const name = sessionStorage.getItem('justLoggedIn');
+    if (name) { sessionStorage.removeItem('justLoggedIn'); return name; }
+    return null;
+  });
 
   useEffect(() => {
     if (activeTab === 'dashboard') fetchStats();
   }, [activeTab]);
 
-  const fetchStats = async () => {
-    setLoading(true);
+  const fetchStats = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     setError(null);
     try {
       const res = await api.get('/dashboard/client');
       setStats(res.data.data);
+      if (isRefresh) toast.success('Dashboard refreshed');
     } catch (err) {
       const msg = getErrorMessage(err);
       setError(msg);
       toast.error(msg);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -63,7 +75,7 @@ export default function ClientDashboard() {
       <div className="error-state">
         <FiAlertTriangle size={36} color="var(--accent-orange)" />
         <p>{error}</p>
-        <button className="btn" onClick={fetchStats}>Retry</button>
+        <button className="btn" onClick={() => fetchStats()}>Retry</button>
       </div>
     );
 
@@ -72,9 +84,18 @@ export default function ClientDashboard() {
         <div className="welcome-banner">
           <div className="welcome-banner-inner">
             <div className="welcome-text">
-              <h1>Welcome back, {user?.name}!</h1>
+              <h1>Welcome back, <span>{user?.name}</span>!</h1>
               <p>{today}</p>
             </div>
+            <button
+              className="btn btn-refresh"
+              onClick={() => fetchStats(true)}
+              disabled={refreshing}
+              title="Refresh dashboard data"
+            >
+              <FiRefreshCw size={15} className={refreshing ? 'spin' : ''} />
+              {refreshing ? 'Refreshing…' : 'Refresh Data'}
+            </button>
           </div>
         </div>
 
@@ -152,10 +173,17 @@ export default function ClientDashboard() {
         onClose={() => setSidebarOpen(false)}
       />
       <div className="main-area">
-        <Header onMenuToggle={() => setSidebarOpen(prev => !prev)} />
+        <Header
+          onMenuToggle={() => setSidebarOpen(prev => !prev)}
+          menuOpen={sidebarOpen}
+        />
         <main className="main-content">{renderContent()}</main>
         <Footer />
       </div>
+
+      {showWelcome && (
+        <WelcomePopup name={showWelcome} onDismiss={() => setShowWelcome(null)} />
+      )}
     </div>
   );
 }

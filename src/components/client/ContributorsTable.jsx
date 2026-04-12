@@ -1,11 +1,33 @@
-import { FiEdit2, FiCreditCard, FiTrash2, FiUser, FiEdit, FiBell } from 'react-icons/fi';
-
+import { useState } from 'react';
+import { FiEdit2, FiCreditCard, FiTrash2, FiUser, FiSend } from 'react-icons/fi';
 import { formatCurrency, formatDate, getStatusBadgeClass } from '../../utils/formatters';
+import { smsService } from '../../services/smsService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import EmptyState from '../common/EmptyState';
 import './ContributorsTable.css';
 
 export default function ContributorsTable({ contributions, loading, onEdit, onRecordPayment, onDelete }) {
+  const [smsSending, setSmsSending] = useState(new Set());
+  const [smsSuccess, setSmsSuccess] = useState(new Set());
+
+  const handleSendReminder = async (c) => {
+    if (!c.phone) return;
+    setSmsSending(prev => new Set(prev).add(c.id));
+    try {
+      await smsService.sendReminder(c.id);
+      setSmsSuccess(prev => {
+        const next = new Set(prev).add(c.id);
+        // clear success indicator after 3 s
+        setTimeout(() => setSmsSuccess(s => { const n = new Set(s); n.delete(c.id); return n; }), 3000);
+        return next;
+      });
+    } catch {
+      // silent fail — toast is shown by api interceptor
+    } finally {
+      setSmsSending(prev => { const next = new Set(prev); next.delete(c.id); return next; });
+    }
+  };
+
   if (loading) return <div className="ct-loading"><LoadingSpinner size="large" /></div>;
 
   if (!contributions?.length) {
@@ -38,6 +60,8 @@ export default function ContributorsTable({ contributions, loading, onEdit, onRe
         <tbody>
           {contributions.map(c => {
             const outstanding = parseFloat(c.amount) - parseFloat(c.paid_amount);
+            const isSending   = smsSending.has(c.id);
+            const isSent      = smsSuccess.has(c.id);
             return (
               <tr key={c.id}>
                 <td className="td-name">{c.contributor_name}</td>
@@ -60,6 +84,14 @@ export default function ContributorsTable({ contributions, loading, onEdit, onRe
                     disabled={c.status === 'paid'}
                   >
                     <FiCreditCard size={14} />
+                  </button>
+                  <button
+                    className={`icon-btn icon-btn-sms ${isSent ? 'icon-btn-sms-sent' : ''}`}
+                    onClick={() => handleSendReminder(c)}
+                    title={!c.phone ? 'No phone number' : isSent ? 'Reminder sent!' : 'Send SMS reminder'}
+                    disabled={!c.phone || isSending || c.status === 'paid'}
+                  >
+                    <FiSend size={13} className={isSending ? 'spin' : ''} />
                   </button>
                   <button className="icon-btn icon-btn-red" onClick={() => onDelete(c)} title="Delete">
                     <FiTrash2 size={14} />

@@ -62,10 +62,41 @@
   background: rgba(0, 0, 0, 0.05);
 }
 
-/* ── Hamburger: hidden on desktop ────────────── */
+/* ── Hamburger: animated 3-bar → X ──────────── */
 .hamburger-btn {
   display: none;
   width: auto;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+}
+
+.hamburger-bar {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--text-secondary);
+  border-radius: 2px;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity   0.22s ease,
+              width     0.22s ease;
+  transform-origin: center;
+}
+
+.hamburger-btn:hover .hamburger-bar {
+  background: var(--text-primary);
+}
+
+/* Animate to × when sidebar is open */
+.hamburger-open .hamburger-bar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.hamburger-open .hamburger-bar:nth-child(2) {
+  opacity: 0;
+  width: 0;
+}
+.hamburger-open .hamburger-bar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
 }
 
 /* ── Theme toggle ────────────────────────────── */

@@ -1,19 +1,27 @@
 import { useContext } from 'react';
-import { FiMenu, FiSun, FiMoon, FiLogOut, FiEdit, FiTrash2, FiBell } from 'react-icons/fi';
+import { FiSun, FiMoon, FiLogOut } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import { ThemeContext } from '../../context/ThemeContext';
 import NotificationBell from '../notifications/NotificationBell';
 import './Header.css';
 
-export default function Header({ onMenuToggle }) {
+export default function Header({ onMenuToggle, menuOpen }) {
   const { user, logout } = useContext(AuthContext);
   const { theme, toggleTheme } = useContext(ThemeContext);
 
   return (
     <header className="header">
       <div className="header-left">
-        <button className="header-icon-btn hamburger-btn" onClick={onMenuToggle} aria-label="Toggle menu">
-          <FiMenu size={20} />
+        {/* Animated hamburger — 3 bars morph to X when open */}
+        <button
+          className={`header-icon-btn hamburger-btn ${menuOpen ? 'hamburger-open' : ''}`}
+          onClick={onMenuToggle}
+          aria-label="Toggle menu"
+          aria-expanded={menuOpen}
+        >
+          <span className="hamburger-bar" />
+          <span className="hamburger-bar" />
+          <span className="hamburger-bar" />
         </button>
       </div>
 
