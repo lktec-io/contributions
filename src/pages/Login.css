@@ -1,21 +1,106 @@
+/* ══════════════════════════════════════════════
+   LOGIN PAGE — Premium glass redesign
+   ══════════════════════════════════════════════ */
 .login-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(130deg, #0D2A1E 0%, #0D1B2A 50%, #152035 100%);
+  background: linear-gradient(135deg,
+    #061510 0%,
+    #0A1628 40%,
+    #0D1B2A 70%,
+    #0D2235 100%
+  );
   padding: 24px;
+  position: relative;
+  overflow: hidden;
 }
 
+/* Ambient glow orb — top right */
+.login-page::before {
+  content: '';
+  position: absolute;
+  top: -15%;
+  right: -10%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle,
+    rgba(0, 184, 148, 0.12) 0%,
+    rgba(0, 184, 148, 0.04) 40%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  pointer-events: none;
+  animation: orb-float 10s ease-in-out infinite alternate;
+}
+
+/* Ambient glow orb — bottom left */
+.login-page::after {
+  content: '';
+  position: absolute;
+  bottom: -20%;
+  left: -8%;
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle,
+    rgba(59, 130, 246, 0.08) 0%,
+    rgba(59, 130, 246, 0.02) 50%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  pointer-events: none;
+  animation: orb-float 14s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes orb-float {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-20px, 20px) scale(1.06); }
+}
+
+/* ── Card ────────────────────────────────────── */
 .login-card {
   width: 100%;
   max-width: 420px;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 14px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(
+    145deg,
+    rgba(22, 34, 50, 0.92) 0%,
+    rgba(15, 27, 40, 0.95) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(0, 184, 148, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   padding: 44px 40px;
-  animation: fadeInUp 0.4s ease both;
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  animation: fadeInUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Shimmer line across card top */
+.login-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255,255,255,0.03) 50%,
+    transparent 65%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-sweep 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer-sweep {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }
 
 /* ── Logo ────────────────────────────────────── */
@@ -25,10 +110,10 @@
 }
 
 .login-logo-mark {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--accent-green), #0096c7);
+  width: 58px;
+  height: 58px;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #00B894 0%, #007A63 100%);
   color: #fff;
   font-size: 20px;
   font-weight: 800;
@@ -37,7 +122,16 @@
   align-items: center;
   justify-content: center;
   margin: 0 auto 14px;
-  box-shadow: 0 4px 16px rgba(0, 184, 148, 0.3);
+  box-shadow:
+    0 6px 20px rgba(0, 184, 148, 0.4),
+    0 0 0 1px rgba(0, 184, 148, 0.3),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+  animation: logo-pulse 3s ease-in-out infinite;
+}
+
+@keyframes logo-pulse {
+  0%, 100% { box-shadow: 0 6px 20px rgba(0,184,148,0.4), 0 0 0 1px rgba(0,184,148,0.3); }
+  50%       { box-shadow: 0 6px 28px rgba(0,184,148,0.55), 0 0 0 1px rgba(0,184,148,0.5); }
 }
 
 .login-app-name {
@@ -45,6 +139,7 @@
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 6px;
+  letter-spacing: -0.3px;
 }
 
 .login-tagline {
@@ -58,7 +153,7 @@
   flex-direction: column;
 }
 
-/* password field: icon-wrap wraps lock icon + input-wrapper */
+/* password field layout */
 .login-pass-wrap {
   flex: 1;
 }
@@ -71,7 +166,6 @@
   padding-left: 0;
 }
 
-/* Override: when inside icon-wrap, shift input left padding from the outer wrap */
 .input-icon-wrap > input,
 .input-icon-wrap .input-wrapper input {
   padding-left: 38px;
@@ -84,22 +178,31 @@
   font-size: 15px;
   font-weight: 600;
   margin-top: 8px;
-  background-color: var(--accent-green);
+  background: linear-gradient(135deg, #00B894 0%, #00A07D 100%);
   color: #fff;
-  border-radius: var(--border-radius);
-  transition: var(--transition);
+  border-radius: 10px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  border: none;
+  letter-spacing: 0.2px;
 }
 
 .login-submit-btn:hover:not(:disabled) {
-  background-color: var(--accent-green-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 184, 148, 0.35);
+  background: linear-gradient(135deg, #00C9A4 0%, #00B894 100%);
+  transform: translateY(-2px);
+  box-shadow:
+    0 6px 20px rgba(0, 184, 148, 0.45),
+    0 0 0 1px rgba(0, 184, 148, 0.3);
 }
 
+.login-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* ── Loading state ───────────────────────────── */
 .login-loading {
   display: flex;
   align-items: center;
@@ -124,18 +227,7 @@
   color: var(--text-muted);
 }
 
-/* ── Mobile ──────────────────────────────────── */
-@media (max-width: 480px) {
-  .login-card {
-    padding: 32px 24px;
-  }
-
-  .login-app-name {
-    font-size: 20px;
-  }
-}
-
-
+/* ── Password toggle ─────────────────────────── */
 .input-wrapper {
   position: relative;
   display: flex;
@@ -143,6 +235,7 @@
 }
 
 .input-wrapper input {
+  width: 100%;
   padding-right: 44px;
 }
 
@@ -159,6 +252,30 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: unset;
   height: 24px;
   width: 24px;
+  border-radius: 4px;
+  transition: color 0.2s ease;
+}
+
+.password-toggle:hover {
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.password-toggle:active:not(:disabled) {
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* ── Mobile ──────────────────────────────────── */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 32px 24px;
+    border-radius: 14px;
+  }
+
+  .login-app-name {
+    font-size: 20px;
+  }
 }

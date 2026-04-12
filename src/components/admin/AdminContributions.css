@@ -1,9 +1,13 @@
+/* ══════════════════════════════════════════════
+   ADMIN CONTRIBUTIONS — Premium polish
+   ══════════════════════════════════════════════ */
 .admin-contributions {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
+/* ── Filters bar ─────────────────────────────── */
 .filters-bar {
   display: flex;
   gap: 10px;
@@ -21,17 +25,39 @@
   flex-shrink: 0;
 }
 
+/* ── Export buttons ──────────────────────────── */
 .export-buttons {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .btn-export {
   font-size: 12px;
   padding: 6px 12px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
+.btn-export:hover {
+  background: rgba(0, 184, 148, 0.1);
+  border-color: rgba(0, 184, 148, 0.3);
+  color: var(--accent-green);
+  box-shadow: 0 0 10px rgba(0, 184, 148, 0.12);
+}
+
+[data-theme="light"] .btn-export {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* ── Table cell variants ─────────────────────── */
 .td-muted {
   color: var(--text-secondary);
   font-size: 12px;
@@ -39,12 +65,15 @@
 
 .td-paid {
   color: var(--accent-green) !important;
+  font-weight: 600;
 }
 
 .td-outstanding {
   color: var(--accent-orange) !important;
+  font-weight: 500;
 }
 
+/* ── Responsive ──────────────────────────────── */
 @media (max-width: 768px) {
   .filters-bar {
     flex-direction: column;
@@ -54,5 +83,9 @@
   .filter-search,
   .filter-select {
     width: 100%;
+  }
+
+  .export-buttons {
+    justify-content: flex-start;
   }
 }

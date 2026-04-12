@@ -1,5 +1,9 @@
+/* ══════════════════════════════════════════════
+   CONTRIBUTORS TABLE — Premium row hover & icon buttons
+   ══════════════════════════════════════════════ */
 .contributors-table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .ct-loading {
@@ -8,6 +12,7 @@
   padding: 60px 0;
 }
 
+/* ── Cell variants ───────────────────────────── */
 .contributors-table .td-secondary {
   color: var(--text-secondary);
   font-size: 12px;
@@ -15,34 +20,46 @@
 
 .contributors-table .td-paid {
   color: var(--accent-green);
+  font-weight: 600;
 }
 
 .contributors-table .td-outstanding {
   color: var(--accent-orange);
+  font-weight: 500;
 }
 
+/* ── Action cell ─────────────────────────────── */
 .td-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   white-space: nowrap;
 }
 
+/* ── Icon buttons ────────────────────────────── */
 .icon-btn {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  padding: 4px 7px;
-  font-size: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 5px 7px;
   cursor: pointer;
   line-height: 1;
-  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-secondary);
+  transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
 
 .icon-btn:hover {
-  background-color: var(--bg-secondary);
-  border-color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.icon-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.95);
 }
 
 .icon-btn:disabled {
@@ -51,12 +68,43 @@
   pointer-events: none;
 }
 
+/* Edit button — neutral */
+.icon-btn:not(.icon-btn-green):not(.icon-btn-red):hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* Payment button — green */
+.icon-btn-green {
+  color: var(--accent-green);
+  border-color: rgba(0, 184, 148, 0.2);
+}
+
 .icon-btn-green:hover {
   border-color: var(--accent-green);
-  background-color: rgba(0, 184, 148, 0.1);
+  background: rgba(0, 184, 148, 0.12);
+  color: var(--accent-green);
+  box-shadow: 0 0 10px rgba(0, 184, 148, 0.2);
+}
+
+/* Delete button — red */
+.icon-btn-red {
+  color: var(--accent-red);
+  border-color: rgba(255, 76, 76, 0.2);
 }
 
 .icon-btn-red:hover {
   border-color: var(--accent-red);
-  background-color: rgba(255, 76, 76, 0.1);
+  background: rgba(255, 76, 76, 0.12);
+  color: var(--accent-red);
+  box-shadow: 0 0 10px rgba(255, 76, 76, 0.2);
+}
+
+[data-theme="light"] .icon-btn {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .icon-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.18);
 }
