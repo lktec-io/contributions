@@ -142,7 +142,6 @@ export default function ClientContributions() {
     setExporting(type);
     try {
       const eventName = events.find(e => String(e.id) === String(selectedEvent))?.name || 'all';
-      if (type === 'csv')  await exportService.exportCSV(selectedEvent || undefined, eventName);
       if (type === 'xlsx') await exportService.exportXLSX(selectedEvent || undefined, eventName);
       if (type === 'pdf')  await exportService.exportPDF(selectedEvent || undefined, eventName);
       toast.success(`${type.toUpperCase()} exported`);
@@ -186,9 +185,6 @@ export default function ClientContributions() {
             </button>
           </div>
           <div className="export-buttons">
-            <button className="btn btn-secondary btn-export" onClick={() => handleExport('csv')} disabled={!!exporting}>
-              <FiDownload size={13} /> {exporting === 'csv' ? '…' : 'CSV'}
-            </button>
             <button className="btn btn-secondary btn-export" onClick={() => handleExport('xlsx')} disabled={!!exporting}>
               <FiDownload size={13} /> {exporting === 'xlsx' ? '…' : 'Excel'}
             </button>

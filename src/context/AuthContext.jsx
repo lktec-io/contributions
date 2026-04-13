@@ -23,6 +23,7 @@ export function AuthProvider({ children }) {
     const res = await axios.post(`${API_BASE}/auth/login`, { email, password }, { withCredentials: true });
     const { accessToken, user: userData } = res.data.data;
     accessTokenRef.current = accessToken;
+    if (userData?.name) localStorage.setItem('ct_user_name', userData.name);
     setUser(userData);
     return userData;
   }, []);
@@ -34,6 +35,7 @@ export function AuthProvider({ children }) {
       // ignore
     }
     accessTokenRef.current = null;
+    localStorage.removeItem('ct_user_name');
     setUser(null);
   }, []);
 
@@ -43,7 +45,8 @@ export function AuthProvider({ children }) {
       const { accessToken } = res.data.data;
       accessTokenRef.current = accessToken;
       const payload = JSON.parse(atob(accessToken.split('.')[1]));
-      setUser({ id: payload.userId, email: payload.email, role: payload.role });
+      const savedName = localStorage.getItem('ct_user_name');
+      setUser({ id: payload.userId, email: payload.email, role: payload.role, name: savedName || payload.email });
       return true;
     } catch {
       accessTokenRef.current = null;

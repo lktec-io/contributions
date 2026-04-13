@@ -74,7 +74,7 @@ function extractError(err) {
 // FORMAT MONEY
 // ======================================================
 function formatCurrency(amount) {
-  return `KES ${parseFloat(amount || 0).toLocaleString('en-KE', {
+  return `TZS ${parseFloat(amount || 0).toLocaleString('en-TZ', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;

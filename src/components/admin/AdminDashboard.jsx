@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import {
   FiUsers, FiCalendar, FiDollarSign, FiCheckCircle,
-  FiAlertTriangle, FiRefreshCw,
+  FiAlertTriangle, FiRefreshCw, FiEye,
 } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import { ToastContext } from '../../context/ToastContext';
@@ -12,7 +12,7 @@ import Sidebar from '../common/Sidebar';
 import Header from '../common/Header';
 import Footer from '../common/Footer';
 import WelcomePopup from '../common/WelcomePopup';
-import LoadingSpinner from '../common/LoadingSpinner';
+import { StatsSkeleton } from '../common/SkeletonLoader';
 import EmptyState from '../common/EmptyState';
 import UserManagement from './UserManagement';
 import AdminEvents from './AdminEvents';
@@ -70,7 +70,19 @@ export default function AdminDashboard() {
   });
 
   const renderDashboardTab = () => {
-    if (loading) return <div className="tab-loading"><LoadingSpinner size="large" /></div>;
+    if (loading) return (
+      <>
+        <div className="welcome-banner welcome-banner-skeleton">
+          <div className="welcome-banner-inner" style={{ gap: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="skeleton" style={{ width: 240, height: 24, borderRadius: 6 }} />
+              <div className="skeleton" style={{ width: 160, height: 13, borderRadius: 4 }} />
+            </div>
+          </div>
+        </div>
+        <StatsSkeleton count={4} />
+      </>
+    );
     if (error) return (
       <div className="error-state">
         <FiAlertTriangle size={36} color="var(--accent-orange)" />
@@ -87,15 +99,24 @@ export default function AdminDashboard() {
               <h1>Welcome back, <span>{user?.name}</span>!</h1>
               <p>{today}</p>
             </div>
-            <button
-              className="btn btn-refresh"
-              onClick={() => fetchStats(true)}
-              disabled={refreshing}
-              title="Refresh dashboard data"
-            >
-              <FiRefreshCw size={15} className={refreshing ? 'spin' : ''} />
-              {refreshing ? 'Refreshing…' : 'Refresh Data'}
-            </button>
+            <div className="welcome-banner-btns">
+              <button
+                className="btn btn-secondary btn-view-contribs"
+                onClick={() => setActiveTab('contributions')}
+                title="View all contributors"
+              >
+                <FiEye size={15} /> View Contributors
+              </button>
+              <button
+                className="btn btn-refresh"
+                onClick={() => fetchStats(true)}
+                disabled={refreshing}
+                title="Refresh dashboard data"
+              >
+                <FiRefreshCw size={15} className={refreshing ? 'spin' : ''} />
+                {refreshing ? 'Refreshing…' : 'Refresh Data'}
+              </button>
+            </div>
           </div>
         </div>
 

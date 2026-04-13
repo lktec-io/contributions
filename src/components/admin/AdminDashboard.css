@@ -47,6 +47,12 @@
   animation: fadeInDown 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Skeleton loading state — suppress orb pseudo-elements */
+.welcome-banner-skeleton::before,
+.welcome-banner-skeleton::after {
+  display: none;
+}
+
 /* Primary glow orb — top right */
 .welcome-banner::before {
   content: '';
@@ -92,6 +98,53 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+}
+
+/* ── Banner button group ─────────────────────── */
+.welcome-banner-btns {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 2;
+}
+
+/* ── View Contributors button ────────────────── */
+.btn-view-contribs {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 9px 18px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  width: fit-content !important;
+}
+
+.btn-view-contribs:hover {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.2);
+}
+
+[data-theme="light"] .btn-view-contribs {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.10);
+  color: #1A1A2E;
+}
+
+[data-theme="light"] .btn-view-contribs:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #3B82F6;
 }
 
 /* ── Refresh Data button ─────────────────────── */

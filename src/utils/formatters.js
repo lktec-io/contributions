@@ -1,9 +1,9 @@
 export const formatCurrency = (amount) => {
   const num = parseFloat(amount) || 0;
-  return new Intl.NumberFormat('en-TZ', {
+  return `TZS ${new Intl.NumberFormat('en-TZ', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(num);
+  }).format(num)}`;
 };
 
 export const formatDate = (dateStr) => {

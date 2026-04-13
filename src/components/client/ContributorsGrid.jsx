@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { FiEdit2, FiCreditCard, FiTrash2, FiUser, FiPhone, FiMail, FiSend } from 'react-icons/fi';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { smsService } from '../../services/smsService';
-import LoadingSpinner from '../common/LoadingSpinner';
+import { ContributorsGridSkeleton } from '../common/SkeletonLoader';
 import EmptyState from '../common/EmptyState';
 import './ContributorsGrid.css';
 
@@ -27,7 +27,7 @@ export default function ContributorsGrid({ contributions, loading, hasFilters, o
     }
   };
 
-  if (loading) return <div className="cg-loading"><LoadingSpinner size="large" /></div>;
+  if (loading) return <ContributorsGridSkeleton count={6} />;
 
   if (!contributions?.length) {
     return (

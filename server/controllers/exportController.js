@@ -197,9 +197,9 @@ async function exportPDF(req, res, next) {
 
     const boxW = (contentW - 20) / 3;
     const summaryItems = [
-      { label: 'Total Pledged',  value: `KES ${totalPledged.toLocaleString('en', { minimumFractionDigits: 2 })}`,   color: '#FFA500' },
-      { label: 'Total Paid',     value: `KES ${totalPaid.toLocaleString('en', { minimumFractionDigits: 2 })}`,      color: '#00B894' },
-      { label: 'Outstanding',    value: `KES ${outstanding.toLocaleString('en', { minimumFractionDigits: 2 })}`,    color: '#FF4C4C' },
+      { label: 'Total Pledged',  value: `TZS ${totalPledged.toLocaleString('en', { minimumFractionDigits: 2 })}`,   color: '#FFA500' },
+      { label: 'Total Paid',     value: `TZS ${totalPaid.toLocaleString('en', { minimumFractionDigits: 2 })}`,      color: '#00B894' },
+      { label: 'Outstanding',    value: `TZS ${outstanding.toLocaleString('en', { minimumFractionDigits: 2 })}`,    color: '#FF4C4C' },
     ];
 
     summaryItems.forEach((item, i) => {

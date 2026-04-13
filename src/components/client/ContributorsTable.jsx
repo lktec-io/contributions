@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { FiEdit2, FiCreditCard, FiTrash2, FiUser, FiSend } from 'react-icons/fi';
 import { formatCurrency, formatDate, getStatusBadgeClass } from '../../utils/formatters';
 import { smsService } from '../../services/smsService';
-import LoadingSpinner from '../common/LoadingSpinner';
+import { TableSkeleton } from '../common/SkeletonLoader';
 import EmptyState from '../common/EmptyState';
 import './ContributorsTable.css';
 
@@ -28,7 +28,7 @@ export default function ContributorsTable({ contributions, loading, onEdit, onRe
     }
   };
 
-  if (loading) return <div className="ct-loading"><LoadingSpinner size="large" /></div>;
+  if (loading) return <div className="contributors-table-wrap"><TableSkeleton rows={6} cols={10} /></div>;
 
   if (!contributions?.length) {
     return (
