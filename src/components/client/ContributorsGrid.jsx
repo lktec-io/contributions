@@ -85,7 +85,7 @@ export default function ContributorsGrid({ contributions, loading, hasFilters, o
               <span className="ccard-date">{formatDate(c.created_at)}</span>
               <div className="ccard-btns">
                 <button className="icon-btn" onClick={() => onEdit(c)} title="Edit contributor">
-                  <FiEdit2 size={14} />
+                  <FiEdit2 size={16} />
                 </button>
                 <button
                   className="icon-btn icon-btn-green"
@@ -93,7 +93,7 @@ export default function ContributorsGrid({ contributions, loading, hasFilters, o
                   title={c.status === 'paid' ? 'Fully paid' : 'Record payment'}
                   disabled={c.status === 'paid'}
                 >
-                  <FiCreditCard size={14} />
+                  <FiCreditCard size={16} />
                 </button>
                 <button
                   className={`icon-btn icon-btn-sms ${isSent ? 'icon-btn-sms-sent' : ''}`}
@@ -101,10 +101,10 @@ export default function ContributorsGrid({ contributions, loading, hasFilters, o
                   title={!c.phone ? 'No phone number' : isSent ? 'Reminder sent!' : 'Send SMS reminder'}
                   disabled={!c.phone || isSending || c.status === 'paid'}
                 >
-                  <FiSend size={13} className={isSending ? 'spin' : ''} />
+                  <FiSend size={15} className={isSending ? 'spin' : ''} />
                 </button>
                 <button className="icon-btn icon-btn-red" onClick={() => onDelete(c)} title="Delete">
-                  <FiTrash2 size={14} />
+                  <FiTrash2 size={16} />
                 </button>
               </div>
             </div>
