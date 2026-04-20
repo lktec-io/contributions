@@ -40,8 +40,8 @@ export default function Login() {
       <div className="login-card">
         <div className="login-logo">
           <div className="login-logo-mark">CT</div>
-          <h1 className="login-app-name">ContribTrack</h1>
-          <p className="login-tagline">Sign in to your account</p>
+          <h1 className="login-app-name">Welcome Back</h1>
+          <p className="login-tagline">Sign in to your account to continue</p>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>
