@@ -9,10 +9,13 @@ function sanitizeFilename(str) {
   return str.replace(/[^a-z0-9]/gi, '_').toLowerCase();
 }
 
+const { getIsolationFilter } = require('../utils/tenantHelpers');
+
 async function getContributionsForExport(req) {
   const { eventId } = req.query;
-  const organizationId = req.user.role === 'client_user' ? req.user.userId : null;
-  return Contribution.findAll({ eventId: eventId || undefined, organizationId });
+  const filter = getIsolationFilter(req);
+  if (eventId) filter.eventId = eventId;
+  return Contribution.findAll(filter);
 }
 
 // ── CSV ───────────────────────────────────────────────────────

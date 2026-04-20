@@ -17,6 +17,7 @@ import EmptyState from '../common/EmptyState';
 import UserManagement from './UserManagement';
 import AdminEvents from './AdminEvents';
 import AdminContributions from './AdminContributions';
+import AdminManagement from './AdminManagement';
 import './AdminDashboard.css';
 
 const STAT_CARDS = [
@@ -180,6 +181,7 @@ export default function AdminDashboard() {
       case 'users':         return <UserManagement />;
       case 'events':        return <AdminEvents />;
       case 'contributions': return <AdminContributions />;
+      case 'admins':        return <AdminManagement />;
       default:              return renderDashboardTab();
     }
   };

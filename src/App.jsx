@@ -34,7 +34,9 @@ function AppRoutes() {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            {authCtx.user?.role === 'super_admin' ? <AdminDashboard /> : <ClientDashboard />}
+            {(authCtx.user?.role === 'super_admin' || authCtx.user?.role === 'admin')
+              ? <AdminDashboard />
+              : <ClientDashboard />}
           </ProtectedRoute>
         }
       />

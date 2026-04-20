@@ -1,17 +1,26 @@
 const pool = require('../config/db');
 
 const Contribution = {
-  async findAll({ eventId, status, search, organizationId } = {}) {
+  /**
+   * Find all contributions.
+   * - super_admin: filtered by e.created_by (their events only)
+   * - client_user: filtered by e.organization_id (their events only)
+   */
+  async findAll({ eventId, status, search, organizationId, createdBy } = {}) {
     let query = `
       SELECT c.id, c.event_id, c.contributor_name, c.phone, c.email,
              c.amount, c.paid_amount, c.status, c.created_at, c.updated_at,
-             e.name AS event_name, e.organization_id
+             e.name AS event_name, e.organization_id, e.created_by AS event_created_by
       FROM contributions c
       JOIN events e ON e.id = c.event_id
       WHERE 1=1
     `;
     const params = [];
 
+    if (createdBy !== null && createdBy !== undefined) {
+      query += ' AND e.created_by = ?';
+      params.push(createdBy);
+    }
     if (organizationId !== null && organizationId !== undefined) {
       query += ' AND e.organization_id = ?';
       params.push(organizationId);
@@ -36,7 +45,7 @@ const Contribution = {
 
   async findById(id) {
     const [rows] = await pool.query(
-      `SELECT c.*, e.name AS event_name, e.organization_id
+      `SELECT c.*, e.name AS event_name, e.organization_id, e.created_by AS event_created_by
        FROM contributions c
        JOIN events e ON e.id = c.event_id
        WHERE c.id = ?`,
@@ -66,14 +75,12 @@ const Contribution = {
   },
 
   async updatePaymentStatus(id) {
-    // Recalculate paid_amount from SUM of payment_history
     const [sumRows] = await pool.query(
       'SELECT COALESCE(SUM(amount), 0) AS total_paid FROM payment_history WHERE contribution_id = ?',
       [id]
     );
     const paidAmount = parseFloat(sumRows[0].total_paid);
 
-    // Fetch the pledge amount
     const [contribRows] = await pool.query(
       'SELECT amount FROM contributions WHERE id = ?',
       [id]
@@ -99,7 +106,7 @@ const Contribution = {
     return { paid_amount: paidAmount, status };
   },
 
-  async getStats(organizationId) {
+  async getStats({ organizationId, createdBy } = {}) {
     let query = `
       SELECT
         COUNT(c.id) AS total_contributors,
@@ -107,12 +114,19 @@ const Contribution = {
         COALESCE(SUM(c.paid_amount), 0) AS total_paid
       FROM contributions c
       JOIN events e ON e.id = c.event_id
+      WHERE 1=1
     `;
     const params = [];
+
+    if (createdBy !== null && createdBy !== undefined) {
+      query += ' AND e.created_by = ?';
+      params.push(createdBy);
+    }
     if (organizationId !== null && organizationId !== undefined) {
-      query += ' WHERE e.organization_id = ?';
+      query += ' AND e.organization_id = ?';
       params.push(organizationId);
     }
+
     const [rows] = await pool.query(query, params);
     const row = rows[0];
     return {

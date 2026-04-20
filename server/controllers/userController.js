@@ -1,9 +1,13 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
+const { canAccessUser } = require('../utils/tenantHelpers');
 
 async function getAll(req, res, next) {
   try {
-    const users = await User.findAll();
+    const filter = req.user.role === 'super_admin'
+      ? {}                                      // super_admin sees ALL users
+      : { createdBy: req.user.userId };         // admin sees only their own
+    const users = await User.findAll(filter);
     return res.json({ success: true, data: users });
   } catch (err) {
     next(err);
@@ -13,7 +17,12 @@ async function getAll(req, res, next) {
 async function getById(req, res, next) {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found', errors: [] });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found', errors: [] });
+    }
+    if (!canAccessUser(req, user)) {
+      return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+    }
     return res.json({ success: true, data: user });
   } catch (err) {
     next(err);
@@ -29,11 +38,20 @@ async function create(req, res, next) {
         success: false,
         message: 'Validation failed',
         errors: [
-          !name && { field: 'name', message: 'name is required' },
-          !email && { field: 'email', message: 'email is required' },
+          !name     && { field: 'name',     message: 'name is required' },
+          !email    && { field: 'email',    message: 'email is required' },
           !password && { field: 'password', message: 'password is required' },
         ].filter(Boolean),
       });
+    }
+
+    // Only super_admin may create admin accounts
+    if (role === 'admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ success: false, message: 'Only super admin can create admin accounts', errors: [] });
+    }
+    // Nobody may create another super_admin via this endpoint
+    if (role === 'super_admin') {
+      return res.status(403).json({ success: false, message: 'Cannot create super admin accounts', errors: [] });
     }
 
     const existing = await User.findByEmail(email);
@@ -45,8 +63,8 @@ async function create(req, res, next) {
     const id = await User.create({
       name,
       email,
-      password: hashedPassword,
-      role: role || 'client_user',
+      password:   hashedPassword,
+      role:       role || 'client_user',
       created_by: req.user.userId,
     });
 
@@ -59,20 +77,23 @@ async function create(req, res, next) {
 
 async function update(req, res, next) {
   try {
-    const { id } = req.params;
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found', errors: [] });
+    }
+    if (!canAccessUser(req, user)) {
+      return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+    }
+
     const { name, email, password, role } = req.body;
-
-    const user = await User.findById(id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found', errors: [] });
-
     const fields = {};
-    if (name) fields.name = name;
-    if (email) fields.email = email;
-    if (role) fields.role = role;
+    if (name)     fields.name     = name;
+    if (email)    fields.email    = email;
+    if (role)     fields.role     = role;
     if (password) fields.password = await bcrypt.hash(password, 10);
 
-    await User.update(id, fields);
-    const updated = await User.findById(id);
+    await User.update(req.params.id, fields);
+    const updated = await User.findById(req.params.id);
     return res.json({ success: true, data: updated });
   } catch (err) {
     next(err);
@@ -82,7 +103,12 @@ async function update(req, res, next) {
 async function remove(req, res, next) {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found', errors: [] });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found', errors: [] });
+    }
+    if (!canAccessUser(req, user)) {
+      return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+    }
     await User.delete(req.params.id);
     return res.json({ success: true, data: { message: 'User deleted successfully' } });
   } catch (err) {
@@ -93,7 +119,12 @@ async function remove(req, res, next) {
 async function toggleStatus(req, res, next) {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found', errors: [] });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found', errors: [] });
+    }
+    if (!canAccessUser(req, user)) {
+      return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+    }
     const result = await User.toggleStatus(req.params.id);
     return res.json({ success: true, data: { message: 'Status updated', is_active: result.is_active } });
   } catch (err) {

@@ -19,6 +19,12 @@
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
+.role-admin {
+  background-color: rgba(167, 139, 250, 0.15);
+  color: #A78BFA;
+  border: 1px solid rgba(167, 139, 250, 0.3);
+}
+
 .role-client_user {
   background-color: rgba(0, 184, 148, 0.12);
   color: var(--accent-green);

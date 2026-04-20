@@ -1,6 +1,7 @@
 const Payment = require('../models/Payment');
 const Contribution = require('../models/Contribution');
 const Notification = require('../models/Notification');
+const { canAccessContribution } = require('../utils/tenantHelpers');
 
 async function create(req, res, next) {
   try {
@@ -12,7 +13,7 @@ async function create(req, res, next) {
         message: 'Validation failed',
         errors: [
           !contribution_id && { field: 'contribution_id', message: 'contribution_id is required' },
-          !amount && { field: 'amount', message: 'amount is required' },
+          !amount          && { field: 'amount',          message: 'amount is required' },
         ].filter(Boolean),
       });
     }
@@ -26,13 +27,10 @@ async function create(req, res, next) {
     if (!contribution) {
       return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
     }
-
-    // Verify access for client_user
-    if (req.user.role === 'client_user' && contribution.organization_id !== req.user.userId) {
+    if (!canAccessContribution(req, contribution)) {
       return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
     }
 
-    // Insert payment record
     await Payment.create({
       contribution_id,
       amount: parsedAmount,
@@ -40,10 +38,8 @@ async function create(req, res, next) {
       recorded_by: req.user.userId,
     });
 
-    // Recalculate contribution status
-    const updated = await Contribution.updatePaymentStatus(contribution_id);
+    await Contribution.updatePaymentStatus(contribution_id);
 
-    // Notify event owner
     await Notification.create({
       user_id: contribution.organization_id,
       title: 'Payment Recorded',
@@ -65,11 +61,9 @@ async function getByContribution(req, res, next) {
     if (!contribution) {
       return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
     }
-
-    if (req.user.role === 'client_user' && contribution.organization_id !== req.user.userId) {
+    if (!canAccessContribution(req, contribution)) {
       return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
     }
-
     const payments = await Payment.findByContribution(contributionId);
     return res.json({ success: true, data: payments });
   } catch (err) {

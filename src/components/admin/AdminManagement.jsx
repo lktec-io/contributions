@@ -1,52 +1,41 @@
 import { useState, useEffect, useContext } from 'react';
-import { FiPlus, FiUsers, FiAlertTriangle, FiEye, FiEyeOff } from 'react-icons/fi';
-import { AuthContext } from '../../context/AuthContext';
+import { FiPlus, FiShield, FiAlertTriangle, FiEye, FiEyeOff } from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
-import { userService } from '../../services/userService';
 import { formatDate } from '../../utils/formatters';
 import { getErrorMessage } from '../../utils/helpers';
+import api from '../../services/api';
 import Modal from '../common/Modal';
 import ConfirmDialog from '../common/ConfirmDialog';
-import { StatsSkeleton } from '../common/SkeletonLoader';
 import EmptyState from '../common/EmptyState';
-import './UserManagement.css';
+import { StatsSkeleton } from '../common/SkeletonLoader';
+import './AdminManagement.css';
 
-const ROLE_LABELS = {
-  super_admin: 'Super Admin',
-  admin:       'Admin',
-  client_user: 'Client User',
-};
+const EMPTY_FORM = { name: '', email: '', password: '' };
 
-function buildEmptyForm() {
-  return { name: '', email: '', password: '', role: 'client_user' };
-}
-
-export default function UserManagement() {
-  const { user: currentUser } = useContext(AuthContext);
+export default function AdminManagement() {
   const { toast } = useContext(ToastContext);
-  const isSuperAdmin = currentUser?.role === 'super_admin';
 
-  const [users, setUsers] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [formData, setFormData] = useState(buildEmptyForm());
+  const [selected, setSelected] = useState(null);
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => { fetchAdmins(); }, []);
 
-  const fetchUsers = async () => {
+  const fetchAdmins = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await userService.getAll();
-      setUsers(res.data.data || []);
+      const res = await api.get('/admin');
+      setAdmins(res.data.data || []);
     } catch (err) {
       const msg = getErrorMessage(err);
       setError(msg);
@@ -56,7 +45,7 @@ export default function UserManagement() {
     }
   };
 
-  const validateForm = () => {
+  const validate = () => {
     const errs = {};
     if (!formData.name.trim())     errs.name     = 'Name is required';
     if (!formData.email.trim())    errs.email    = 'Email is required';
@@ -70,14 +59,14 @@ export default function UserManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validate()) return;
     setSaving(true);
     try {
-      await userService.create(formData);
-      toast.success('User created successfully');
+      await api.post('/admin', formData);
+      toast.success('Admin account created');
       setShowModal(false);
-      setFormData(buildEmptyForm());
-      fetchUsers();
+      setFormData(EMPTY_FORM);
+      fetchAdmins();
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -85,12 +74,12 @@ export default function UserManagement() {
     }
   };
 
-  const handleToggleStatus = async (user) => {
-    setTogglingId(user.id);
+  const handleToggle = async (admin) => {
+    setTogglingId(admin.id);
     try {
-      await userService.toggleStatus(user.id);
-      toast.success(`User ${user.is_active ? 'deactivated' : 'activated'}`);
-      fetchUsers();
+      await api.put(`/admin/${admin.id}/toggle-status`);
+      toast.success(`Admin ${admin.is_active ? 'deactivated' : 'activated'}`);
+      fetchAdmins();
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -101,11 +90,11 @@ export default function UserManagement() {
   const handleDeleteConfirm = async () => {
     setDeleting(true);
     try {
-      await userService.delete(selectedUser.id);
-      toast.success('User deleted');
+      await api.delete(`/admin/${selected.id}`);
+      toast.success('Admin deleted');
       setShowConfirm(false);
-      setSelectedUser(null);
-      fetchUsers();
+      setSelected(null);
+      fetchAdmins();
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -120,7 +109,7 @@ export default function UserManagement() {
   };
 
   const openModal = () => {
-    setFormData(buildEmptyForm());
+    setFormData(EMPTY_FORM);
     setFormErrors({});
     setShowPassword(false);
     setShowModal(true);
@@ -131,24 +120,30 @@ export default function UserManagement() {
     <div className="error-state">
       <FiAlertTriangle size={36} color="var(--accent-orange)" />
       <p>{error}</p>
-      <button className="btn" onClick={fetchUsers}>Retry</button>
+      <button className="btn" onClick={fetchAdmins}>Retry</button>
     </div>
   );
 
   return (
-    <div className="user-management">
+    <div className="admin-management">
       <div className="page-header">
         <div>
-          <h2 className="page-title">User Management</h2>
-          <p className="page-subtitle">{users.length} user{users.length !== 1 ? 's' : ''} registered</p>
+          <h2 className="page-title">Admin Accounts</h2>
+          <p className="page-subtitle">
+            {admins.length} admin{admins.length !== 1 ? 's' : ''} under your organization
+          </p>
         </div>
         <button className="btn" onClick={openModal}>
-          <FiPlus size={16} /> Add User
+          <FiPlus size={16} /> Create Admin
         </button>
       </div>
 
-      {users.length === 0 ? (
-        <EmptyState IconComponent={FiUsers} title="No users yet" description="Create the first client user." />
+      {admins.length === 0 ? (
+        <EmptyState
+          IconComponent={FiShield}
+          title="No admins yet"
+          description="Create admin accounts to delegate management of events and contributors."
+        />
       ) : (
         <div className="section-card">
           <div className="table-wrap">
@@ -157,39 +152,38 @@ export default function UserManagement() {
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
-                  <th>Role</th>
                   <th>Status</th>
                   <th>Created</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map(u => (
-                  <tr key={u.id}>
-                    <td className="td-name">{u.name}</td>
-                    <td className="td-secondary">{u.email}</td>
-                    <td>
-                      <span className={`role-badge role-${u.role}`}>
-                        {ROLE_LABELS[u.role] || u.role}
+                {admins.map(a => (
+                  <tr key={a.id}>
+                    <td className="td-name">
+                      <span className="admin-name-wrap">
+                        <FiShield size={13} className="admin-shield-icon" />
+                        {a.name}
                       </span>
                     </td>
+                    <td className="td-secondary">{a.email}</td>
                     <td>
-                      <span className={`status-pill ${u.is_active ? 'pill-active' : 'pill-inactive'}`}>
-                        {u.is_active ? 'Active' : 'Inactive'}
+                      <span className={`status-pill ${a.is_active ? 'pill-active' : 'pill-inactive'}`}>
+                        {a.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="td-date">{formatDate(u.created_at)}</td>
+                    <td className="td-date">{formatDate(a.created_at)}</td>
                     <td className="td-actions">
                       <button
-                        className={`btn-sm ${u.is_active ? 'btn-sm-warning' : 'btn-sm-success'}`}
-                        onClick={() => handleToggleStatus(u)}
-                        disabled={togglingId === u.id}
+                        className={`btn-sm ${a.is_active ? 'btn-sm-warning' : 'btn-sm-success'}`}
+                        onClick={() => handleToggle(a)}
+                        disabled={togglingId === a.id}
                       >
-                        {togglingId === u.id ? '…' : u.is_active ? 'Deactivate' : 'Activate'}
+                        {togglingId === a.id ? '…' : a.is_active ? 'Deactivate' : 'Activate'}
                       </button>
                       <button
                         className="btn-sm btn-sm-danger"
-                        onClick={() => { setSelectedUser(u); setShowConfirm(true); }}
+                        onClick={() => { setSelected(a); setShowConfirm(true); }}
                       >
                         Delete
                       </button>
@@ -202,17 +196,17 @@ export default function UserManagement() {
         </div>
       )}
 
-      {/* ── Create user modal ──────────────────────────── */}
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Add New User" size="small">
+      {/* ── Create admin modal ─────────────────────────── */}
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Create Admin Account" size="small">
         <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label>Full Name *</label>
-            <input name="name" value={formData.name} onChange={handleChange} placeholder="John Doe" />
+            <input name="name" value={formData.name} onChange={handleChange} placeholder="Admin name" />
             {formErrors.name && <span className="field-error">{formErrors.name}</span>}
           </div>
           <div className="form-group">
             <label>Email Address *</label>
-            <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="john@example.com" />
+            <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="admin@example.com" />
             {formErrors.email && <span className="field-error">{formErrors.email}</span>}
           </div>
           <div className="form-group">
@@ -232,20 +226,12 @@ export default function UserManagement() {
             </div>
             {formErrors.password && <span className="field-error">{formErrors.password}</span>}
           </div>
-          <div className="form-group">
-            <label>Role</label>
-            <select name="role" value={formData.role} onChange={handleChange}>
-              <option value="client_user">Client User</option>
-              {/* Only super_admin can create admin accounts */}
-              {isSuperAdmin && <option value="admin">Admin</option>}
-            </select>
-          </div>
           <div className="form-actions">
             <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)} disabled={saving}>
               Cancel
             </button>
             <button type="submit" className="btn" disabled={saving}>
-              {saving ? 'Creating…' : 'Create User'}
+              {saving ? 'Creating…' : 'Create Admin'}
             </button>
           </div>
         </form>
@@ -253,10 +239,10 @@ export default function UserManagement() {
 
       <ConfirmDialog
         isOpen={showConfirm}
-        onClose={() => { setShowConfirm(false); setSelectedUser(null); }}
+        onClose={() => { setShowConfirm(false); setSelected(null); }}
         onConfirm={handleDeleteConfirm}
-        title="Delete User"
-        message={`Delete "${selectedUser?.name}"? This cascades to all their events, contributions, and payments.`}
+        title="Delete Admin"
+        message={`Delete admin "${selected?.name}"? Their events, contributors, and contributions will be removed.`}
         confirmText="Delete"
         confirmVariant="danger"
         loading={deleting}
