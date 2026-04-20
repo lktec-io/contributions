@@ -42,8 +42,8 @@ export default function Sidebar({ activeTab, onTabChange, isOpen, onClose }) {
       )}
       <aside className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}>
         <div className="sidebar-logo">
-          <span className="sidebar-logo-mark">CT</span>
-          <span className="sidebar-logo-text">ContribTrack</span>
+          <span className="sidebar-logo-mark">FH</span>
+          <span className="sidebar-logo-text">Finance Hub</span>
         </div>
 
         <nav className="sidebar-nav">

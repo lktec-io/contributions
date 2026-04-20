@@ -39,8 +39,8 @@ export default function Login() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <div className="login-logo-mark">CT</div>
-          <h1 className="login-app-name">Welcome Back</h1>
+          <div className="login-logo-mark">FH</div>
+          <h1 className="login-app-name">Finance Hub</h1>
           <p className="login-tagline">Sign in to your account to continue</p>
         </div>
 
@@ -54,7 +54,7 @@ export default function Login() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="contributor@admin.com"
+                placeholder="finance@admin.com"
                 autoComplete="email"
                 disabled={loading}
                 required
@@ -105,7 +105,7 @@ export default function Login() {
         </form>
 
         <p className="login-footer-text">
-          Access is granted by your administrator.
+              &copy; {new Date().getFullYear()} Finance Hub || All rights reserved
         </p>
       </div>
     </div>
