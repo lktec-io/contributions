@@ -16,6 +16,7 @@ import { StatsSkeleton } from '../common/SkeletonLoader';
 import EmptyState from '../common/EmptyState';
 import ClientEvents from './ClientEvents';
 import ClientContributions from './ClientContributions';
+import PieChartCard from '../common/PieChartCard';
 import './ClientDashboard.css';
 
 const CLIENT_STATS = [
@@ -81,6 +82,7 @@ export default function ClientDashboard() {
           </div>
         </div>
         <StatsSkeleton count={5} />
+        <PieChartCard loading />
       </>
     );
     if (error) return (
@@ -136,42 +138,46 @@ export default function ClientDashboard() {
           ))}
         </div>
 
-        <div className="section-card">
-          <h2 className="section-title">Recent Contributions</h2>
-          {!stats?.recentContributions?.length ? (
-            <EmptyState
-              IconComponent={FiDollarSign}
-              title="No contributions yet"
-              description="Contributions will appear here once added."
-            />
-          ) : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Contributor</th>
-                    <th>Event</th>
-                    <th>Pledged</th>
-                    <th>Paid</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.recentContributions.map(c => (
-                    <tr key={c.id}>
-                      <td className="td-name">{c.contributor_name}</td>
-                      <td>{c.event_name}</td>
-                      <td className="td-money">{formatCurrency(c.amount)}</td>
-                      <td className="td-money td-paid">{formatCurrency(c.paid_amount)}</td>
-                      <td><span className={getStatusBadgeClass(c.status)}>{c.status}</span></td>
-                      <td className="td-date">{formatDate(c.created_at)}</td>
+        <div className="dashboard-bottom-grid">
+          <PieChartCard chartData={stats?.chartData} loading={false} />
+
+          <div className="section-card">
+            <h2 className="section-title">Recent Contributions</h2>
+            {!stats?.recentContributions?.length ? (
+              <EmptyState
+                IconComponent={FiDollarSign}
+                title="No contributions yet"
+                description="Contributions will appear here once added."
+              />
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Contributor</th>
+                      <th>Event</th>
+                      <th>Pledged</th>
+                      <th>Paid</th>
+                      <th>Status</th>
+                      <th>Date</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody>
+                    {stats.recentContributions.map(c => (
+                      <tr key={c.id}>
+                        <td className="td-name">{c.contributor_name}</td>
+                        <td>{c.event_name}</td>
+                        <td className="td-money">{formatCurrency(c.amount)}</td>
+                        <td className="td-money td-paid">{formatCurrency(c.paid_amount)}</td>
+                        <td><span className={getStatusBadgeClass(c.status)}>{c.status}</span></td>
+                        <td className="td-date">{formatDate(c.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </>
     );

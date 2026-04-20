@@ -18,6 +18,7 @@ import UserManagement from './UserManagement';
 import AdminEvents from './AdminEvents';
 import AdminContributions from './AdminContributions';
 import AdminManagement from './AdminManagement';
+import PieChartCard from '../common/PieChartCard';
 import './AdminDashboard.css';
 
 const STAT_CARDS = [
@@ -82,6 +83,7 @@ export default function AdminDashboard() {
           </div>
         </div>
         <StatsSkeleton count={4} />
+        <PieChartCard loading />
       </>
     );
     if (error) return (
@@ -137,40 +139,44 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        <div className="section-card">
-          <h2 className="section-title">Recent Activity</h2>
-          {!stats?.recentActivity?.length ? (
-            <EmptyState
-              IconComponent={FiDollarSign}
-              title="No activity yet"
-              description="Contributions will appear here as they are added."
-            />
-          ) : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Contributor</th>
-                    <th>Event</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.recentActivity.map(item => (
-                    <tr key={item.id}>
-                      <td className="td-name">{item.contributor_name}</td>
-                      <td>{item.event_name}</td>
-                      <td className="td-money">{formatCurrency(item.amount)}</td>
-                      <td><span className={`status-badge badge-${item.status}`}>{item.status}</span></td>
-                      <td className="td-date">{formatDateTime(item.created_at)}</td>
+        <div className="dashboard-bottom-grid">
+          <PieChartCard chartData={stats?.chartData} loading={false} />
+
+          <div className="section-card">
+            <h2 className="section-title">Recent Activity</h2>
+            {!stats?.recentActivity?.length ? (
+              <EmptyState
+                IconComponent={FiDollarSign}
+                title="No activity yet"
+                description="Contributions will appear here as they are added."
+              />
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Contributor</th>
+                      <th>Event</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                      <th>Date</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody>
+                    {stats.recentActivity.map(item => (
+                      <tr key={item.id}>
+                        <td className="td-name">{item.contributor_name}</td>
+                        <td>{item.event_name}</td>
+                        <td className="td-money">{formatCurrency(item.amount)}</td>
+                        <td><span className={`status-badge badge-${item.status}`}>{item.status}</span></td>
+                        <td className="td-date">{formatDateTime(item.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </>
     );

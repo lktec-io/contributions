@@ -21,11 +21,19 @@ async function getAdminStats(req, res, next) {
     // ── Contributions & collected ─────────────────────────────
     const [contribRow] = isSuperAdmin
       ? await pool.query(
-          `SELECT COUNT(c.id) AS count, COALESCE(SUM(c.paid_amount), 0) AS total
+          `SELECT
+             COUNT(c.id)                                                                            AS count,
+             COALESCE(SUM(c.paid_amount), 0)                                                       AS total,
+             COALESCE(SUM(CASE WHEN c.status = 'partial' THEN (c.amount - c.paid_amount) ELSE 0 END), 0) AS pending_sum,
+             COALESCE(SUM(CASE WHEN c.status = 'pledge'  THEN c.amount                  ELSE 0 END), 0) AS unpaid_sum
            FROM contributions c`
         )
       : await pool.query(
-          `SELECT COUNT(c.id) AS count, COALESCE(SUM(c.paid_amount), 0) AS total
+          `SELECT
+             COUNT(c.id)                                                                            AS count,
+             COALESCE(SUM(c.paid_amount), 0)                                                       AS total,
+             COALESCE(SUM(CASE WHEN c.status = 'partial' THEN (c.amount - c.paid_amount) ELSE 0 END), 0) AS pending_sum,
+             COALESCE(SUM(CASE WHEN c.status = 'pledge'  THEN c.amount                  ELSE 0 END), 0) AS unpaid_sum
            FROM contributions c
            JOIN events e ON e.id = c.event_id
            WHERE e.created_by = ?`,
@@ -51,13 +59,18 @@ async function getAdminStats(req, res, next) {
           [userId]
         );
 
+    const paidAmount    = parseFloat(contribRow[0].total);
+    const pendingAmount = parseFloat(contribRow[0].pending_sum);
+    const unpaidAmount  = parseFloat(contribRow[0].unpaid_sum);
+
     return res.json({
       success: true,
       data: {
         totalUsers:         usersRow[0].count,
         totalEvents:        eventsRow[0].count,
         totalContributions: contribRow[0].count,
-        totalCollected:     parseFloat(contribRow[0].total),
+        totalCollected:     paidAmount,
+        chartData: { paid: paidAmount, pending: pendingAmount, unpaid: unpaidAmount },
         recentActivity,
       },
     });
@@ -77,8 +90,10 @@ async function getClientStats(req, res, next) {
 
     const [[contribRow]] = await pool.query(
       `SELECT COUNT(c.id) AS count,
-              COALESCE(SUM(c.amount), 0) AS total_pledged,
-              COALESCE(SUM(c.paid_amount), 0) AS total_paid
+              COALESCE(SUM(c.amount), 0)      AS total_pledged,
+              COALESCE(SUM(c.paid_amount), 0) AS total_paid,
+              COALESCE(SUM(CASE WHEN c.status = 'partial' THEN (c.amount - c.paid_amount) ELSE 0 END), 0) AS pending_sum,
+              COALESCE(SUM(CASE WHEN c.status = 'pledge'  THEN c.amount                  ELSE 0 END), 0) AS unpaid_sum
        FROM contributions c
        JOIN events e ON e.id = c.event_id
        WHERE e.organization_id = ?`,
@@ -106,6 +121,11 @@ async function getClientStats(req, res, next) {
         totalPledged,
         totalPaid,
         outstanding:        totalPledged - totalPaid,
+        chartData: {
+          paid:    totalPaid,
+          pending: parseFloat(contribRow.pending_sum),
+          unpaid:  parseFloat(contribRow.unpaid_sum),
+        },
         recentContributions,
       },
     });

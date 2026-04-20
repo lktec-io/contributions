@@ -147,3 +147,17 @@
     gap: 10px;
   }
 }
+
+/* ── Dashboard bottom grid — chart + recent activity ── */
+.dashboard-bottom-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
