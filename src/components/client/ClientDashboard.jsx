@@ -150,32 +150,55 @@ export default function ClientDashboard() {
                 description="Contributions will appear here once added."
               />
             ) : (
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Contributor</th>
-                      <th>Event</th>
-                      <th>Pledged</th>
-                      <th>Paid</th>
-                      <th>Status</th>
-                      <th>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.recentContributions.map(c => (
-                      <tr key={c.id}>
-                        <td className="td-name">{c.contributor_name}</td>
-                        <td>{c.event_name}</td>
-                        <td className="td-money">{formatCurrency(c.amount)}</td>
-                        <td className="td-money td-paid">{formatCurrency(c.paid_amount)}</td>
-                        <td><span className={getStatusBadgeClass(c.status)}>{c.status}</span></td>
-                        <td className="td-date">{formatDate(c.created_at)}</td>
+              <>
+                {/* Desktop table */}
+                <div className="table-wrap activity-table-wrap">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Contributor</th>
+                        <th>Event</th>
+                        <th>Pledged</th>
+                        <th>Paid</th>
+                        <th>Status</th>
+                        <th>Date</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {stats.recentContributions.map(c => (
+                        <tr key={c.id}>
+                          <td className="td-name">{c.contributor_name}</td>
+                          <td>{c.event_name}</td>
+                          <td className="td-money">{formatCurrency(c.amount)}</td>
+                          <td className="td-money td-paid">{formatCurrency(c.paid_amount)}</td>
+                          <td><span className={getStatusBadgeClass(c.status)}>{c.status}</span></td>
+                          <td className="td-date">{formatDate(c.created_at)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile card list */}
+                <div className="activity-card-list">
+                  {stats.recentContributions.map(c => (
+                    <div key={c.id} className="activity-card">
+                      <div className="ac-row ac-top">
+                        <span className="ac-name">{c.contributor_name}</span>
+                        <span className={getStatusBadgeClass(c.status)}>{c.status}</span>
+                      </div>
+                      <div className="ac-row ac-mid">
+                        <span className="ac-event">{c.event_name}</span>
+                        <span className="ac-date">{formatDate(c.created_at)}</span>
+                      </div>
+                      <div className="ac-row">
+                        <span className="ac-amount">{formatCurrency(c.paid_amount)}</span>
+                        <span className="ac-pledged">of {formatCurrency(c.amount)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>

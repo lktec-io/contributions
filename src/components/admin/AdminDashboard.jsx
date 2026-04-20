@@ -151,30 +151,50 @@ export default function AdminDashboard() {
                 description="Contributions will appear here as they are added."
               />
             ) : (
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Contributor</th>
-                      <th>Event</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                      <th>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.recentActivity.map(item => (
-                      <tr key={item.id}>
-                        <td className="td-name">{item.contributor_name}</td>
-                        <td>{item.event_name}</td>
-                        <td className="td-money">{formatCurrency(item.amount)}</td>
-                        <td><span className={`status-badge badge-${item.status}`}>{item.status}</span></td>
-                        <td className="td-date">{formatDateTime(item.created_at)}</td>
+              <>
+                {/* Desktop table */}
+                <div className="table-wrap activity-table-wrap">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Contributor</th>
+                        <th>Event</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Date</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {stats.recentActivity.map(item => (
+                        <tr key={item.id}>
+                          <td className="td-name">{item.contributor_name}</td>
+                          <td>{item.event_name}</td>
+                          <td className="td-money">{formatCurrency(item.amount)}</td>
+                          <td><span className={`status-badge badge-${item.status}`}>{item.status}</span></td>
+                          <td className="td-date">{formatDateTime(item.created_at)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile card list */}
+                <div className="activity-card-list">
+                  {stats.recentActivity.map(item => (
+                    <div key={item.id} className="activity-card">
+                      <div className="ac-row ac-top">
+                        <span className="ac-name">{item.contributor_name}</span>
+                        <span className={`status-badge badge-${item.status}`}>{item.status}</span>
+                      </div>
+                      <div className="ac-row ac-mid">
+                        <span className="ac-event">{item.event_name}</span>
+                        <span className="ac-date">{formatDateTime(item.created_at)}</span>
+                      </div>
+                      <div className="ac-amount">{formatCurrency(item.amount)}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>

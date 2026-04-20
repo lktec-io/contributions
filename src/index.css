@@ -882,3 +882,76 @@ img, svg {
   height: 18px;
   color: var(--text-primary);
 }
+
+/* ============================================================
+   RESPONSIVE FIXES — dashboard bottom grid & activity cards
+   ============================================================ */
+
+/*
+ * The earlier global rule `button { width: 100% }` is too broad —
+ * it breaks icon buttons, filter controls, and small action buttons.
+ * Narrow it back down to only main CTA buttons where it makes sense.
+ */
+@media (max-width: 768px) {
+  /* Undo width:100% for all the buttons that must NOT be full-width */
+  button,
+  .btn-sm,
+  .btn-sm-danger,
+  .btn-sm-warning,
+  .btn-sm-success,
+  .icon-btn,
+  .header-icon-btn,
+  .password-toggle,
+  .filter-search,
+  .btn-export,
+  .btn-refresh,
+  .btn-view-contribs,
+  .tab-button,
+  .sidebar-item {
+    width: auto !important;
+  }
+
+  /* Only keep full-width on explicit form-action buttons */
+  .form-actions .btn,
+  .form-actions .btn-secondary {
+    width: 100% !important;
+  }
+}
+
+/* Section-card padding tightens on small screens */
+@media (max-width: 480px) {
+  .section-card {
+    padding: 14px 12px;
+    border-radius: 12px;
+  }
+
+  .section-title {
+    font-size: 14px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+  }
+}
+
+/* Prevent any inner element from causing horizontal overflow */
+.dashboard-bottom-grid,
+.pie-chart-card,
+.activity-card-list,
+.activity-card {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Smooth vertical scroll inside tables on mobile */
+.table-wrap,
+.activity-table-wrap {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Long names / event titles in activity cards */
+.ac-name,
+.ac-event {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

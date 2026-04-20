@@ -419,13 +419,116 @@
    ════════════════════════════════════════════════ */
 .dashboard-bottom-grid {
   display: grid;
-  grid-template-columns: 360px 1fr;
-  gap: 24px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
   align-items: start;
 }
 
 @media (max-width: 1024px) {
   .dashboard-bottom-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
+}
+
+@media (max-width: 600px) {
+  .dashboard-bottom-grid {
+    gap: 12px;
+  }
+}
+
+/* ════════════════════════════════════════════════
+   SECTION-CARD PADDING — tighter on mobile
+   ════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  .main-content .section-card {
+    padding: 14px;
+  }
+}
+
+/* ════════════════════════════════════════════════
+   ACTIVITY — desktop table / mobile cards toggle
+   ════════════════════════════════════════════════ */
+.activity-card-list {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  .activity-table-wrap {
+    display: none;
+  }
+
+  .activity-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* ── Activity card ───────────────────────────── */
+.activity-card {
+  background: rgba(255, 255, 255, 0.028);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.activity-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .activity-card {
+  background: rgba(0, 0, 0, 0.018);
+}
+
+[data-theme="light"] .activity-card:hover {
+  background: rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.ac-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ac-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.ac-event {
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.ac-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.ac-amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-green);
+  font-variant-numeric: tabular-nums;
 }
