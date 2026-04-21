@@ -73,7 +73,7 @@ export default function Login() {
                 className="lp-input"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="you@company.com"
+                placeholder="finance@admin.com"
                 autoComplete="email"
                 disabled={loading}
                 required
@@ -91,7 +91,7 @@ export default function Login() {
                 className="lp-input lp-input-pw"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 autoComplete="current-password"
                 disabled={loading}
                 required
