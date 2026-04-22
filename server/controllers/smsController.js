@@ -7,14 +7,15 @@ const { getIsolationFilter, canAccessContribution } = require('../utils/tenantHe
 const BEEM_ENDPOINT = 'https://apisms.beem.africa/v1/send';
 
 // ── formatPhone ───────────────────────────────────────────────
-// Normalises any Tanzanian number to 255XXXXXXXXX (no + prefix).
-// Beem requires the number without a leading +.
 function formatPhone(phone) {
   if (!phone) return null;
-  let n = phone.replace(/[\s\-().+]/g, '');   // strip spaces, dashes, parens, +
-  if (n.startsWith('0'))    n = '255' + n.slice(1);   // 0674... → 255674...
-  if (!n.startsWith('255')) n = '255' + n;             // 7XX... → 2557XX...
-  return n;
+
+  let cleaned = phone.replace(/\s+/g, '').replace(/^\+/, ''); // remove spaces and leading +
+
+  if (cleaned.startsWith('0'))    return '255' + cleaned.substring(1);  // 0674→255674
+  if (!cleaned.startsWith('255')) return '255' + cleaned;               // 7XX→2557XX
+
+  return cleaned;
 }
 
 // ── formatCurrency ────────────────────────────────────────────
@@ -26,72 +27,60 @@ function formatCurrency(amount) {
 }
 
 // ── buildMessage ──────────────────────────────────────────────
-// Swahili reminder message for a single contributor.
 function buildMessage(name, pledged, paid, balance) {
   return (
     `Habari ${name},\n` +
     `Umechangia ${formatCurrency(paid)}.\n` +
     `Ulichopanga ni ${formatCurrency(pledged)}.\n` +
     `Salio lako ni ${formatCurrency(balance)}.\n` +
-    `Tafadhali kamilisha mchango wako. Asante sana 🙏`
+    `Tafadhali kamilisha mchango wako. Asante sana.`
   );
 }
 
-// ── getBeemCredentials ────────────────────────────────────────
-function getBeemCredentials() {
+// ── sendBeemSms ───────────────────────────────────────────────
+async function sendBeemSms(phone, message) {
   const apiKey    = process.env.BEEM_API_KEY;
   const secretKey = process.env.BEEM_SECRET_KEY;
-  const sender    = process.env.BEEM_SENDER || 'INFO';
+  const sender    = (process.env.BEEM_SENDER || 'INFO').trim() || 'INFO';
 
   if (!apiKey || !secretKey) {
-    const missing = [
-      !apiKey    && 'BEEM_API_KEY',
-      !secretKey && 'BEEM_SECRET_KEY',
-    ].filter(Boolean).join(', ');
-    const err = new Error(`SMS service not configured — missing env vars: ${missing}`);
+    const missing = [!apiKey && 'BEEM_API_KEY', !secretKey && 'BEEM_SECRET_KEY']
+      .filter(Boolean).join(', ');
+    const err = new Error(`SMS service not configured — missing: ${missing}`);
     err.statusCode = 503;
     throw err;
   }
 
-  return { apiKey, secretKey, sender };
-}
+  // Build Basic Auth header manually — most reliable across all HTTP clients
+  const token = Buffer.from(`${apiKey}:${secretKey}`).toString('base64');
 
-// ── sendBeemSms ───────────────────────────────────────────────
-// Core Beem API call. Throws on HTTP or network error.
-async function sendBeemSms(phone, message) {
-  const { apiKey, secretKey, sender } = getBeemCredentials();
-
+  // Exact payload Beem accepts — no extra fields
   const payload = {
-    source_addr:   sender,
-    schedule_time: '',
-    encoding:      0,
+    source_addr: sender,
     message,
-    recipients:    [{ recipient_id: 1, dest_addr: phone }],
+    recipients: [{ recipient_id: 1, dest_addr: phone }],
   };
 
-  console.log('Sending SMS to:', phone);
-  console.log('Message:', message);
+  console.log('====== SMS DEBUG ======');
+  console.log('PHONE:',   phone);
+  console.log('SENDER:',  sender);
+  console.log('MESSAGE:', message);
+  console.log('PAYLOAD:', JSON.stringify(payload, null, 2));
+  console.log('=======================');
 
   const response = await axios.post(BEEM_ENDPOINT, payload, {
-    auth:    { username: apiKey, password: secretKey },
-    headers: { 'Content-Type': 'application/json' },
-    timeout: 15000,
+    headers: {
+      'Authorization': `Basic ${token}`,
+      'Content-Type':  'application/json',
+    },
+    timeout: 20000,
   });
 
   console.log('BEEM RESPONSE:', response.data);
   return response.data;
 }
 
-// ── extractBeemError ──────────────────────────────────────────
-function extractBeemError(err) {
-  return err.response?.data?.message
-    || err.response?.data
-    || err.message
-    || 'Failed to send SMS';
-}
-
 // ── sendReminder ──────────────────────────────────────────────
-// POST /api/sms/reminder/:id
 async function sendReminder(req, res) {
   try {
     const contribution = await Contribution.findById(req.params.id);
@@ -103,13 +92,17 @@ async function sendReminder(req, res) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
     if (!contribution.phone) {
-      return res.status(400).json({ success: false, message: 'No phone number found for this contributor' });
+      return res.status(400).json({ success: false, message: 'This contributor has no phone number' });
     }
     if (contribution.status === 'paid') {
       return res.status(400).json({ success: false, message: 'Contributor has already paid in full' });
     }
 
     const phone   = formatPhone(contribution.phone);
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Invalid phone number' });
+    }
+
     const pledged = parseFloat(contribution.amount)      || 0;
     const paid    = parseFloat(contribution.paid_amount) || 0;
     const balance = pledged - paid;
@@ -119,14 +112,16 @@ async function sendReminder(req, res) {
 
     return res.json({ success: true, message: 'SMS sent successfully' });
   } catch (err) {
-    console.error('BEEM ERROR:', err.response?.data || err.message);
+    console.error('BEEM ERROR FULL:', err.response?.data || err.message);
     const status = err.statusCode || err.response?.status || 500;
-    return res.status(status).json({ success: false, message: extractBeemError(err) });
+    return res.status(status).json({
+      success: false,
+      message: err.response?.data?.message || err.message || 'Failed to send SMS',
+    });
   }
 }
 
 // ── sendBulkReminders ─────────────────────────────────────────
-// POST /api/sms/bulk-reminder  { eventId? }
 async function sendBulkReminders(req, res) {
   try {
     const { eventId } = req.body;
@@ -144,7 +139,9 @@ async function sendBulkReminders(req, res) {
 
     for (const c of targets) {
       try {
-        const phone   = formatPhone(c.phone);
+        const phone = formatPhone(c.phone);
+        if (!phone) continue;
+
         const pledged = parseFloat(c.amount)      || 0;
         const paid    = parseFloat(c.paid_amount) || 0;
         const balance = pledged - paid;
@@ -159,13 +156,16 @@ async function sendBulkReminders(req, res) {
 
     return res.json({
       success: true,
-      message: `SMS sent successfully`,
+      message: 'SMS sent successfully',
       data:    { sent, total: targets.length },
     });
   } catch (err) {
-    console.error('BEEM ERROR (bulk):', err.response?.data || err.message);
+    console.error('BEEM ERROR FULL (bulk):', err.response?.data || err.message);
     const status = err.statusCode || err.response?.status || 500;
-    return res.status(status).json({ success: false, message: extractBeemError(err) });
+    return res.status(status).json({
+      success: false,
+      message: err.response?.data?.message || err.message || 'Bulk SMS failed',
+    });
   }
 }
 
