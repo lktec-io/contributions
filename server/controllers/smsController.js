@@ -1,103 +1,171 @@
+'use strict';
+
+const axios        = require('axios');
 const Contribution = require('../models/Contribution');
 const { getIsolationFilter, canAccessContribution } = require('../utils/tenantHelpers');
 
-function getATSms() {
-  const apiKey   = process.env.AT_API_KEY;
-  const username = process.env.AT_USERNAME;
-  if (!apiKey || !username) {
-    const missing = [!apiKey && 'AT_API_KEY', !username && 'AT_USERNAME'].filter(Boolean).join(', ');
+const BEEM_ENDPOINT = 'https://apisms.beem.africa/v1/send';
+
+// ── formatPhone ───────────────────────────────────────────────
+// Normalises any Tanzanian number to 255XXXXXXXXX (no + prefix).
+// Beem requires the number without a leading +.
+function formatPhone(phone) {
+  if (!phone) return null;
+  let n = phone.replace(/[\s\-().+]/g, '');   // strip spaces, dashes, parens, +
+  if (n.startsWith('0'))    n = '255' + n.slice(1);   // 0674... → 255674...
+  if (!n.startsWith('255')) n = '255' + n;             // 7XX... → 2557XX...
+  return n;
+}
+
+// ── formatCurrency ────────────────────────────────────────────
+function formatCurrency(amount) {
+  return `TZS ${parseFloat(amount || 0).toLocaleString('en-TZ', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+// ── buildMessage ──────────────────────────────────────────────
+// Swahili reminder message for a single contributor.
+function buildMessage(name, pledged, paid, balance) {
+  return (
+    `Habari ${name},\n` +
+    `Umechangia ${formatCurrency(paid)}.\n` +
+    `Ulichopanga ni ${formatCurrency(pledged)}.\n` +
+    `Salio lako ni ${formatCurrency(balance)}.\n` +
+    `Tafadhali kamilisha mchango wako. Asante sana 🙏`
+  );
+}
+
+// ── getBeemCredentials ────────────────────────────────────────
+function getBeemCredentials() {
+  const apiKey    = process.env.BEEM_API_KEY;
+  const secretKey = process.env.BEEM_SECRET_KEY;
+  const sender    = process.env.BEEM_SENDER || 'INFO';
+
+  if (!apiKey || !secretKey) {
+    const missing = [
+      !apiKey    && 'BEEM_API_KEY',
+      !secretKey && 'BEEM_SECRET_KEY',
+    ].filter(Boolean).join(', ');
     const err = new Error(`SMS service not configured — missing env vars: ${missing}`);
     err.statusCode = 503;
     throw err;
   }
-  const AfricasTalking = require('africastalking');
-  return AfricasTalking({ apiKey, username }).SMS;
+
+  return { apiKey, secretKey, sender };
 }
 
-function formatPhone(phone) {
-  if (!phone) return null;
-  let cleaned = phone.replace(/[\s\-().]/g, '');
-  if (cleaned.startsWith('+'))                            return cleaned;
-  if (cleaned.startsWith('255') && cleaned.length >= 12)  return '+' + cleaned;
-  if (cleaned.startsWith('0'))                            return '+255' + cleaned.substring(1);
-  return '+255' + cleaned;
+// ── sendBeemSms ───────────────────────────────────────────────
+// Core Beem API call. Throws on HTTP or network error.
+async function sendBeemSms(phone, message) {
+  const { apiKey, secretKey, sender } = getBeemCredentials();
+
+  const payload = {
+    source_addr:   sender,
+    schedule_time: '',
+    encoding:      0,
+    message,
+    recipients:    [{ recipient_id: 1, dest_addr: phone }],
+  };
+
+  console.log('Sending SMS to:', phone);
+  console.log('Message:', message);
+
+  const response = await axios.post(BEEM_ENDPOINT, payload, {
+    auth:    { username: apiKey, password: secretKey },
+    headers: { 'Content-Type': 'application/json' },
+    timeout: 15000,
+  });
+
+  console.log('BEEM RESPONSE:', response.data);
+  return response.data;
 }
 
-function extractError(err) {
-  if (!err) return 'Unknown error';
-  if (typeof err === 'string') return err;
-  if (err instanceof Error) return err.message;
-  if (typeof err === 'object') return err.message || err.errorMessage || err.description || JSON.stringify(err);
-  return String(err);
+// ── extractBeemError ──────────────────────────────────────────
+function extractBeemError(err) {
+  return err.response?.data?.message
+    || err.response?.data
+    || err.message
+    || 'Failed to send SMS';
 }
 
-function formatCurrency(amount) {
-  return `TZS ${parseFloat(amount || 0).toLocaleString('en-TZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
+// ── sendReminder ──────────────────────────────────────────────
+// POST /api/sms/reminder/:id
 async function sendReminder(req, res) {
   try {
     const contribution = await Contribution.findById(req.params.id);
-    if (!contribution) return res.status(404).json({ success: false, message: 'Contributor not found' });
-    if (!canAccessContribution(req, contribution)) return res.status(403).json({ success: false, message: 'Access denied' });
-    if (!contribution.phone) return res.status(400).json({ success: false, message: 'No phone number found' });
-    if (contribution.status === 'paid') return res.status(400).json({ success: false, message: 'Already paid' });
+
+    if (!contribution) {
+      return res.status(404).json({ success: false, message: 'Contributor not found' });
+    }
+    if (!canAccessContribution(req, contribution)) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+    if (!contribution.phone) {
+      return res.status(400).json({ success: false, message: 'No phone number found for this contributor' });
+    }
+    if (contribution.status === 'paid') {
+      return res.status(400).json({ success: false, message: 'Contributor has already paid in full' });
+    }
 
     const phone   = formatPhone(contribution.phone);
     const pledged = parseFloat(contribution.amount)      || 0;
     const paid    = parseFloat(contribution.paid_amount) || 0;
-    const message =
-      `Hello ${contribution.contributor_name},\n` +
-      `You pledged: ${formatCurrency(pledged)}\n` +
-      `You paid: ${formatCurrency(paid)}\n` +
-      `Balance: ${formatCurrency(pledged - paid)}\n` +
-      `Please complete your contribution.\nThank you.`;
+    const balance = pledged - paid;
+    const message = buildMessage(contribution.contributor_name, pledged, paid, balance);
 
-    const sms = getATSms();
-    const options = { to: [phone], message };
-    if (process.env.AT_SENDER_ID) options.from = process.env.AT_SENDER_ID;
+    await sendBeemSms(phone, message);
 
-    await sms.send(options);
-    return res.json({ success: true, message: `SMS sent to ${contribution.contributor_name}` });
+    return res.json({ success: true, message: 'SMS sent successfully' });
   } catch (err) {
-    const status = err.statusCode || 500;
-    console.error('❌ SMS ERROR:', extractError(err));
-    return res.status(status).json({ success: false, message: extractError(err) });
+    console.error('BEEM ERROR:', err.response?.data || err.message);
+    const status = err.statusCode || err.response?.status || 500;
+    return res.status(status).json({ success: false, message: extractBeemError(err) });
   }
 }
 
+// ── sendBulkReminders ─────────────────────────────────────────
+// POST /api/sms/bulk-reminder  { eventId? }
 async function sendBulkReminders(req, res) {
   try {
     const { eventId } = req.body;
     const filter = getIsolationFilter(req);
     if (eventId) filter.eventId = eventId;
 
-    const contributions = await Contribution.findAll(filter);
-    const targets = contributions.filter(c => c.status !== 'paid' && c.phone);
+    const all     = await Contribution.findAll(filter);
+    const targets = all.filter(c => c.status !== 'paid' && c.phone);
 
-    if (!targets.length) return res.status(400).json({ success: false, message: 'No valid contributors' });
+    if (!targets.length) {
+      return res.status(400).json({ success: false, message: 'No unpaid contributors with a phone number found' });
+    }
 
-    const sms = getATSms();
+    let sent = 0;
+
     for (const c of targets) {
       try {
+        const phone   = formatPhone(c.phone);
         const pledged = parseFloat(c.amount)      || 0;
         const paid    = parseFloat(c.paid_amount) || 0;
-        const options = {
-          to:      [formatPhone(c.phone)],
-          message: `Hello ${c.contributor_name},\nBalance: ${formatCurrency(pledged - paid)}\nPlease complete your contribution.`,
-        };
-        if (process.env.AT_SENDER_ID) options.from = process.env.AT_SENDER_ID;
-        await sms.send(options);
+        const balance = pledged - paid;
+        const message = buildMessage(c.contributor_name, pledged, paid, balance);
+
+        await sendBeemSms(phone, message);
+        sent++;
       } catch (err) {
-        console.error('❌ BULK SMS (skipped):', extractError(err));
+        console.error('BEEM ERROR (bulk, skipped):', err.response?.data || err.message);
       }
     }
 
-    return res.json({ success: true, message: `Sent ${targets.length} SMS` });
+    return res.json({
+      success: true,
+      message: `SMS sent successfully`,
+      data:    { sent, total: targets.length },
+    });
   } catch (err) {
-    const status = err.statusCode || 500;
-    console.error('❌ BULK ERROR:', extractError(err));
-    return res.status(status).json({ success: false, message: extractError(err) });
+    console.error('BEEM ERROR (bulk):', err.response?.data || err.message);
+    const status = err.statusCode || err.response?.status || 500;
+    return res.status(status).json({ success: false, message: extractBeemError(err) });
   }
 }
 
