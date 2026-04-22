@@ -36,15 +36,8 @@ function buildMessage(name, pledged, paid, balance) {
 
 // ── sendBeemSms ───────────────────────────────────────────────
 async function sendBeemSms(phone, message) {
-  const sender = (process.env.BEEM_SENDER || 'INFO').trim() || 'INFO';
-
-  console.log('=== BEEM DEBUG ===');
   console.log('PHONE:',   phone);
-  console.log('SENDER:',  sender);
   console.log('MESSAGE:', message);
-  console.log('API KEY:', process.env.BEEM_API_KEY  ? 'OK' : 'MISSING');
-  console.log('SECRET:',  process.env.BEEM_SECRET_KEY ? 'OK' : 'MISSING');
-  console.log('==================');
 
   const payload = {
     message,
