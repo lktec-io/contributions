@@ -6,7 +6,6 @@ const { getIsolationFilter, canAccessContribution } = require('../utils/tenantHe
 
 const BEEM_ENDPOINT = 'https://apisms.beem.africa/v1/send';
 
-// ── formatPhone ───────────────────────────────────────────────
 function formatPhone(phone) {
   if (!phone) return null;
   let n = phone.replace(/\s+/g, '').replace(/^\+/, '');
@@ -15,7 +14,6 @@ function formatPhone(phone) {
   return n;
 }
 
-// ── formatCurrency ────────────────────────────────────────────
 function formatCurrency(amount) {
   return `TZS ${parseFloat(amount || 0).toLocaleString('en-TZ', {
     minimumFractionDigits: 2,
@@ -23,7 +21,6 @@ function formatCurrency(amount) {
   })}`;
 }
 
-// ── buildMessage ──────────────────────────────────────────────
 function buildMessage(name, pledged, paid, balance) {
   return (
     `Habari ${name},\n` +
@@ -34,15 +31,20 @@ function buildMessage(name, pledged, paid, balance) {
   );
 }
 
-// ── sendBeemSms ───────────────────────────────────────────────
 async function sendBeemSms(phone, message) {
+  if (!process.env.BEEM_SENDER) {
+    throw new Error('BEEM_SENDER is not set in environment variables');
+  }
+
   console.log('PHONE:',   phone);
+  console.log('SENDER:',  process.env.BEEM_SENDER);
   console.log('MESSAGE:', message);
 
   const payload = {
+    source_addr: process.env.BEEM_SENDER,
     message,
-    encoding:   0,
-    recipients: [{ recipient_id: 1, dest_addr: phone }],
+    encoding:    0,
+    recipients:  [{ recipient_id: 1, dest_addr: phone }],
   };
 
   const response = await axios.post(BEEM_ENDPOINT, payload, {
@@ -54,11 +56,10 @@ async function sendBeemSms(phone, message) {
     timeout: 20000,
   });
 
-  console.log('BEEM RESPONSE:', response.data);
+  console.log('SMS SENT SUCCESSFULLY:', response.data);
   return response.data;
 }
 
-// ── sendReminder ──────────────────────────────────────────────
 async function sendReminder(req, res) {
   try {
     const contribution = await Contribution.findById(req.params.id);
@@ -90,15 +91,15 @@ async function sendReminder(req, res) {
 
     return res.json({ success: true, message: 'SMS sent successfully' });
   } catch (err) {
-    console.error('BEEM FULL ERROR:', err.response?.data);
+    console.error('BEEM ERROR FULL:', err.response?.data || err.message);
     return res.status(500).json({
       success: false,
-      error: err.response?.data || err.message,
+      message: 'Failed to send SMS',
+      error:   err.response?.data || err.message,
     });
   }
 }
 
-// ── sendBulkReminders ─────────────────────────────────────────
 async function sendBulkReminders(req, res) {
   try {
     const { eventId } = req.body;
@@ -127,7 +128,7 @@ async function sendBulkReminders(req, res) {
         await sendBeemSms(phone, message);
         sent++;
       } catch (err) {
-        console.error('BEEM FULL ERROR (bulk, skipped):', err.response?.data || err.message);
+        console.error('BEEM ERROR FULL (bulk, skipped):', err.response?.data || err.message);
       }
     }
 
@@ -137,10 +138,11 @@ async function sendBulkReminders(req, res) {
       data:    { sent, total: targets.length },
     });
   } catch (err) {
-    console.error('BEEM FULL ERROR (bulk):', err.response?.data);
+    console.error('BEEM ERROR FULL (bulk):', err.response?.data || err.message);
     return res.status(500).json({
       success: false,
-      error: err.response?.data || err.message,
+      message: 'Failed to send SMS',
+      error:   err.response?.data || err.message,
     });
   }
 }
