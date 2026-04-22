@@ -47,9 +47,8 @@ async function sendBeemSms(phone, message) {
   console.log('==================');
 
   const payload = {
-    source_addr: sender,
     message,
-    encoding:    0,
+    encoding:   0,
     recipients: [{ recipient_id: 1, dest_addr: phone }],
   };
 
