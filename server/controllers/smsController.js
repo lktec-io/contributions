@@ -4,8 +4,6 @@ const axios        = require('axios');
 const Contribution = require('../models/Contribution');
 const { getIsolationFilter, canAccessContribution } = require('../utils/tenantHelpers');
 
-const BEEM_ENDPOINT = 'https://apisms.beem.africa/v1/send';
-
 function formatPhone(phone) {
   if (!phone) return null;
   let n = phone.replace(/\s+/g, '').replace(/^\+/, '');
@@ -31,60 +29,32 @@ function buildMessage(name, pledged, paid, balance) {
   );
 }
 
-function buildPayload(phone, message, includeSender) {
+async function sendBeemSms(phone, message) {
   const payload = {
     message,
     encoding:   0,
     recipients: [{ recipient_id: 1, dest_addr: phone }],
   };
 
-  const sender = (process.env.BEEM_SENDER_NAME || '').trim();
-  if (includeSender && sender) {
-    payload.source_addr = sender;
-  }
-
-  return payload;
-}
-
-async function sendBeemSms(phone, message) {
-  const sender    = (process.env.BEEM_SENDER_NAME || '').trim();
-  const useSender = Boolean(sender);
-
-  let payload = buildPayload(phone, message, useSender);
-
-  console.log('=== BEEM FINAL PAYLOAD ===');
+  console.log('=== FINAL BEEM PAYLOAD ===');
   console.log(JSON.stringify(payload, null, 2));
 
-  const config = {
-    auth: {
-      username: process.env.BEEM_API_KEY,
-      password: process.env.BEEM_SECRET_KEY,
-    },
-    headers: { 'Content-Type': 'application/json' },
-    timeout: 20000,
-  };
-
-  try {
-    const response = await axios.post(BEEM_ENDPOINT, payload, config);
-    console.log('SMS SENT SUCCESSFULLY:', response.data);
-    return response.data;
-  } catch (err) {
-    const beemCode = err.response?.data?.code;
-
-    if (beemCode === 111 && useSender) {
-      console.warn('Sender ID rejected (111) — retrying without source_addr');
-      payload = buildPayload(phone, message, false);
-
-      console.log('=== BEEM RETRY PAYLOAD ===');
-      console.log(JSON.stringify(payload, null, 2));
-
-      const retry = await axios.post(BEEM_ENDPOINT, payload, config);
-      console.log('SMS SENT SUCCESSFULLY (retry):', retry.data);
-      return retry.data;
+  const response = await axios.post(
+    process.env.BEEM_BASE_URL,
+    payload,
+    {
+      headers: {
+        'Authorization': 'Basic ' + Buffer.from(
+          process.env.BEEM_API_KEY + ':' + process.env.BEEM_SECRET
+        ).toString('base64'),
+        'Content-Type': 'application/json',
+      },
+      timeout: 20000,
     }
+  );
 
-    throw err;
-  }
+  console.log('SMS SENT SUCCESSFULLY:', response.data);
+  return response.data;
 }
 
 async function sendReminder(req, res) {
