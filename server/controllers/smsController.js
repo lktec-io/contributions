@@ -31,33 +31,60 @@ function buildMessage(name, pledged, paid, balance) {
   );
 }
 
-async function sendBeemSms(phone, message) {
-  if (!process.env.BEEM_SENDER) {
-    throw new Error('BEEM_SENDER is not set in environment variables');
-  }
-
-  console.log('PHONE:',   phone);
-  console.log('SENDER:',  process.env.BEEM_SENDER);
-  console.log('MESSAGE:', message);
-
+function buildPayload(phone, message, includeSender) {
   const payload = {
-    source_addr: process.env.BEEM_SENDER,
     message,
-    encoding:    0,
-    recipients:  [{ recipient_id: 1, dest_addr: phone }],
+    encoding:   0,
+    recipients: [{ recipient_id: 1, dest_addr: phone }],
   };
 
-  const response = await axios.post(BEEM_ENDPOINT, payload, {
+  const sender = (process.env.BEEM_SENDER_NAME || '').trim();
+  if (includeSender && sender) {
+    payload.source_addr = sender;
+  }
+
+  return payload;
+}
+
+async function sendBeemSms(phone, message) {
+  const sender    = (process.env.BEEM_SENDER_NAME || '').trim();
+  const useSender = Boolean(sender);
+
+  let payload = buildPayload(phone, message, useSender);
+
+  console.log('=== BEEM FINAL PAYLOAD ===');
+  console.log(JSON.stringify(payload, null, 2));
+
+  const config = {
     auth: {
       username: process.env.BEEM_API_KEY,
       password: process.env.BEEM_SECRET_KEY,
     },
     headers: { 'Content-Type': 'application/json' },
     timeout: 20000,
-  });
+  };
 
-  console.log('SMS SENT SUCCESSFULLY:', response.data);
-  return response.data;
+  try {
+    const response = await axios.post(BEEM_ENDPOINT, payload, config);
+    console.log('SMS SENT SUCCESSFULLY:', response.data);
+    return response.data;
+  } catch (err) {
+    const beemCode = err.response?.data?.code;
+
+    if (beemCode === 111 && useSender) {
+      console.warn('Sender ID rejected (111) — retrying without source_addr');
+      payload = buildPayload(phone, message, false);
+
+      console.log('=== BEEM RETRY PAYLOAD ===');
+      console.log(JSON.stringify(payload, null, 2));
+
+      const retry = await axios.post(BEEM_ENDPOINT, payload, config);
+      console.log('SMS SENT SUCCESSFULLY (retry):', retry.data);
+      return retry.data;
+    }
+
+    throw err;
+  }
 }
 
 async function sendReminder(req, res) {
