@@ -1,75 +1,90 @@
 /* ══════════════════════════════════════════════════
-   Theme Wave Overlay — fintech-style top→down sweep
+   Theme Overlay — center radial pop (fintech style)
+   ══════════════════════════════════════════════════
+
+   Timeline (total: 880ms, matches ThemeContext):
+   ────────────────────────────────────────────────
+   0%   → scale(0)     tiny invisible point at center
+   38%  → scale(0.75)  circle covers full screen
+                       ↑ JS switches theme at ~370ms
+   55%  → scale(0.75)  brief hold while new theme renders
+   100% → opacity(0)   overlay fades revealing new theme
    ══════════════════════════════════════════════════ */
 
 .theme-wave {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 50%;
+  left: 50%;
+
+  /* 200vmax ensures the circle covers any screen size when scale(0.75) */
+  width:  200vmax;
+  height: 200vmax;
+  border-radius: 50%;
+
+  transform: translate(-50%, -50%) scale(0);
+  transform-origin: center center;
   z-index: 99999;
   pointer-events: none;
-  will-change: transform;
-  animation: wave-sweep 0.88s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: transform, opacity;
+
+  animation: radial-pop 0.88s ease-out forwards;
 }
 
-/* Leading-edge accent glow line */
-.theme-wave::after {
+/* Soft green pulse ring at the expanding edge */
+.theme-wave::before {
   content: '';
   position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 100%;
-  height: 5px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(0, 184, 148, 0.85) 30%,
-    rgba(0, 220, 170, 1) 50%,
-    rgba(0, 184, 148, 0.85) 70%,
-    transparent 100%
-  );
-  box-shadow: 0 0 24px rgba(0, 184, 148, 0.6), 0 0 8px rgba(0, 184, 148, 0.9);
+  inset: 0;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 4px rgba(0, 184, 148, 0.30),
+    0 0 60px rgba(0, 184, 148, 0.20),
+    inset 0 0 60px rgba(0, 184, 148, 0.08);
 }
 
-/* ── Curtain colours ─────────────────────────── */
+/* ── Overlay fill colours ─────────────────────── */
 
-/* Sweeping toward light mode: bright white curtain */
+/* Transitioning to light mode: bright fill */
 .theme-wave--light {
-  background: linear-gradient(
-    180deg,
-    #f8fafc 0%,
-    #ffffff 45%,
-    #f0f4f8 100%
+  background: radial-gradient(
+    circle at center,
+    #ffffff       55%,
+    #f5f7fa       80%,
+    #eef2f6       100%
   );
 }
 
-/* Sweeping toward dark mode: deep navy curtain */
+/* Transitioning to dark mode: deep navy fill */
 .theme-wave--dark {
-  background: linear-gradient(
-    180deg,
-    #0a1628 0%,
-    #0d1b2a 45%,
-    #0c1720 100%
+  background: radial-gradient(
+    circle at center,
+    #0d1b2a       55%,
+    #0a1628       80%,
+    #091520       100%
   );
 }
 
-/* ── Sweep keyframes ─────────────────────────── */
-/*
-  0%  → wave starts above screen (translateY -100%)
-  42% → wave covers full screen  (theme switches here in JS)
-  58% → brief hold while new theme renders underneath
-  100%→ wave exits below screen
-*/
-@keyframes wave-sweep {
-  0%   { transform: translateY(-100%); }
-  42%  { transform: translateY(0%);    }
-  58%  { transform: translateY(0%);    }
-  100% { transform: translateY(100%);  }
+/* ── Keyframes ────────────────────────────────── */
+@keyframes radial-pop {
+  0%   {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+  }
+  38%  {
+    transform: translate(-50%, -50%) scale(0.75);
+    opacity: 1;
+  }
+  55%  {
+    transform: translate(-50%, -50%) scale(0.75);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.75);
+    opacity: 0;
+  }
 }
 
-/* Respect reduced-motion preference */
+/* Respect reduced-motion: skip animation entirely */
 @media (prefers-reduced-motion: reduce) {
   .theme-wave {
     animation: none;
