@@ -112,10 +112,11 @@
 }
 
 /* ── View Contributors button ────────────────── */
+/* Banner is always dark so these buttons always use light-on-dark styling */
 .btn-view-contribs {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #ffffff;
   padding: 9px 18px;
   border-radius: 9px;
   font-size: 13px;
@@ -124,34 +125,23 @@
   align-items: center;
   gap: 7px;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
   width: fit-content !important;
 }
 
 .btn-view-contribs:hover {
-  background: rgba(59, 130, 246, 0.18);
-  border-color: rgba(59, 130, 246, 0.4);
-  color: #fff;
-  box-shadow: 0 0 14px rgba(59, 130, 246, 0.2);
-}
-
-[data-theme="light"] .btn-view-contribs {
-  background: rgba(0, 0, 0, 0.05);
-  border-color: rgba(0, 0, 0, 0.10);
-  color: #1A1A2E;
-}
-
-[data-theme="light"] .btn-view-contribs:hover {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: rgba(59, 130, 246, 0.3);
-  color: #3B82F6;
+  background: rgba(59, 130, 246, 0.30);
+  border-color: rgba(59, 130, 246, 0.55);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.25);
+  transform: translateY(-1px);
 }
 
 /* ── Refresh Data button ─────────────────────── */
 .btn-refresh {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.85);
+  background: rgba(0, 184, 148, 0.18);
+  border: 1px solid rgba(0, 184, 148, 0.40);
+  color: #ffffff;
   padding: 9px 18px;
   border-radius: 9px;
   font-size: 13px;
@@ -160,36 +150,25 @@
   align-items: center;
   gap: 7px;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
   flex-shrink: 0;
   position: relative;
   z-index: 2;
-  /* override global width: 100% mobile rule */
   width: fit-content !important;
 }
 
 .btn-refresh:hover:not(:disabled) {
-  background: rgba(0, 184, 148, 0.18);
-  border-color: rgba(0, 184, 148, 0.4);
-  color: #fff;
-  box-shadow: 0 0 14px rgba(0, 184, 148, 0.2);
+  background: rgba(0, 184, 148, 0.32);
+  border-color: rgba(0, 184, 148, 0.60);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(0, 184, 148, 0.28);
+  transform: translateY(-1px);
 }
 
 .btn-refresh:disabled {
-  opacity: 0.7;
+  opacity: 0.55;
   cursor: not-allowed;
-}
-
-[data-theme="light"] .btn-refresh {
-  background: rgba(0, 0, 0, 0.06);
-  border-color: rgba(0, 0, 0, 0.12);
-  color: #1A1A2E;
-}
-
-[data-theme="light"] .btn-refresh:hover:not(:disabled) {
-  background: rgba(0, 184, 148, 0.12);
-  border-color: rgba(0, 184, 148, 0.35);
-  color: var(--accent-green);
+  transform: none;
 }
 
 /* Spinning refresh icon */

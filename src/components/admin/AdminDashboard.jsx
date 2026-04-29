@@ -71,6 +71,13 @@ export default function AdminDashboard() {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 
+  function getGreeting() {
+    const hour = new Date().getHours();
+    if (hour >= 5  && hour < 12) return 'Good Morning';
+    if (hour >= 12 && hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  }
+
   const renderDashboardTab = () => {
     if (loading) return (
       <>
@@ -99,7 +106,7 @@ export default function AdminDashboard() {
         <div className="welcome-banner">
           <div className="welcome-banner-inner">
             <div className="welcome-text">
-              <h1>Welcome back, <span>{user?.name}</span>!</h1>
+              <h1>{getGreeting()}, <span>{user?.name}</span>!</h1>
               <p>{today}</p>
             </div>
             <div className="welcome-banner-btns">
