@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiSun, FiMoon, FiLogOut, FiSettings } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
@@ -7,9 +7,15 @@ import NotificationBell from '../notifications/NotificationBell';
 import './Header.css';
 
 export default function Header({ onMenuToggle, menuOpen }) {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout }    = useContext(AuthContext);
   const { theme, toggleTheme } = useContext(ThemeContext);
   const navigate = useNavigate();
+  const [iconSpin, setIconSpin] = useState(false);
+
+  function handleThemeToggle() {
+    setIconSpin(true);
+    toggleTheme();
+  }
 
   return (
     <header className="header">
@@ -29,8 +35,9 @@ export default function Header({ onMenuToggle, menuOpen }) {
 
       <div className="header-right">
         <button
-          className="header-icon-btn theme-toggle"
-          onClick={toggleTheme}
+          className={`header-icon-btn theme-toggle ${iconSpin ? 'theme-icon-spinning' : ''}`}
+          onClick={handleThemeToggle}
+          onAnimationEnd={() => setIconSpin(false)}
           title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
         >
           {theme === 'dark' ? <FiSun size={18} /> : <FiMoon size={18} />}

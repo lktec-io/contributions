@@ -112,11 +112,11 @@
 }
 
 /* ── View Contributors button ────────────────── */
-/* Banner is always dark so these buttons always use light-on-dark styling */
+/* Banner is always dark — force white text regardless of .btn-secondary cascade */
 .btn-view-contribs {
   background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.28);
-  color: #ffffff;
+  color: #ffffff !important;
   padding: 9px 18px;
   border-radius: 9px;
   font-size: 13px;
@@ -141,7 +141,7 @@
 .btn-refresh {
   background: rgba(0, 184, 148, 0.18);
   border: 1px solid rgba(0, 184, 148, 0.40);
-  color: #ffffff;
+  color: #ffffff !important;
   padding: 9px 18px;
   border-radius: 9px;
   font-size: 13px;

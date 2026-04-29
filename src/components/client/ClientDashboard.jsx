@@ -105,7 +105,7 @@ export default function ClientDashboard() {
         <div className="welcome-banner">
           <div className="welcome-banner-inner">
             <div className="welcome-text">
-              <h1>{getGreeting()}, <span>{user?.name}</span>!</h1>
+              <h1>Welcome Back, {getGreeting()} <span>{user?.name}</span>!</h1>
               <p>{today}</p>
             </div>
             <div className="welcome-banner-btns">
