@@ -5,6 +5,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 import { setAuthContext } from './services/api';
 import ProtectedRoute from './routes/ProtectedRoute';
+import ThemeWaveOverlay from './components/common/ThemeWaveOverlay';
 import Login from './pages/Login';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
@@ -58,6 +59,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <ThemeProvider>
+      <ThemeWaveOverlay />
       <AuthProvider>
         <ToastProvider>
           <BrowserRouter>

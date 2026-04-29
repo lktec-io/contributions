@@ -1,0 +1,78 @@
+/* ══════════════════════════════════════════════════
+   Theme Wave Overlay — fintech-style top→down sweep
+   ══════════════════════════════════════════════════ */
+
+.theme-wave {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 99999;
+  pointer-events: none;
+  will-change: transform;
+  animation: wave-sweep 0.88s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Leading-edge accent glow line */
+.theme-wave::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 184, 148, 0.85) 30%,
+    rgba(0, 220, 170, 1) 50%,
+    rgba(0, 184, 148, 0.85) 70%,
+    transparent 100%
+  );
+  box-shadow: 0 0 24px rgba(0, 184, 148, 0.6), 0 0 8px rgba(0, 184, 148, 0.9);
+}
+
+/* ── Curtain colours ─────────────────────────── */
+
+/* Sweeping toward light mode: bright white curtain */
+.theme-wave--light {
+  background: linear-gradient(
+    180deg,
+    #f8fafc 0%,
+    #ffffff 45%,
+    #f0f4f8 100%
+  );
+}
+
+/* Sweeping toward dark mode: deep navy curtain */
+.theme-wave--dark {
+  background: linear-gradient(
+    180deg,
+    #0a1628 0%,
+    #0d1b2a 45%,
+    #0c1720 100%
+  );
+}
+
+/* ── Sweep keyframes ─────────────────────────── */
+/*
+  0%  → wave starts above screen (translateY -100%)
+  42% → wave covers full screen  (theme switches here in JS)
+  58% → brief hold while new theme renders underneath
+  100%→ wave exits below screen
+*/
+@keyframes wave-sweep {
+  0%   { transform: translateY(-100%); }
+  42%  { transform: translateY(0%);    }
+  58%  { transform: translateY(0%);    }
+  100% { transform: translateY(100%);  }
+}
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .theme-wave {
+    animation: none;
+    opacity: 0;
+  }
+}

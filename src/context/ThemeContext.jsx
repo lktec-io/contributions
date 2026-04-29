@@ -1,9 +1,11 @@
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect, useRef } from 'react';
 
 export const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+  const [theme,       setTheme]       = useState(() => localStorage.getItem('theme') || 'dark');
+  const [waveTrigger, setWaveTrigger] = useState(null); // null | 'light' | 'dark'
+  const timers = useRef([]);
 
   useEffect(() => {
     if (theme === 'light') {
@@ -14,14 +16,22 @@ export function ThemeProvider({ children }) {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
   const toggleTheme = () => {
-    document.body.classList.add('theme-transitioning');
-    setTimeout(() => document.body.classList.remove('theme-transitioning'), 600);
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+    if (waveTrigger) return; // ignore rapid clicks during animation
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setWaveTrigger(next);
+
+    // Apply theme when wave fully covers the screen (~42% through 880ms)
+    timers.current.push(setTimeout(() => setTheme(next), 370));
+
+    // Remove wave after full animation
+    timers.current.push(setTimeout(() => setWaveTrigger(null), 900));
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, waveTrigger }}>
       {children}
     </ThemeContext.Provider>
   );
