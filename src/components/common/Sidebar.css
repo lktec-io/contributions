@@ -191,6 +191,21 @@
   flex: 1;
 }
 
+/* ── Settings — bottom pinned section ───────── */
+.sidebar-settings-section {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .sidebar-settings-section {
+  border-top-color: rgba(0, 0, 0, 0.07);
+}
+
+.sidebar-settings-item {
+  width: 100%;
+}
+
 /* ── Footer ──────────────────────────────────── */
 .sidebar-footer {
   padding: 14px 20px;

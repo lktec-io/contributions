@@ -1,6 +1,7 @@
 import { useContext } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  FiGrid, FiUsers, FiCalendar, FiList, FiHome, FiShield,
+  FiGrid, FiUsers, FiCalendar, FiList, FiHome, FiShield, FiSettings,
 } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import './Sidebar.css';
@@ -24,7 +25,10 @@ const CLIENT_ITEMS = [
 ];
 
 export default function Sidebar({ activeTab, onTabChange, isOpen, onClose }) {
-  const { user } = useContext(AuthContext);
+  const { user }   = useContext(AuthContext);
+  const navigate   = useNavigate();
+  const location   = useLocation();
+  const onSettings = location.pathname === '/settings';
 
   let items;
   if (user?.role === 'super_admin') {
@@ -33,6 +37,11 @@ export default function Sidebar({ activeTab, onTabChange, isOpen, onClose }) {
     items = ADMIN_ITEMS;
   } else {
     items = CLIENT_ITEMS;
+  }
+
+  function handleSettings() {
+    navigate('/settings');
+    onClose?.();
   }
 
   return (
@@ -50,13 +59,24 @@ export default function Sidebar({ activeTab, onTabChange, isOpen, onClose }) {
           {items.map(({ id, label, Icon }) => (
             <button
               key={id}
-              className={`sidebar-item ${activeTab === id ? 'sidebar-item-active' : ''}`}
+              className={`sidebar-item ${activeTab === id && !onSettings ? 'sidebar-item-active' : ''}`}
               onClick={() => { onTabChange(id); onClose?.(); }}
             >
               <Icon size={20} className="sidebar-item-icon" />
               <span className="sidebar-item-label">{label}</span>
             </button>
           ))}
+
+          {/* ── Settings — pinned to bottom ──────────── */}
+          <div className="sidebar-settings-section">
+            <button
+              className={`sidebar-item sidebar-settings-item ${onSettings ? 'sidebar-item-active' : ''}`}
+              onClick={handleSettings}
+            >
+              <FiSettings size={20} className="sidebar-item-icon" />
+              <span className="sidebar-item-label">Settings</span>
+            </button>
+          </div>
         </nav>
 
         <div className="sidebar-footer">
