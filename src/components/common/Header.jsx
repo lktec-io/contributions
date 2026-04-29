@@ -1,5 +1,6 @@
 import { useContext } from 'react';
-import { FiSun, FiMoon, FiLogOut } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiSun, FiMoon, FiLogOut, FiSettings } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import { ThemeContext } from '../../context/ThemeContext';
 import NotificationBell from '../notifications/NotificationBell';
@@ -8,6 +9,7 @@ import './Header.css';
 export default function Header({ onMenuToggle, menuOpen }) {
   const { user, logout } = useContext(AuthContext);
   const { theme, toggleTheme } = useContext(ThemeContext);
+  const navigate = useNavigate();
 
   return (
     <header className="header">
@@ -35,6 +37,15 @@ export default function Header({ onMenuToggle, menuOpen }) {
         </button>
 
         <NotificationBell />
+
+        <button
+          className="header-icon-btn"
+          onClick={() => navigate('/settings')}
+          title="Settings"
+          aria-label="Settings"
+        >
+          <FiSettings size={18} />
+        </button>
 
         <div className="header-user">
           <span className="user-avatar">{user?.name?.[0]?.toUpperCase() || 'U'}</span>

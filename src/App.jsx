@@ -6,6 +6,7 @@ import { ToastProvider } from './context/ToastContext';
 import { setAuthContext } from './services/api';
 import ProtectedRoute from './routes/ProtectedRoute';
 import Login from './pages/Login';
+import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 import AdminDashboard from './components/admin/AdminDashboard';
 import ClientDashboard from './components/client/ClientDashboard';
@@ -37,6 +38,14 @@ function AppRoutes() {
             {(authCtx.user?.role === 'super_admin' || authCtx.user?.role === 'admin')
               ? <AdminDashboard />
               : <ClientDashboard />}
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
           </ProtectedRoute>
         }
       />

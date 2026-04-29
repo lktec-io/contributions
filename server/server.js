@@ -11,8 +11,9 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const exportRoutes = require('./routes/exportRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
-const smsRoutes   = require('./routes/smsRoutes');
-const adminRoutes = require('./routes/adminRoutes');
+const smsRoutes      = require('./routes/smsRoutes');
+const adminRoutes    = require('./routes/adminRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -36,8 +37,9 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/sms',   smsRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/sms',      smsRoutes);
+app.use('/api/admin',    adminRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // ── Health check ───────────────────────────────────────────
 app.get('/api/health', (req, res) => {

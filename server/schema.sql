@@ -78,3 +78,15 @@ CREATE INDEX idx_contributions_status ON contributions(status);
 CREATE INDEX idx_payments_contribution ON payment_history(contribution_id);
 CREATE INDEX idx_notifications_user ON notifications(user_id, is_read);
 CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
+
+CREATE TABLE IF NOT EXISTS settings (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  user_id    INT          NOT NULL DEFAULT 0,
+  `key`      VARCHAR(100) NOT NULL,
+  value      TEXT,
+  created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_setting (user_id, `key`)
+);
+
+CREATE INDEX idx_settings_user ON settings(user_id);
