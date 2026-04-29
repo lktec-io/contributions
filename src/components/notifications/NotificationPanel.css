@@ -1,11 +1,30 @@
 /* ══════════════════════════════════════════════
-   NOTIFICATION PANEL — Glass premium redesign
+   NOTIFICATION PANEL
+   Rendered via React portal at document.body,
+   so position: fixed is always relative to the
+   real viewport — no backdrop-filter interference.
    ══════════════════════════════════════════════ */
+
+/* ── Mobile dimmed backdrop ──────────────────── */
+.np-backdrop {
+  display: none; /* hidden on desktop */
+}
+
+/* ── Panel ───────────────────────────────────── */
 .notification-panel {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
+  /* Fixed so it escapes any transformed/filtered ancestors */
+  position: fixed;
+
+  /*
+    Desktop: anchored below the bell via CSS custom properties
+    set by NotificationBell.jsx on every open.
+    Fallbacks cover the rare case where the rect is unavailable.
+  */
+  top:   var(--np-top,   70px);
+  right: var(--np-right, 20px);
+
   width: 360px;
+
   background: linear-gradient(
     145deg,
     rgba(22, 34, 50, 0.97) 0%,
@@ -17,11 +36,18 @@
     0 16px 48px rgba(0, 0, 0, 0.55),
     0 0 0 1px rgba(0, 184, 148, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  z-index: 500;
+  z-index: 9000;
   overflow: hidden;
   backdrop-filter: blur(16px) saturate(150%);
   -webkit-backdrop-filter: blur(16px) saturate(150%);
-  animation: panel-in 0.22s cubic-bezier(0.34, 1.3, 0.64, 1);
+
+  /* Desktop entry: drop-down from above */
+  animation: panel-in-desktop 0.24s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+
+  /* Prevent content from ever causing horizontal overflow */
+  overflow-x: hidden;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 [data-theme="light"] .notification-panel {
@@ -29,12 +55,12 @@
   border-color: rgba(0, 0, 0, 0.09);
   box-shadow:
     0 12px 40px rgba(0, 0, 0, 0.14),
-    0 0 0 1px rgba(0, 184, 148, 0.1);
+    0 0 0 1px rgba(0, 184, 148, 0.10);
 }
 
-@keyframes panel-in {
+@keyframes panel-in-desktop {
   from { opacity: 0; transform: translateY(-10px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 1; transform: translateY(0)     scale(1); }
 }
 
 /* ── Header ──────────────────────────────────── */
@@ -44,6 +70,7 @@
   justify-content: space-between;
   padding: 14px 16px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
 }
 
 [data-theme="light"] .np-header {
@@ -54,6 +81,7 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
+  margin: 0;
 }
 
 .np-mark-all {
@@ -65,11 +93,13 @@
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 6px;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background 0.18s ease, color 0.18s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .np-mark-all:hover {
-  background: rgba(0, 184, 148, 0.1);
+  background: rgba(0, 184, 148, 0.10);
   color: #00D8A8;
 }
 
@@ -77,11 +107,12 @@
 .np-list {
   max-height: 380px;
   overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.1) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.10) transparent;
 }
 
-/* ── Empty ───────────────────────────────────── */
+/* ── Empty state ─────────────────────────────── */
 .np-empty {
   display: flex;
   flex-direction: column;
@@ -92,14 +123,10 @@
   gap: 10px;
 }
 
-.np-empty-icon {
-  opacity: 0.4;
-  filter: drop-shadow(0 0 8px rgba(0,184,148,0.2));
-}
-
 .np-empty p {
   font-size: 13px;
   color: var(--text-muted);
+  margin: 0;
 }
 
 /* ── Item ────────────────────────────────────── */
@@ -112,6 +139,9 @@
   transition: background 0.18s ease;
   cursor: default;
   position: relative;
+  /* Prevent long text from breaking container width */
+  min-width: 0;
+  overflow: hidden;
 }
 
 [data-theme="light"] .np-item {
@@ -128,13 +158,14 @@
 }
 
 .np-item-unread:hover {
-  background: rgba(0, 184, 148, 0.1);
+  background: rgba(0, 184, 148, 0.10);
 }
 
 /* ── Icon badge ──────────────────────────────── */
 .np-icon {
   width: 30px;
   height: 30px;
+  min-width: 30px; /* never shrink */
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -146,7 +177,8 @@
 /* ── Content ─────────────────────────────────── */
 .np-content {
   flex: 1;
-  min-width: 0;
+  min-width: 0; /* allows text-overflow/wrap to work inside flex */
+  overflow: hidden;
 }
 
 .np-item-title {
@@ -154,6 +186,9 @@
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .np-item-message {
@@ -161,17 +196,21 @@
   color: var(--text-secondary);
   line-height: 1.5;
   margin-bottom: 5px;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .np-item-time {
   font-size: 11px;
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
 /* ── Unread dot ──────────────────────────────── */
 .np-dot {
   width: 7px;
   height: 7px;
+  min-width: 7px;
   border-radius: 50%;
   background: var(--accent-green);
   flex-shrink: 0;
@@ -179,11 +218,93 @@
   box-shadow: 0 0 6px rgba(0, 184, 148, 0.6);
 }
 
-/* ── Mobile ──────────────────────────────────── */
-@media (max-width: 480px) {
+/* ══════════════════════════════════════════════
+   MOBILE — bottom-center modal style
+   ══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* Show the dimmed backdrop on mobile */
+  .np-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 8999; /* just below the panel */
+    animation: np-backdrop-in 0.22s ease both;
+  }
+
+  @keyframes np-backdrop-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* Override desktop positioning completely */
   .notification-panel {
-    width: calc(100vw - 32px);
-    right: -80px;
-    border-radius: 12px;
+    /* Reset desktop anchor values so they don't interfere */
+    top:   auto !important;
+    right: auto !important;
+
+    /* Center horizontally, sit above bottom edge */
+    left:      50%;
+    bottom:    24px;
+    transform: translateX(-50%);
+
+    /* Responsive width — never bleeds off narrow screens */
+    width:     min(92vw, 380px);
+    max-width: 92vw;
+
+    /* Cap list height so it doesn't cover the full screen */
+    max-height: calc(100vh - 100px);
+    display:    flex;
+    flex-direction: column;
+
+    border-radius: 18px;
+    z-index: 9000;
+
+    box-shadow:
+      0 -4px 32px rgba(0, 0, 0, 0.50),
+      0 8px  40px rgba(0, 0, 0, 0.40),
+      0 0 0 1px rgba(255, 255, 255, 0.07);
+
+    /* Mobile entry: slide up from below */
+    animation: panel-in-mobile 0.32s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  }
+
+  @keyframes panel-in-mobile {
+    from {
+      opacity:   0;
+      transform: translateX(-50%) translateY(24px) scale(0.95);
+    }
+    to {
+      opacity:   1;
+      transform: translateX(-50%) translateY(0)    scale(1);
+    }
+  }
+
+  /* Allow list to scroll within the capped panel height */
+  .np-list {
+    flex: 1;
+    max-height: none; /* parent max-height controls this on mobile */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Slightly larger tap targets on mobile */
+  .np-item {
+    padding: 14px 16px;
+  }
+}
+
+/* ── Reduced motion ──────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .notification-panel,
+  .np-backdrop {
+    animation: none;
+  }
+  .notification-panel {
+    opacity: 1;
+    transform: translateX(-50%); /* keep centering on mobile */
   }
 }

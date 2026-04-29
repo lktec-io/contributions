@@ -1,6 +1,7 @@
+import { forwardRef } from 'react';
 import { FiCalendar, FiDollarSign, FiCheckCircle, FiBell } from 'react-icons/fi';
-import './NotificationPanel.css';
 import { formatDateTime } from '../../utils/formatters';
+import './NotificationPanel.css';
 
 const TYPE_ICONS = {
   event_assigned:     FiCalendar,
@@ -16,11 +17,14 @@ const TYPE_COLORS = {
   system:             '#3B82F6',
 };
 
-export default function NotificationPanel({ notifications, onMarkRead, onMarkAllRead }) {
+const NotificationPanel = forwardRef(function NotificationPanel(
+  { notifications, onMarkRead, onMarkAllRead, style },
+  ref
+) {
   const hasUnread = notifications.some(n => !n.is_read);
 
   return (
-    <div className="notification-panel">
+    <div className="notification-panel" ref={ref} style={style}>
       <div className="np-header">
         <h3 className="np-title">Notifications</h3>
         {hasUnread && (
@@ -38,12 +42,12 @@ export default function NotificationPanel({ notifications, onMarkRead, onMarkAll
           </div>
         ) : (
           notifications.map(n => {
-            const Icon = TYPE_ICONS[n.type] || FiBell;
+            const Icon  = TYPE_ICONS[n.type]  || FiBell;
             const color = TYPE_COLORS[n.type] || '#3B82F6';
             return (
               <div
                 key={n.id}
-                className={`np-item ${!n.is_read ? 'np-item-unread' : ''}`}
+                className={`np-item${!n.is_read ? ' np-item-unread' : ''}`}
                 onClick={() => !n.is_read && onMarkRead(n.id)}
                 role={!n.is_read ? 'button' : undefined}
                 tabIndex={!n.is_read ? 0 : undefined}
@@ -64,4 +68,6 @@ export default function NotificationPanel({ notifications, onMarkRead, onMarkAll
       </div>
     </div>
   );
-}
+});
+
+export default NotificationPanel;
