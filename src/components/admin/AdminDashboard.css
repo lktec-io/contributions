@@ -248,28 +248,7 @@
   letter-spacing: 0.2px;
 }
 
-/* Light theme overrides */
-[data-theme="light"] .welcome-banner {
-  background: linear-gradient(125deg, #e6f9f4 0%, #eaf4ff 40%, #f0f7ff 100%);
-  box-shadow:
-    0 4px 24px rgba(0, 184, 148, 0.12),
-    0 0 0 1px rgba(0, 184, 148, 0.18);
-}
-
-[data-theme="light"] .welcome-banner h1 {
-  color: #0D1B2A;
-}
-
-[data-theme="light"] .welcome-banner p {
-  color: var(--text-secondary);
-}
-
-[data-theme="light"] .welcome-banner::before {
-  background: radial-gradient(circle,
-    rgba(0, 184, 148, 0.12) 0%,
-    transparent 65%
-  );
-}
+/* Welcome banner is intentionally always dark — no light-theme override */
 
 /* ════════════════════════════════════════════════
    STAT CARDS — Premium with color glow
