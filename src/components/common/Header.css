@@ -99,6 +99,23 @@
   transform: translateY(-7px) rotate(-45deg);
 }
 
+/* ── Hamburger: click-pulse feedback ─────────── */
+/*
+  Fires once when hamburger-pulse class is added.
+  Gives a satisfying "press in → spring out" feel
+  without interfering with the bar → X transition.
+*/
+.hamburger-pulse {
+  animation: hamburger-press 0.40s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes hamburger-press {
+  0%   { transform: scale(1);    }
+  25%  { transform: scale(0.78); }
+  65%  { transform: scale(1.18); }
+  100% { transform: scale(1);    }
+}
+
 /* ── Theme toggle ────────────────────────────── */
 .theme-toggle {
   border: 1px solid rgba(255, 255, 255, 0.1);

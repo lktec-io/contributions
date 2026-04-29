@@ -7,14 +7,20 @@ import NotificationBell from '../notifications/NotificationBell';
 import './Header.css';
 
 export default function Header({ onMenuToggle, menuOpen }) {
-  const { user, logout }    = useContext(AuthContext);
-  const { theme, toggleTheme } = useContext(ThemeContext);
-  const navigate = useNavigate();
-  const [iconSpin, setIconSpin] = useState(false);
+  const { user, logout }        = useContext(AuthContext);
+  const { theme, toggleTheme }  = useContext(ThemeContext);
+  const navigate                = useNavigate();
+  const [iconSpin,       setIconSpin]       = useState(false);
+  const [hamburgerPulse, setHamburgerPulse] = useState(false);
 
   function handleThemeToggle() {
     setIconSpin(true);
     toggleTheme();
+  }
+
+  function handleMenuToggle() {
+    setHamburgerPulse(true);
+    onMenuToggle();
   }
 
   return (
@@ -22,8 +28,9 @@ export default function Header({ onMenuToggle, menuOpen }) {
       <div className="header-left">
         {/* Animated hamburger — 3 bars morph to X when open */}
         <button
-          className={`header-icon-btn hamburger-btn ${menuOpen ? 'hamburger-open' : ''}`}
-          onClick={onMenuToggle}
+          className={`header-icon-btn hamburger-btn${menuOpen ? ' hamburger-open' : ''}${hamburgerPulse ? ' hamburger-pulse' : ''}`}
+          onClick={handleMenuToggle}
+          onAnimationEnd={() => setHamburgerPulse(false)}
           aria-label="Toggle menu"
           aria-expanded={menuOpen}
         >
@@ -35,7 +42,7 @@ export default function Header({ onMenuToggle, menuOpen }) {
 
       <div className="header-right">
         <button
-          className={`header-icon-btn theme-toggle ${iconSpin ? 'theme-icon-spinning' : ''}`}
+          className={`header-icon-btn theme-toggle${iconSpin ? ' theme-icon-spinning' : ''}`}
           onClick={handleThemeToggle}
           onAnimationEnd={() => setIconSpin(false)}
           title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}

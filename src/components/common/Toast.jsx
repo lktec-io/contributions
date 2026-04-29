@@ -13,14 +13,18 @@ const ICONS = {
 export default function ToastContainer() {
   const { toasts, removeToast } = useContext(ToastContext);
   return (
-    <div className="toast-container">
-      {toasts.map(toast => {
-        const Icon = ICONS[toast.type] || FiInfo;
+    <div className="toast-container" aria-live="polite" aria-atomic="false">
+      {toasts.map(t => {
+        const Icon = ICONS[t.type] || FiInfo;
         return (
-          <div key={toast.id} className={`toast toast-${toast.type}`}>
+          <div
+            key={t.id}
+            className={`toast toast-${t.type}${t.exiting ? ' toast-exiting' : ''}`}
+            role="alert"
+          >
             <span className="toast-icon"><Icon size={15} /></span>
-            <span className="toast-message">{toast.message}</span>
-            <button className="toast-close" onClick={() => removeToast(toast.id)}>
+            <span className="toast-message">{t.message}</span>
+            <button className="toast-close" onClick={() => removeToast(t.id)} aria-label="Dismiss">
               <FiX size={13} />
             </button>
           </div>
