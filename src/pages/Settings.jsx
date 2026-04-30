@@ -2,7 +2,8 @@ import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FiUser, FiSettings, FiBell, FiShield, FiGlobe,
-  FiEye, FiEyeOff, FiArrowLeft, FiSave, FiCheck,
+  FiMessageSquare, FiEye, FiEyeOff, FiArrowLeft,
+  FiSave, FiCheck, FiImage, FiAlertCircle,
 } from 'react-icons/fi';
 import { AuthContext } from '../context/AuthContext';
 import { ToastContext } from '../context/ToastContext';
@@ -13,22 +14,20 @@ import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
 import './Settings.css';
 
-// ── Toggle switch component ─────────────────────────────────────
+// ── Primitives ───────────────────────────────────────────────────
+
 function Toggle({ value, onChange, disabled }) {
   return (
     <button
       type="button"
-      className={`st-toggle ${value ? 'st-toggle-on' : ''}`}
+      className={`st-toggle${value ? ' st-toggle-on' : ''}`}
       onClick={() => !disabled && onChange(!value)}
       disabled={disabled}
       aria-pressed={value}
-    >
-      <span className="st-toggle-thumb" />
-    </button>
+    />
   );
 }
 
-// ── Section heading ─────────────────────────────────────────────
 function SectionCard({ title, subtitle, children }) {
   return (
     <div className="st-card">
@@ -41,7 +40,6 @@ function SectionCard({ title, subtitle, children }) {
   );
 }
 
-// ── Form field ──────────────────────────────────────────────────
 function Field({ label, children, hint }) {
   return (
     <div className="st-field">
@@ -52,10 +50,25 @@ function Field({ label, children, hint }) {
   );
 }
 
-// ── Save button ─────────────────────────────────────────────────
+function ToggleRow({ label, sub, value, onChange, disabled }) {
+  return (
+    <div className="st-toggle-row">
+      <div className="st-toggle-info">
+        <p className="st-toggle-label">{label}</p>
+        {sub && <p className="st-toggle-sub">{sub}</p>}
+      </div>
+      <Toggle value={value} onChange={onChange} disabled={disabled} />
+    </div>
+  );
+}
+
 function SaveBtn({ loading, done }) {
   return (
-    <button className={`st-save-btn ${done ? 'st-save-btn-done' : ''}`} type="submit" disabled={loading}>
+    <button
+      className={`st-save-btn${done ? ' st-save-btn-done' : ''}`}
+      type="submit"
+      disabled={loading || done}
+    >
       {loading ? (
         <span className="st-btn-dots"><span /><span /><span /></span>
       ) : done ? (
@@ -67,72 +80,116 @@ function SaveBtn({ loading, done }) {
   );
 }
 
+// ── Logo preview ─────────────────────────────────────────────────
+function LogoPreview({ url }) {
+  const [status, setStatus] = useState('idle'); // idle | loading | ok | error
+
+  useEffect(() => {
+    if (!url?.trim()) { setStatus('idle'); return; }
+    setStatus('loading');
+    const img = new Image();
+    img.onload  = () => setStatus('ok');
+    img.onerror = () => setStatus('error');
+    img.src = url;
+  }, [url]);
+
+  if (status === 'idle') return null;
+
+  return (
+    <div className={`st-logo-preview${status === 'error' ? ' st-logo-preview-error' : ''}`}>
+      {status === 'ok' ? (
+        <img src={url} alt="Logo preview" className="st-logo-img" />
+      ) : status === 'loading' ? (
+        <span className="st-logo-loading"><span /><span /><span /></span>
+      ) : (
+        <span className="st-logo-err"><FiAlertCircle size={14} /> Invalid image URL</span>
+      )}
+    </div>
+  );
+}
+
+// ── SMS provider badge ────────────────────────────────────────────
+const SMS_LABELS = {
+  beem:           'Beem Africa',
+  africastalking: "Africa's Talking",
+};
+
+// ════════════════════════════════════════════════════════════════
+// Settings page
+// ════════════════════════════════════════════════════════════════
 export default function Settings() {
   const { user }  = useContext(AuthContext);
   const { toast } = useContext(ToastContext);
   const navigate  = useNavigate();
+  const role      = user?.role;
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [section,     setSection]     = useState('profile');
   const [loading,     setLoading]     = useState(true);
 
-  // ── Profile state ────────────────────────────────────────────
-  const [profile, setProfile]   = useState({ profile_name: '', profile_email: '' });
-  const [savingProfile,  setSavingProfile]  = useState(false);
-  const [doneProfile,    setDoneProfile]    = useState(false);
+  // ── State blocks (each section is independent) ────────────────
 
-  // ── System state (super_admin) ───────────────────────────────
+  const [profile, setProfile] = useState({ profile_name: '', profile_email: '' });
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [doneProfile,   setDoneProfile]   = useState(false);
+
+  // super_admin: global system settings
   const [system, setSystem] = useState({
-    system_name:           '',
-    system_logo:           '',
-    default_currency:      'TZS',
-    sms_provider:          'beem',
-    enable_notifications:  'true',
+    system_name:          '',
+    system_logo:          '',
+    default_currency:     'TZS',
+    enable_notifications: 'true',
   });
   const [savingSystem, setSavingSystem] = useState(false);
   const [doneSystem,   setDoneSystem]   = useState(false);
 
-  // ── Organization state (admin) ───────────────────────────────
+  // super_admin: SMS platform settings
+  const [sms, setSms] = useState({ sms_provider: 'beem' });
+  const [savingSms, setSavingSms] = useState(false);
+  const [doneSms,   setDoneSms]   = useState(false);
+
+  // admin: organisation settings
   const [org, setOrg] = useState({
     organization_name:    '',
     enable_notifications: 'true',
     enable_sms:           'true',
+    sms_provider:         'beem',
   });
   const [savingOrg, setSavingOrg] = useState(false);
   const [doneOrg,   setDoneOrg]   = useState(false);
 
-  // ── Notifications state ──────────────────────────────────────
-  const [notifPref, setNotifPref] = useState('true');
+  // all roles: personal notification preference
+  const [notifPref,   setNotifPref]   = useState('true');
   const [savingNotif, setSavingNotif] = useState(false);
   const [doneNotif,   setDoneNotif]   = useState(false);
 
-  // ── Security (password) state ────────────────────────────────
-  const [pw, setPw] = useState({ current_password: '', new_password: '', confirm: '' });
+  // all roles: password change
+  const [pw,     setPw]     = useState({ current_password: '', new_password: '', confirm: '' });
   const [showPw, setShowPw] = useState({ current: false, new: false, confirm: false });
   const [savingPw, setSavingPw] = useState(false);
 
-  // ── Load settings ────────────────────────────────────────────
+  // ── Load ──────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       try {
-        const res = await settingsService.get();
-        const d   = res.data.data;
+        const { data: { data: d } } = await settingsService.get();
 
         setProfile({
-          profile_name:  d.profile_name  || '',
-          profile_email: d.profile_email || '',
+          profile_name:  d.profile_name  ?? '',
+          profile_email: d.profile_email ?? '',
         });
         setSystem({
-          system_name:          d.system_name          || '',
-          system_logo:          d.system_logo          || '',
-          default_currency:     d.default_currency     || 'TZS',
-          sms_provider:         d.sms_provider         || 'beem',
+          system_name:          d.system_name          ?? '',
+          system_logo:          d.system_logo          ?? '',
+          default_currency:     d.default_currency     ?? 'TZS',
           enable_notifications: d.enable_notifications ?? 'true',
         });
+        setSms({ sms_provider: d.sms_provider ?? 'beem' });
         setOrg({
-          organization_name:    d.organization_name    || '',
+          organization_name:    d.organization_name    ?? '',
           enable_notifications: d.enable_notifications ?? 'true',
           enable_sms:           d.enable_sms           ?? 'true',
+          sms_provider:         d.sms_provider         ?? 'beem',
         });
         setNotifPref(d.notification_preference ?? 'true');
       } catch (err) {
@@ -143,24 +200,23 @@ export default function Settings() {
     })();
   }, []);
 
-  function flashDone(setDone) {
-    setDone(true);
-    setTimeout(() => setDone(false), 2500);
+  function flash(setter) {
+    setter(true);
+    setTimeout(() => setter(false), 2500);
   }
 
-  // ── Save handlers ────────────────────────────────────────────
+  // ── Save handlers ─────────────────────────────────────────────
+
   async function saveProfile(e) {
     e.preventDefault();
     setSavingProfile(true);
     try {
       await settingsService.update(profile);
       toast.success('Profile updated');
-      flashDone(setDoneProfile);
+      flash(setDoneProfile);
     } catch (err) {
       toast.error(getErrorMessage(err));
-    } finally {
-      setSavingProfile(false);
-    }
+    } finally { setSavingProfile(false); }
   }
 
   async function saveSystem(e) {
@@ -169,12 +225,22 @@ export default function Settings() {
     try {
       await settingsService.update(system);
       toast.success('System settings saved');
-      flashDone(setDoneSystem);
+      flash(setDoneSystem);
     } catch (err) {
       toast.error(getErrorMessage(err));
-    } finally {
-      setSavingSystem(false);
-    }
+    } finally { setSavingSystem(false); }
+  }
+
+  async function saveSms(e) {
+    e.preventDefault();
+    setSavingSms(true);
+    try {
+      await settingsService.update(sms);
+      toast.success('SMS settings saved');
+      flash(setDoneSms);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally { setSavingSms(false); }
   }
 
   async function saveOrg(e) {
@@ -183,12 +249,10 @@ export default function Settings() {
     try {
       await settingsService.update(org);
       toast.success('Organisation settings saved');
-      flashDone(setDoneOrg);
+      flash(setDoneOrg);
     } catch (err) {
       toast.error(getErrorMessage(err));
-    } finally {
-      setSavingOrg(false);
-    }
+    } finally { setSavingOrg(false); }
   }
 
   async function saveNotif(e) {
@@ -197,12 +261,10 @@ export default function Settings() {
     try {
       await settingsService.update({ notification_preference: notifPref });
       toast.success('Notification preference saved');
-      flashDone(setDoneNotif);
+      flash(setDoneNotif);
     } catch (err) {
       toast.error(getErrorMessage(err));
-    } finally {
-      setSavingNotif(false);
-    }
+    } finally { setSavingNotif(false); }
   }
 
   async function savePassword(e) {
@@ -221,36 +283,43 @@ export default function Settings() {
       setPw({ current_password: '', new_password: '', confirm: '' });
     } catch (err) {
       toast.error(getErrorMessage(err));
-    } finally {
-      setSavingPw(false);
-    }
+    } finally { setSavingPw(false); }
   }
 
-  // ── Navigation items ─────────────────────────────────────────
+  // ── Nav items (role-based) ────────────────────────────────────
   const navItems = [
-    { id: 'profile',      label: 'Profile',         Icon: FiUser   },
-    ...(user?.role === 'super_admin' ? [{ id: 'system', label: 'System',  Icon: FiSettings }] : []),
-    ...(user?.role === 'admin'       ? [{ id: 'org',    label: 'Organisation', Icon: FiGlobe    }] : []),
-    { id: 'notifications', label: 'Notifications',  Icon: FiBell   },
-    { id: 'security',      label: 'Security',        Icon: FiShield },
+    { id: 'profile',       label: 'Profile',       Icon: FiUser          },
+    ...(role === 'super_admin' ? [
+      { id: 'system',      label: 'System',         Icon: FiSettings      },
+      { id: 'sms',         label: 'SMS',            Icon: FiMessageSquare },
+    ] : []),
+    ...(role === 'admin' ? [
+      { id: 'org',         label: 'Organisation',   Icon: FiGlobe         },
+    ] : []),
+    { id: 'notifications', label: 'Notifications',  Icon: FiBell          },
+    { id: 'security',      label: 'Security',        Icon: FiShield        },
   ];
 
-  // ── Section content ──────────────────────────────────────────
+  // ── Section renderer ──────────────────────────────────────────
   function renderSection() {
     if (loading) {
       return (
         <div className="st-card">
           <div className="st-card-body st-skeleton-wrap">
-            {[1,2,3].map(i => <div key={i} className="st-skeleton-line" style={{ width: i === 2 ? '60%' : '100%' }} />)}
+            {[100, 60, 80].map((w, i) => (
+              <div key={i} className="st-skeleton-line" style={{ width: `${w}%` }} />
+            ))}
           </div>
         </div>
       );
     }
 
     switch (section) {
+
+      // ── Profile ─────────────────────────────────────────────
       case 'profile':
         return (
-          <SectionCard title="Profile" subtitle="Update your name and email address.">
+          <SectionCard title="Profile" subtitle="Your name and email address visible across the platform.">
             <form onSubmit={saveProfile} className="st-form">
               <Field label="Full Name">
                 <input
@@ -278,11 +347,12 @@ export default function Settings() {
           </SectionCard>
         );
 
+      // ── System (super_admin only) ────────────────────────────
       case 'system':
         return (
-          <SectionCard title="System Settings" subtitle="Global platform configuration visible to all users.">
+          <SectionCard title="System Settings" subtitle="Global platform configuration. Changes affect all users.">
             <form onSubmit={saveSystem} className="st-form">
-              <Field label="System Name" hint="Displayed in the header and emails.">
+              <Field label="System Name" hint="Displayed in the header, emails and browser tab.">
                 <input
                   className="st-input"
                   value={system.system_name}
@@ -290,14 +360,22 @@ export default function Settings() {
                   placeholder="Finance Hub"
                 />
               </Field>
-              <Field label="Logo URL" hint="Paste a direct image URL or leave blank.">
-                <input
-                  className="st-input"
-                  value={system.system_logo}
-                  onChange={e => setSystem(s => ({ ...s, system_logo: e.target.value }))}
-                  placeholder="https://example.com/logo.png"
-                />
+
+              <Field label="Logo URL" hint="Direct link to a .png / .svg image (recommended 120 × 40 px).">
+                <div className="st-logo-field">
+                  <div className="st-input-icon-wrap">
+                    <FiImage size={14} className="st-input-icon" />
+                    <input
+                      className="st-input st-input-has-icon"
+                      value={system.system_logo}
+                      onChange={e => setSystem(s => ({ ...s, system_logo: e.target.value }))}
+                      placeholder="https://example.com/logo.png"
+                    />
+                  </div>
+                  <LogoPreview url={system.system_logo} />
+                </div>
               </Field>
+
               <Field label="Default Currency">
                 <select
                   className="st-select"
@@ -308,28 +386,17 @@ export default function Settings() {
                   <option value="USD">USD — US Dollar</option>
                   <option value="KES">KES — Kenyan Shilling</option>
                   <option value="UGX">UGX — Ugandan Shilling</option>
+                  <option value="ZAR">ZAR — South African Rand</option>
                 </select>
               </Field>
-              <Field label="SMS Provider">
-                <select
-                  className="st-select"
-                  value={system.sms_provider}
-                  onChange={e => setSystem(s => ({ ...s, sms_provider: e.target.value }))}
-                >
-                  <option value="beem">Beem Africa</option>
-                  <option value="africastalking">Africa's Talking</option>
-                </select>
-              </Field>
-              <div className="st-toggle-row">
-                <div>
-                  <p className="st-toggle-label">Enable Notifications</p>
-                  <p className="st-toggle-sub">Platform-wide notification system</p>
-                </div>
-                <Toggle
-                  value={system.enable_notifications === 'true'}
-                  onChange={v => setSystem(s => ({ ...s, enable_notifications: String(v) }))}
-                />
-              </div>
+
+              <ToggleRow
+                label="Enable Notifications"
+                sub="Platform-wide notification system for all users"
+                value={system.enable_notifications === 'true'}
+                onChange={v => setSystem(s => ({ ...s, enable_notifications: String(v) }))}
+              />
+
               <div className="st-form-footer">
                 <SaveBtn loading={savingSystem} done={doneSystem} />
               </div>
@@ -337,9 +404,61 @@ export default function Settings() {
           </SectionCard>
         );
 
+      // ── SMS (super_admin only) ───────────────────────────────
+      case 'sms':
+        return (
+          <SectionCard title="SMS Settings" subtitle="Choose the SMS gateway used for all outbound messages.">
+            <form onSubmit={saveSms} className="st-form">
+              <Field label="SMS Provider">
+                <div className="st-sms-cards">
+                  {[
+                    { value: 'beem',           label: 'Beem Africa',      desc: 'Recommended for Tanzania & East Africa' },
+                    { value: 'africastalking', label: "Africa's Talking", desc: 'Pan-African coverage' },
+                  ].map(opt => (
+                    <label
+                      key={opt.value}
+                      className={`st-sms-card${sms.sms_provider === opt.value ? ' st-sms-card-active' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="sms_provider"
+                        value={opt.value}
+                        checked={sms.sms_provider === opt.value}
+                        onChange={() => setSms({ sms_provider: opt.value })}
+                        className="st-sms-radio"
+                      />
+                      <span className="st-sms-card-dot" />
+                      <span className="st-sms-card-content">
+                        <span className="st-sms-card-label">{opt.label}</span>
+                        <span className="st-sms-card-desc">{opt.desc}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </Field>
+
+              <div className="st-info-box">
+                <FiAlertCircle size={14} />
+                <p>
+                  API credentials for{' '}
+                  <strong>{SMS_LABELS[sms.sms_provider] ?? sms.sms_provider}</strong>{' '}
+                  are configured in <code>.env</code> on the server
+                  (<code>BEEM_API_KEY</code> / <code>BEEM_SECRET_KEY</code> or{' '}
+                  <code>AT_API_KEY</code> / <code>AT_USERNAME</code>).
+                </p>
+              </div>
+
+              <div className="st-form-footer">
+                <SaveBtn loading={savingSms} done={doneSms} />
+              </div>
+            </form>
+          </SectionCard>
+        );
+
+      // ── Organisation (admin only) ────────────────────────────
       case 'org':
         return (
-          <SectionCard title="Organisation" subtitle="Settings scoped to your organisation.">
+          <SectionCard title="Organisation" subtitle="Settings scoped to your organisation and its users.">
             <form onSubmit={saveOrg} className="st-form">
               <Field label="Organisation Name">
                 <input
@@ -349,26 +468,34 @@ export default function Settings() {
                   placeholder="Your organisation name"
                 />
               </Field>
-              <div className="st-toggle-row">
-                <div>
-                  <p className="st-toggle-label">Enable Notifications</p>
-                  <p className="st-toggle-sub">Send system notifications to your users</p>
-                </div>
-                <Toggle
-                  value={org.enable_notifications === 'true'}
-                  onChange={v => setOrg(o => ({ ...o, enable_notifications: String(v) }))}
-                />
-              </div>
-              <div className="st-toggle-row">
-                <div>
-                  <p className="st-toggle-label">Enable SMS Reminders</p>
-                  <p className="st-toggle-sub">Allow SMS reminders to be sent from your account</p>
-                </div>
-                <Toggle
-                  value={org.enable_sms === 'true'}
-                  onChange={v => setOrg(o => ({ ...o, enable_sms: String(v) }))}
-                />
-              </div>
+
+              <ToggleRow
+                label="Enable Notifications"
+                sub="Send in-app notifications to your users"
+                value={org.enable_notifications === 'true'}
+                onChange={v => setOrg(o => ({ ...o, enable_notifications: String(v) }))}
+              />
+
+              <ToggleRow
+                label="Enable SMS Reminders"
+                sub="Allow the platform to send SMS reminders via your account"
+                value={org.enable_sms === 'true'}
+                onChange={v => setOrg(o => ({ ...o, enable_sms: String(v) }))}
+              />
+
+              {org.enable_sms === 'true' && (
+                <Field label="SMS Provider" hint="Choose which gateway to use for your organisation.">
+                  <select
+                    className="st-select"
+                    value={org.sms_provider}
+                    onChange={e => setOrg(o => ({ ...o, sms_provider: e.target.value }))}
+                  >
+                    <option value="beem">Beem Africa</option>
+                    <option value="africastalking">Africa's Talking</option>
+                  </select>
+                </Field>
+              )}
+
               <div className="st-form-footer">
                 <SaveBtn loading={savingOrg} done={doneOrg} />
               </div>
@@ -376,20 +503,17 @@ export default function Settings() {
           </SectionCard>
         );
 
+      // ── Notifications (all roles) ────────────────────────────
       case 'notifications':
         return (
-          <SectionCard title="Notifications" subtitle="Control how you receive notifications.">
+          <SectionCard title="Notifications" subtitle="Your personal notification preference.">
             <form onSubmit={saveNotif} className="st-form">
-              <div className="st-toggle-row">
-                <div>
-                  <p className="st-toggle-label">Receive Notifications</p>
-                  <p className="st-toggle-sub">Get notified about contributions, events, and updates</p>
-                </div>
-                <Toggle
-                  value={notifPref === 'true'}
-                  onChange={v => setNotifPref(String(v))}
-                />
-              </div>
+              <ToggleRow
+                label="Receive Notifications"
+                sub="Get notified about contributions, events, payments and updates"
+                value={notifPref === 'true'}
+                onChange={v => setNotifPref(String(v))}
+              />
               <div className="st-form-footer">
                 <SaveBtn loading={savingNotif} done={doneNotif} />
               </div>
@@ -397,41 +521,38 @@ export default function Settings() {
           </SectionCard>
         );
 
+      // ── Security (all roles) ─────────────────────────────────
       case 'security':
         return (
           <SectionCard title="Security" subtitle="Change your account password.">
             <form onSubmit={savePassword} className="st-form">
-              {['current_password', 'new_password', 'confirm'].map(field => {
-                const labels = {
-                  current_password: 'Current Password',
-                  new_password:     'New Password',
-                  confirm:          'Confirm New Password',
-                };
-                const key = field === 'current_password' ? 'current' : field === 'new_password' ? 'new' : 'confirm';
-                return (
-                  <Field key={field} label={labels[field]}>
-                    <div className="st-pw-wrap">
-                      <input
-                        type={showPw[key] ? 'text' : 'password'}
-                        className="st-input st-input-pw"
-                        value={pw[field]}
-                        onChange={e => setPw(p => ({ ...p, [field]: e.target.value }))}
-                        placeholder="••••••••"
-                        required
-                      />
-                      <button
-                        type="button"
-                        className="st-pw-eye"
-                        onClick={() => setShowPw(s => ({ ...s, [key]: !s[key] }))}
-                        tabIndex={-1}
-                        aria-label={showPw[key] ? 'Hide' : 'Show'}
-                      >
-                        {showPw[key] ? <FiEyeOff size={15} /> : <FiEye size={15} />}
-                      </button>
-                    </div>
-                  </Field>
-                );
-              })}
+              {[
+                { field: 'current_password', label: 'Current Password',     key: 'current' },
+                { field: 'new_password',     label: 'New Password',          key: 'new'     },
+                { field: 'confirm',          label: 'Confirm New Password',  key: 'confirm' },
+              ].map(({ field, label, key }) => (
+                <Field key={field} label={label}>
+                  <div className="st-pw-wrap">
+                    <input
+                      type={showPw[key] ? 'text' : 'password'}
+                      className="st-input st-input-pw"
+                      value={pw[field]}
+                      onChange={e => setPw(p => ({ ...p, [field]: e.target.value }))}
+                      placeholder="••••••••"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="st-pw-eye"
+                      onClick={() => setShowPw(s => ({ ...s, [key]: !s[key] }))}
+                      tabIndex={-1}
+                      aria-label={showPw[key] ? 'Hide password' : 'Show password'}
+                    >
+                      {showPw[key] ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+                    </button>
+                  </div>
+                </Field>
+              ))}
               <div className="st-form-footer">
                 <SaveBtn loading={savingPw} done={false} />
               </div>
@@ -444,6 +565,7 @@ export default function Settings() {
     }
   }
 
+  // ── Render ────────────────────────────────────────────────────
   return (
     <div className="app-layout">
       <Sidebar
@@ -462,11 +584,9 @@ export default function Settings() {
         <main className="main-content">
           <div className="st-page">
 
-            {/* ── Page header ───────────────────────────────── */}
             <div className="st-page-header">
               <button className="st-back-btn" onClick={() => navigate('/dashboard')}>
-                <FiArrowLeft size={16} />
-                Back to Dashboard
+                <FiArrowLeft size={16} /> Back to Dashboard
               </button>
               <div>
                 <h1 className="st-page-title">Settings</h1>
@@ -474,15 +594,12 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* ── Body ──────────────────────────────────────── */}
             <div className="st-body">
-
-              {/* Left nav */}
-              <nav className="st-nav">
+              <nav className="st-nav" aria-label="Settings navigation">
                 {navItems.map(({ id, label, Icon }) => (
                   <button
                     key={id}
-                    className={`st-nav-item ${section === id ? 'st-nav-item-active' : ''}`}
+                    className={`st-nav-item${section === id ? ' st-nav-item-active' : ''}`}
                     onClick={() => setSection(id)}
                   >
                     <Icon size={17} className="st-nav-icon" />
@@ -491,11 +608,11 @@ export default function Settings() {
                 ))}
               </nav>
 
-              {/* Content */}
               <div className="st-content">
                 {renderSection()}
               </div>
             </div>
+
           </div>
         </main>
 

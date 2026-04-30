@@ -79,14 +79,28 @@ CREATE INDEX idx_payments_contribution ON payment_history(contribution_id);
 CREATE INDEX idx_notifications_user ON notifications(user_id, is_read);
 CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
 
+-- ── Settings ──────────────────────────────────────────────────────
+-- Scope encoding (both columns are NOT NULL to allow clean UNIQUE key):
+--   Global  (super_admin) : user_id = 0,  organization_id = 0
+--   Org     (admin)       : user_id = 0,  organization_id = <admin user_id>
+--   Personal(client_user) : user_id = <user_id>, organization_id = 0
+--
+-- Migration for existing installs:
+--   ALTER TABLE settings
+--     ADD COLUMN organization_id INT NOT NULL DEFAULT 0 AFTER user_id,
+--     DROP INDEX uniq_setting,
+--     ADD UNIQUE KEY uniq_setting (user_id, organization_id, `key`),
+--     ADD INDEX idx_settings_org (organization_id);
 CREATE TABLE IF NOT EXISTS settings (
-  id         INT AUTO_INCREMENT PRIMARY KEY,
-  user_id    INT          NOT NULL DEFAULT 0,
-  `key`      VARCHAR(100) NOT NULL,
-  value      TEXT,
-  created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY uniq_setting (user_id, `key`)
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  user_id         INT          NOT NULL DEFAULT 0,
+  organization_id INT          NOT NULL DEFAULT 0,
+  `key`           VARCHAR(100) NOT NULL,
+  value           TEXT,
+  created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_setting (user_id, organization_id, `key`)
 );
 
 CREATE INDEX idx_settings_user ON settings(user_id);
+CREATE INDEX idx_settings_org  ON settings(organization_id);

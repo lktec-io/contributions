@@ -2,32 +2,62 @@
 
 const pool = require('../config/db');
 
-// user_id = 0  →  global / super_admin scope
-// user_id = N  →  personal scope for that user
+/*
+  Scope semantics
+  ───────────────────────────────────────────────────
+  Global   (super_admin) : user_id = 0,  organization_id = 0
+  Org      (admin)       : user_id = 0,  organization_id = admin's user_id
+  Personal (client_user) : user_id = N,  organization_id = 0
+*/
 
 const Setting = {
-  async getAll(userId) {
+
+  // ── Read helpers ──────────────────────────────────────────────
+
+  async getGlobal() {
     const [rows] = await pool.query(
-      'SELECT `key`, value FROM settings WHERE user_id = ?',
+      'SELECT `key`, value FROM settings WHERE user_id = 0 AND organization_id = 0'
+    );
+    return toMap(rows);
+  },
+
+  async getOrg(orgId) {
+    const [rows] = await pool.query(
+      'SELECT `key`, value FROM settings WHERE user_id = 0 AND organization_id = ?',
+      [orgId]
+    );
+    return toMap(rows);
+  },
+
+  async getPersonal(userId) {
+    const [rows] = await pool.query(
+      'SELECT `key`, value FROM settings WHERE user_id = ? AND organization_id = 0',
       [userId]
     );
-    return rows.reduce((acc, r) => ({ ...acc, [r.key]: r.value }), {});
+    return toMap(rows);
   },
 
-  async upsert(userId, key, value) {
+  // ── Write helpers ─────────────────────────────────────────────
+
+  async upsert(userId, orgId, key, value) {
     await pool.query(
-      `INSERT INTO settings (user_id, \`key\`, value)
-       VALUES (?, ?, ?)
+      `INSERT INTO settings (user_id, organization_id, \`key\`, value)
+       VALUES (?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
-      [userId, key, String(value ?? '')]
+      [userId, orgId, key, String(value ?? '')]
     );
   },
 
-  async upsertMany(userId, data) {
+  async upsertMany(userId, orgId, data) {
     for (const [key, value] of Object.entries(data)) {
-      await Setting.upsert(userId, key, value);
+      await Setting.upsert(userId, orgId, key, value);
     }
   },
 };
+
+// ── Private ───────────────────────────────────────────────────────
+function toMap(rows) {
+  return rows.reduce((acc, r) => ({ ...acc, [r.key]: r.value }), {});
+}
 
 module.exports = Setting;
