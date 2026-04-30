@@ -38,6 +38,20 @@ const Notification = {
       [user_id]
     );
   },
+
+  async deleteOne(id, user_id) {
+    await pool.query(
+      'DELETE FROM notifications WHERE id = ? AND user_id = ?',
+      [id, user_id]
+    );
+  },
+
+  async deleteAll(user_id) {
+    await pool.query(
+      'DELETE FROM notifications WHERE user_id = ?',
+      [user_id]
+    );
+  },
 };
 
 module.exports = Notification;

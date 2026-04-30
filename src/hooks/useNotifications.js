@@ -45,6 +45,36 @@ export const useNotifications = (isAuthenticated) => {
     }
   }, []);
 
+  const deleteOne = useCallback(async (id) => {
+    const wasUnread = notifications.some(n => n.id === id && !n.is_read);
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, removing: true } : n));
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 350);
+    if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
+    try {
+      await notificationService.deleteOne(id);
+    } catch {
+      fetchNotifications();
+      fetchUnreadCount();
+    }
+  }, [notifications, fetchNotifications, fetchUnreadCount]);
+
+  const deleteAll = useCallback(async () => {
+    const removedUnread = notifications.filter(n => !n.is_read).length;
+    setNotifications(prev => prev.map(n => ({ ...n, removing: true })));
+    setTimeout(() => {
+      setNotifications([]);
+    }, 350);
+    setUnreadCount(prev => Math.max(0, prev - removedUnread));
+    try {
+      await notificationService.deleteAll();
+    } catch {
+      fetchNotifications();
+      fetchUnreadCount();
+    }
+  }, [notifications, fetchNotifications, fetchUnreadCount]);
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchUnreadCount();
@@ -56,5 +86,5 @@ export const useNotifications = (isAuthenticated) => {
     return () => clearInterval(intervalRef.current);
   }, [isAuthenticated, fetchUnreadCount]);
 
-  return { unreadCount, notifications, fetchNotifications, markRead, markAllRead, fetchUnreadCount };
+  return { unreadCount, notifications, fetchNotifications, markRead, markAllRead, deleteOne, deleteAll, fetchUnreadCount };
 };

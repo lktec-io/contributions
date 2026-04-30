@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect, useRef } from 'react';
+import { useState, useContext, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { FiBell } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
@@ -13,8 +13,10 @@ export default function NotificationBell() {
   const bellRef  = useRef(null);
   const panelRef = useRef(null);
 
-  const { unreadCount, notifications, fetchNotifications, markRead, markAllRead } =
+  const { unreadCount, notifications, fetchNotifications, markRead, markAllRead, deleteOne, deleteAll } =
     useNotifications(!!user);
+
+  const handleClose = useCallback(() => setPanelOpen(false), []);
 
   const handleBellClick = () => {
     if (!panelOpen) {
@@ -67,7 +69,7 @@ export default function NotificationBell() {
           {/* Mobile-only dimmed backdrop — tap to close */}
           <div
             className="np-backdrop"
-            onClick={() => setPanelOpen(false)}
+            onClick={handleClose}
             aria-hidden="true"
           />
           <NotificationPanel
@@ -75,7 +77,9 @@ export default function NotificationBell() {
             notifications={notifications}
             onMarkRead={markRead}
             onMarkAllRead={markAllRead}
-            onClose={() => setPanelOpen(false)}
+            onDeleteOne={deleteOne}
+            onDeleteAll={deleteAll}
+            onClose={handleClose}
             style={panelStyle}
           />
         </>,

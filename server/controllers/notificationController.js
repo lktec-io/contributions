@@ -36,4 +36,22 @@ async function markAllRead(req, res, next) {
   }
 }
 
-module.exports = { getAll, getUnreadCount, markRead, markAllRead };
+async function deleteOne(req, res, next) {
+  try {
+    await Notification.deleteOne(req.params.id, req.user.userId);
+    return res.json({ success: true, message: 'Notification deleted' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteAll(req, res, next) {
+  try {
+    await Notification.deleteAll(req.user.userId);
+    return res.json({ success: true, message: 'All notifications deleted' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getAll, getUnreadCount, markRead, markAllRead, deleteOne, deleteAll };
