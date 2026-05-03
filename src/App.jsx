@@ -7,7 +7,10 @@ import { setAuthContext } from './services/api';
 import ProtectedRoute from './routes/ProtectedRoute';
 import ThemeWaveOverlay from './components/common/ThemeWaveOverlay';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Settings from './pages/Settings';
+import HiddenRecords from './pages/HiddenRecords';
 import NotFound from './pages/NotFound';
 import AdminDashboard from './components/admin/AdminDashboard';
 import ClientDashboard from './components/client/ClientDashboard';
@@ -33,6 +36,14 @@ function AppRoutes() {
         element={authCtx.user ? <Navigate to="/dashboard" replace /> : <Login />}
       />
       <Route
+        path="/forgot-password"
+        element={authCtx.user ? <Navigate to="/dashboard" replace /> : <ForgotPassword />}
+      />
+      <Route
+        path="/reset-password"
+        element={authCtx.user ? <Navigate to="/dashboard" replace /> : <ResetPassword />}
+      />
+      <Route
         path="/dashboard"
         element={
           <ProtectedRoute>
@@ -47,6 +58,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/hidden-records"
+        element={
+          <ProtectedRoute>
+            <HiddenRecords />
           </ProtectedRoute>
         }
       />

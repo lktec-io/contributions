@@ -1,5 +1,5 @@
 import { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { FiMail, FiLock, FiLogIn, FiEye, FiEyeOff } from 'react-icons/fi';
 import { AuthContext } from '../context/AuthContext';
 import { ToastContext } from '../context/ToastContext';
@@ -7,10 +7,11 @@ import { getErrorMessage } from '../utils/helpers';
 import './Login.css';
 
 export default function Login() {
-  const [email, setEmail]               = useState('');
-  const [password, setPassword]         = useState('');
+  const [email,        setEmail]        = useState('');
+  const [password,     setPassword]     = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading]           = useState(false);
+  const [rememberMe,   setRememberMe]   = useState(false);
+  const [loading,      setLoading]      = useState(false);
   const { login }                       = useContext(AuthContext);
   const { toast }                       = useContext(ToastContext);
   const navigate                        = useNavigate();
@@ -23,7 +24,7 @@ export default function Login() {
     }
     setLoading(true);
     try {
-      const user = await login(email.trim(), password);
+      const user = await login(email.trim(), password, rememberMe);
       if (user.name) sessionStorage.setItem('justLoggedIn', user.name);
       toast.success(`Welcome back, ${user.name}!`);
       navigate('/dashboard', { replace: true });
@@ -82,7 +83,12 @@ export default function Login() {
           </div>
 
           <div className="lp-field">
-            <label htmlFor="lp-password" className="lp-label">Password</label>
+            <div className="lp-label-row">
+              <label htmlFor="lp-password" className="lp-label">Password</label>
+              <Link to="/forgot-password" className="lp-forgot-link" tabIndex={-1}>
+                Forgot password?
+              </Link>
+            </div>
             <div className="lp-input-wrap">
               <FiLock className="lp-input-icon" size={16} aria-hidden="true" />
               <input
@@ -107,6 +113,19 @@ export default function Login() {
               </button>
             </div>
           </div>
+
+          {/* Remember Me */}
+          <label className="lp-remember">
+            <input
+              type="checkbox"
+              className="lp-remember-input"
+              checked={rememberMe}
+              onChange={e => setRememberMe(e.target.checked)}
+              disabled={loading}
+            />
+            <span className="lp-remember-box" aria-hidden="true" />
+            <span className="lp-remember-label">Remember me</span>
+          </label>
 
           <button
             type="submit"

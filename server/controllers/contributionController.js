@@ -1,3 +1,5 @@
+'use strict';
+
 const Contribution = require('../models/Contribution');
 const Event = require('../models/Event');
 const Notification = require('../models/Notification');
@@ -112,4 +114,75 @@ async function remove(req, res, next) {
   }
 }
 
-module.exports = { getAll, getById, create, update, remove };
+// ── Hide (soft delete) ────────────────────────────────────────────────────────
+async function hide(req, res, next) {
+  try {
+    const contribution = await Contribution.findById(req.params.id);
+    if (!contribution) {
+      return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
+    }
+    if (!canAccessContribution(req, contribution)) {
+      return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+    }
+    await Contribution.hide(req.params.id);
+    return res.json({ success: true, data: { message: 'Contribution moved to hidden' } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── Restore ───────────────────────────────────────────────────────────────────
+async function restore(req, res, next) {
+  try {
+    if (req.user.role === 'client_user') {
+      return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+    }
+    const contribution = await Contribution.findById(req.params.id);
+    if (!contribution) {
+      return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
+    }
+    if (!canAccessContribution(req, contribution)) {
+      return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+    }
+    await Contribution.restore(req.params.id);
+    return res.json({ success: true, data: { message: 'Contribution restored' } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── Get hidden ────────────────────────────────────────────────────────────────
+async function getHidden(req, res, next) {
+  try {
+    if (req.user.role === 'client_user') {
+      return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+    }
+    const filter = getIsolationFilter(req);
+    const contributions = await Contribution.findHidden(filter);
+    return res.json({ success: true, data: { contributions, total: contributions.length } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── Permanent delete ──────────────────────────────────────────────────────────
+async function permanentDelete(req, res, next) {
+  try {
+    if (req.user.role === 'client_user') {
+      return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+    }
+    const contribution = await Contribution.findById(req.params.id);
+    if (!contribution) {
+      return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
+    }
+    if (!canAccessContribution(req, contribution)) {
+      return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+    }
+    await Contribution.delete(req.params.id);
+    return res.json({ success: true, data: { message: 'Contribution permanently deleted' } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getAll, getById, create, update, remove, hide, restore, getHidden, permanentDelete };

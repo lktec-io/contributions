@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
-import { FiDownload, FiAlertTriangle, FiDollarSign } from 'react-icons/fi';
+import { FiDownload, FiAlertTriangle, FiDollarSign, FiArchive } from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
 import { contributionService } from '../../services/contributionService';
 import { eventService } from '../../services/eventService';
@@ -8,6 +8,7 @@ import { formatCurrency, formatDate, getStatusBadgeClass } from '../../utils/for
 import { getErrorMessage, debounce } from '../../utils/helpers';
 import LoadingSpinner from '../common/LoadingSpinner';
 import EmptyState from '../common/EmptyState';
+import ConfirmDialog from '../common/ConfirmDialog';
 import './AdminContributions.css';
 
 export default function AdminContributions() {
@@ -21,6 +22,9 @@ export default function AdminContributions() {
   const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [exporting, setExporting] = useState('');
+
+  const [confirmHide,  setConfirmHide]  = useState(null);
+  const [hideLoading,  setHideLoading]  = useState(false);
 
   useEffect(() => {
     eventService.getAll()
@@ -79,6 +83,20 @@ export default function AdminContributions() {
       toast.error(getErrorMessage(err));
     } finally {
       setExporting('');
+    }
+  };
+
+  const handleHideConfirm = async () => {
+    setHideLoading(true);
+    try {
+      await contributionService.hide(confirmHide.id);
+      toast.success(`"${confirmHide.contributor_name}" moved to hidden`);
+      setConfirmHide(null);
+      fetchContributions({ search, eventId: selectedEvent, status: selectedStatus });
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setHideLoading(false);
     }
   };
 
@@ -151,6 +169,7 @@ export default function AdminContributions() {
                   <th>Outstanding</th>
                   <th>Status</th>
                   <th>Date</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -166,6 +185,15 @@ export default function AdminContributions() {
                     </td>
                     <td><span className={getStatusBadgeClass(c.status)}>{c.status}</span></td>
                     <td className="td-date">{formatDate(c.created_at)}</td>
+                    <td className="td-actions">
+                      <button
+                        className="icon-btn icon-btn-orange"
+                        onClick={() => setConfirmHide(c)}
+                        title="Hide contributor"
+                      >
+                        <FiArchive size={15} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -173,6 +201,17 @@ export default function AdminContributions() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!confirmHide}
+        onClose={() => setConfirmHide(null)}
+        onConfirm={handleHideConfirm}
+        title="Hide Contributor"
+        message={`Hide "${confirmHide?.contributor_name}"? They will be moved to Hidden Records and auto-deleted after 30 days.`}
+        confirmText="Hide"
+        confirmVariant="warning"
+        loading={hideLoading}
+      />
     </div>
   );
 }

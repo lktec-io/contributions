@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const cron = require('node-cron');
+const pool = require('./config/db');
 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -53,6 +55,22 @@ app.use((req, res) => {
 
 // ── Global error handler ───────────────────────────────────
 app.use(errorHandler);
+
+// ── Auto-delete contributions hidden for 30+ days (runs daily at midnight) ────
+cron.schedule('0 0 * * *', async () => {
+  try {
+    const [result] = await pool.query(
+      `DELETE FROM contributions
+       WHERE is_hidden = TRUE
+       AND hidden_at <= DATE_SUB(NOW(), INTERVAL 30 DAY)`
+    );
+    if (result.affectedRows > 0) {
+      console.log(`[cron] Auto-deleted ${result.affectedRows} contribution(s) hidden for 30+ days`);
+    }
+  } catch (err) {
+    console.error('[cron] Auto-delete error:', err.message);
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`ContribTrack server running on port ${PORT}`);

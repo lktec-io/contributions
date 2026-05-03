@@ -1,11 +1,6 @@
 const pool = require('../config/db');
 
 const Contribution = {
-  /**
-   * Find all contributions.
-   * - super_admin: filtered by e.created_by (their events only)
-   * - client_user: filtered by e.organization_id (their events only)
-   */
   async findAll({ eventId, status, search, organizationId, createdBy } = {}) {
     let query = `
       SELECT c.id, c.event_id, c.contributor_name, c.phone, c.email,
@@ -13,7 +8,7 @@ const Contribution = {
              e.name AS event_name, e.organization_id, e.created_by AS event_created_by
       FROM contributions c
       JOIN events e ON e.id = c.event_id
-      WHERE 1=1
+      WHERE c.is_hidden = FALSE
     `;
     const params = [];
 
@@ -39,6 +34,31 @@ const Contribution = {
     }
 
     query += ' ORDER BY c.created_at DESC';
+    const [rows] = await pool.query(query, params);
+    return rows;
+  },
+
+  async findHidden({ organizationId, createdBy } = {}) {
+    let query = `
+      SELECT c.id, c.event_id, c.contributor_name, c.phone, c.email,
+             c.amount, c.paid_amount, c.status, c.created_at, c.hidden_at,
+             e.name AS event_name, e.organization_id, e.created_by AS event_created_by
+      FROM contributions c
+      JOIN events e ON e.id = c.event_id
+      WHERE c.is_hidden = TRUE
+    `;
+    const params = [];
+
+    if (createdBy !== null && createdBy !== undefined) {
+      query += ' AND e.created_by = ?';
+      params.push(createdBy);
+    }
+    if (organizationId !== null && organizationId !== undefined) {
+      query += ' AND e.organization_id = ?';
+      params.push(organizationId);
+    }
+
+    query += ' ORDER BY c.hidden_at DESC';
     const [rows] = await pool.query(query, params);
     return rows;
   },
@@ -74,6 +94,20 @@ const Contribution = {
     await pool.query('DELETE FROM contributions WHERE id = ?', [id]);
   },
 
+  async hide(id) {
+    await pool.query(
+      'UPDATE contributions SET is_hidden = TRUE, hidden_at = NOW() WHERE id = ?',
+      [id]
+    );
+  },
+
+  async restore(id) {
+    await pool.query(
+      'UPDATE contributions SET is_hidden = FALSE, hidden_at = NULL WHERE id = ?',
+      [id]
+    );
+  },
+
   async updatePaymentStatus(id) {
     const [sumRows] = await pool.query(
       'SELECT COALESCE(SUM(amount), 0) AS total_paid FROM payment_history WHERE contribution_id = ?',
@@ -90,13 +124,9 @@ const Contribution = {
     const pledgeAmount = parseFloat(contribRows[0].amount);
 
     let status;
-    if (paidAmount <= 0) {
-      status = 'pledge';
-    } else if (paidAmount < pledgeAmount) {
-      status = 'partial';
-    } else {
-      status = 'paid';
-    }
+    if (paidAmount <= 0)             status = 'pledge';
+    else if (paidAmount < pledgeAmount) status = 'partial';
+    else                               status = 'paid';
 
     await pool.query(
       'UPDATE contributions SET paid_amount = ?, status = ? WHERE id = ?',
@@ -109,12 +139,12 @@ const Contribution = {
   async getStats({ organizationId, createdBy } = {}) {
     let query = `
       SELECT
-        COUNT(c.id) AS total_contributors,
-        COALESCE(SUM(c.amount), 0) AS total_pledged,
+        COUNT(c.id)                     AS total_contributors,
+        COALESCE(SUM(c.amount), 0)      AS total_pledged,
         COALESCE(SUM(c.paid_amount), 0) AS total_paid
       FROM contributions c
       JOIN events e ON e.id = c.event_id
-      WHERE 1=1
+      WHERE c.is_hidden = FALSE
     `;
     const params = [];
 
@@ -131,9 +161,9 @@ const Contribution = {
     const row = rows[0];
     return {
       total_contributors: row.total_contributors,
-      total_pledged: parseFloat(row.total_pledged),
-      total_paid: parseFloat(row.total_paid),
-      outstanding: parseFloat(row.total_pledged) - parseFloat(row.total_paid),
+      total_pledged:      parseFloat(row.total_pledged),
+      total_paid:         parseFloat(row.total_paid),
+      outstanding:        parseFloat(row.total_pledged) - parseFloat(row.total_paid),
     };
   },
 };

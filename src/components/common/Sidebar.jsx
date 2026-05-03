@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  FiGrid, FiUsers, FiCalendar, FiList, FiHome, FiShield, FiSettings,
+  FiGrid, FiUsers, FiCalendar, FiList, FiHome, FiShield, FiSettings, FiArchive,
 } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import './Sidebar.css';
@@ -25,10 +25,12 @@ const CLIENT_ITEMS = [
 ];
 
 export default function Sidebar({ activeTab, onTabChange, isOpen, onClose }) {
-  const { user }   = useContext(AuthContext);
-  const navigate   = useNavigate();
-  const location   = useLocation();
-  const onSettings = location.pathname === '/settings';
+  const { user }        = useContext(AuthContext);
+  const navigate        = useNavigate();
+  const location        = useLocation();
+  const onSettings      = location.pathname === '/settings';
+  const onHiddenRecords = location.pathname === '/hidden-records';
+  const isAdminRole     = user?.role === 'super_admin' || user?.role === 'admin';
 
   let items;
   if (user?.role === 'super_admin') {
@@ -66,6 +68,17 @@ export default function Sidebar({ activeTab, onTabChange, isOpen, onClose }) {
               <span className="sidebar-item-label">{label}</span>
             </button>
           ))}
+
+          {/* ── Hidden Records — admin/super_admin only ── */}
+          {isAdminRole && (
+            <button
+              className={`sidebar-item ${onHiddenRecords ? 'sidebar-item-active' : ''}`}
+              onClick={() => { navigate('/hidden-records'); onClose?.(); }}
+            >
+              <FiArchive size={20} className="sidebar-item-icon" />
+              <span className="sidebar-item-label">Hidden Records</span>
+            </button>
+          )}
 
           {/* ── Settings — pinned to bottom ──────────── */}
           <div className="sidebar-settings-section">

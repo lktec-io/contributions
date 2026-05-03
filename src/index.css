@@ -222,6 +222,28 @@ button:active:not(:disabled) {
   color: #fff;
 }
 
+.btn-warning {
+  background-color: transparent;
+  color: var(--accent-orange);
+  border: 1px solid var(--accent-orange);
+}
+
+.btn-warning:hover:not(:disabled) {
+  background-color: var(--accent-orange);
+  color: #fff;
+}
+
+.btn-success {
+  background-color: transparent;
+  color: var(--accent-green);
+  border: 1px solid var(--accent-green);
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: var(--accent-green);
+  color: #fff;
+}
+
 .btn-ghost {
   background-color: transparent;
   color: var(--text-secondary);
@@ -873,6 +895,17 @@ img, svg {
   bottom: 0;
   margin: auto;
   height: fit-content;
+}
+
+/* ── Global icon-button colour variants ───────────────── */
+.icon-btn-orange {
+  color: var(--accent-orange) !important;
+  border-color: rgba(255, 165, 0, 0.20) !important;
+}
+.icon-btn-orange:hover {
+  border-color: var(--accent-orange) !important;
+  background: rgba(255, 165, 0, 0.12) !important;
+  box-shadow: 0 0 10px rgba(255, 165, 0, 0.20) !important;
 }
 
 .icon-btn svg,
