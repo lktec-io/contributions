@@ -1,22 +1,21 @@
 'use strict';
 
-const bcrypt   = require('bcrypt');
-const crypto   = require('crypto');
-const pool     = require('../config/db');
-const nodemailer = require('nodemailer');
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+const pool   = require('../config/db');
 const { generateAccessToken, generateRefreshToken, getRefreshExpiry } = require('../config/jwt');
 
-const COOKIE_BASE = {
-  httpOnly: true,
-  sameSite: 'strict',
-};
-
-// ── Email transporter (lazy-init so missing config doesn't crash startup) ────
+// nodemailer is NOT required at module load — only when an email is actually
+// sent. This means a missing/broken nodemailer package will never prevent login.
 let _transporter = null;
+
 function getTransporter() {
-  if (!_transporter) {
+  if (_transporter) return _transporter;
+  try {
+    // eslint-disable-next-line global-require
+    const nodemailer = require('nodemailer');
     _transporter = nodemailer.createTransport({
-      host:   process.env.EMAIL_HOST || 'smtp.gmail.com',
+      host:   process.env.EMAIL_HOST   || 'smtp.gmail.com',
       port:   Number(process.env.EMAIL_PORT) || 587,
       secure: Number(process.env.EMAIL_PORT) === 465,
       auth: {
@@ -24,9 +23,17 @@ function getTransporter() {
         pass: process.env.EMAIL_PASS,
       },
     });
+    return _transporter;
+  } catch (err) {
+    console.error('[email] nodemailer unavailable:', err.message);
+    return null;
   }
-  return _transporter;
 }
+
+const COOKIE_BASE = {
+  httpOnly: true,
+  sameSite: 'strict',
+};
 
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
 async function login(req, res, next) {
@@ -145,36 +152,54 @@ async function forgotPassword(req, res, next) {
       return res.json({ success: true, data: { message: 'If that email exists, a reset link has been sent.' } });
     }
 
-    const user = users[0];
-    const resetToken  = crypto.randomBytes(32).toString('hex');
+    const user        = users[0];
+    const resetToken   = crypto.randomBytes(32).toString('hex');
     const resetExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
-    await pool.query(
-      'UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?',
-      [resetToken, resetExpires, user.id]
-    );
+    // Save token to DB — wrapped so a missing column (migration pending) never
+    // crashes this route; we still return the generic success message.
+    try {
+      await pool.query(
+        'UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?',
+        [resetToken, resetExpires, user.id]
+      );
+    } catch (dbErr) {
+      console.error('[forgot-password] DB update failed (migration may be pending):', dbErr.message);
+      return res.json({ success: true, data: { message: 'If that email exists, a reset link has been sent.' } });
+    }
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const resetUrl    = `${frontendUrl}/reset-password?token=${resetToken}`;
 
+    // Only attempt email if credentials are configured
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      await getTransporter().sendMail({
-        from:    process.env.EMAIL_FROM || 'Finance Hub <no-reply@financehub.com>',
-        to:      email.trim(),
-        subject: 'Reset Your Password — Finance Hub',
-        html: `
-          <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#0f172a;border-radius:12px;color:#e2e8f0;">
-            <h2 style="color:#2ecc71;margin:0 0 16px;">Password Reset</h2>
-            <p>Hi <strong>${user.name}</strong>,</p>
-            <p>We received a request to reset your Finance Hub password. Click the button below — this link expires in <strong>15 minutes</strong>.</p>
-            <a href="${resetUrl}" style="display:inline-block;margin:24px 0;padding:12px 28px;background:#2ecc71;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;">
-              Reset Password
-            </a>
-            <p style="font-size:12px;color:#64748b;">If you did not request this, please ignore this email. Your password will not change.</p>
-            <p style="font-size:12px;color:#64748b;">Or copy this link: <a href="${resetUrl}" style="color:#2ecc71;">${resetUrl}</a></p>
-          </div>
-        `,
-      });
+      try {
+        const transporter = getTransporter();
+        if (transporter) {
+          await transporter.sendMail({
+            from:    process.env.EMAIL_FROM || 'Finance Hub <no-reply@financehub.com>',
+            to:      email.trim(),
+            subject: 'Reset Your Password — Finance Hub',
+            html: `
+              <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#0f172a;border-radius:12px;color:#e2e8f0;">
+                <h2 style="color:#2ecc71;margin:0 0 16px;">Password Reset</h2>
+                <p>Hi <strong>${user.name}</strong>,</p>
+                <p>We received a request to reset your Finance Hub password. Click the button below — this link expires in <strong>15 minutes</strong>.</p>
+                <a href="${resetUrl}" style="display:inline-block;margin:24px 0;padding:12px 28px;background:#2ecc71;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;">
+                  Reset Password
+                </a>
+                <p style="font-size:12px;color:#64748b;">If you did not request this, please ignore this email. Your password will not change.</p>
+                <p style="font-size:12px;color:#64748b;">Or copy this link: <a href="${resetUrl}" style="color:#2ecc71;">${resetUrl}</a></p>
+              </div>
+            `,
+          });
+        } else {
+          console.error('[forgot-password] Transporter unavailable — email not sent');
+        }
+      } catch (emailErr) {
+        // Email failure is non-fatal — token is already saved in DB
+        console.error('[forgot-password] Email send failed (non-fatal):', emailErr.message);
+      }
     }
 
     return res.json({ success: true, data: { message: 'If that email exists, a reset link has been sent.' } });
@@ -195,10 +220,16 @@ async function resetPassword(req, res, next) {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters', errors: [] });
     }
 
-    const [users] = await pool.query(
-      'SELECT id FROM users WHERE reset_token = ? AND reset_expires > NOW()',
-      [token]
-    );
+    let users;
+    try {
+      [users] = await pool.query(
+        'SELECT id FROM users WHERE reset_token = ? AND reset_expires > NOW()',
+        [token]
+      );
+    } catch (dbErr) {
+      console.error('[reset-password] DB query failed (migration may be pending):', dbErr.message);
+      return res.status(500).json({ success: false, message: 'Reset service temporarily unavailable', errors: [] });
+    }
 
     if (!users.length) {
       return res.status(400).json({ success: false, message: 'Reset link is invalid or has expired', errors: [] });

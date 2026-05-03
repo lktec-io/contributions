@@ -1,43 +1,67 @@
+'use strict';
+
 const pool = require('../config/db');
 
+// MySQL error 1054 = "Unknown column" — column doesn't exist yet (migration pending)
+const ERR_UNKNOWN_COLUMN = 1054;
+
 const Contribution = {
+
+  // ── findAll ─────────────────────────────────────────────────
+  // If is_hidden column is missing, falls back to query without the filter.
   async findAll({ eventId, status, search, organizationId, createdBy } = {}) {
-    let query = `
-      SELECT c.id, c.event_id, c.contributor_name, c.phone, c.email,
-             c.amount, c.paid_amount, c.status, c.created_at, c.updated_at,
-             e.name AS event_name, e.organization_id, e.created_by AS event_created_by
-      FROM contributions c
-      JOIN events e ON e.id = c.event_id
-      WHERE c.is_hidden = FALSE
-    `;
-    const params = [];
+    const buildQuery = (includeHiddenFilter) => {
+      let q = `
+        SELECT c.id, c.event_id, c.contributor_name, c.phone, c.email,
+               c.amount, c.paid_amount, c.status, c.created_at, c.updated_at,
+               e.name AS event_name, e.organization_id, e.created_by AS event_created_by
+        FROM contributions c
+        JOIN events e ON e.id = c.event_id
+        WHERE ${includeHiddenFilter ? 'c.is_hidden = FALSE' : '1=1'}
+      `;
+      const params = [];
 
-    if (createdBy !== null && createdBy !== undefined) {
-      query += ' AND e.created_by = ?';
-      params.push(createdBy);
-    }
-    if (organizationId !== null && organizationId !== undefined) {
-      query += ' AND e.organization_id = ?';
-      params.push(organizationId);
-    }
-    if (eventId) {
-      query += ' AND c.event_id = ?';
-      params.push(eventId);
-    }
-    if (status) {
-      query += ' AND c.status = ?';
-      params.push(status);
-    }
-    if (search) {
-      query += ' AND c.contributor_name LIKE ?';
-      params.push(`%${search}%`);
-    }
+      if (createdBy !== null && createdBy !== undefined) {
+        q += ' AND e.created_by = ?';
+        params.push(createdBy);
+      }
+      if (organizationId !== null && organizationId !== undefined) {
+        q += ' AND e.organization_id = ?';
+        params.push(organizationId);
+      }
+      if (eventId) {
+        q += ' AND c.event_id = ?';
+        params.push(eventId);
+      }
+      if (status) {
+        q += ' AND c.status = ?';
+        params.push(status);
+      }
+      if (search) {
+        q += ' AND c.contributor_name LIKE ?';
+        params.push(`%${search}%`);
+      }
 
-    query += ' ORDER BY c.created_at DESC';
-    const [rows] = await pool.query(query, params);
-    return rows;
+      q += ' ORDER BY c.created_at DESC';
+      return { q, params };
+    };
+
+    try {
+      const { q, params } = buildQuery(true);
+      const [rows] = await pool.query(q, params);
+      return rows;
+    } catch (err) {
+      if (err.errno === ERR_UNKNOWN_COLUMN) {
+        // Column not yet added — fall back to query without is_hidden filter
+        const { q, params } = buildQuery(false);
+        const [rows] = await pool.query(q, params);
+        return rows;
+      }
+      throw err;
+    }
   },
 
+  // ── findHidden ──────────────────────────────────────────────
   async findHidden({ organizationId, createdBy } = {}) {
     let query = `
       SELECT c.id, c.event_id, c.contributor_name, c.phone, c.email,
@@ -63,6 +87,7 @@ const Contribution = {
     return rows;
   },
 
+  // ── findById ────────────────────────────────────────────────
   async findById(id) {
     const [rows] = await pool.query(
       `SELECT c.*, e.name AS event_name, e.organization_id, e.created_by AS event_created_by
@@ -74,6 +99,7 @@ const Contribution = {
     return rows[0] || null;
   },
 
+  // ── create ──────────────────────────────────────────────────
   async create({ event_id, contributor_name, phone, email, amount }) {
     const [result] = await pool.query(
       'INSERT INTO contributions (event_id, contributor_name, phone, email, amount) VALUES (?, ?, ?, ?, ?)',
@@ -82,6 +108,7 @@ const Contribution = {
     return result.insertId;
   },
 
+  // ── update ──────────────────────────────────────────────────
   async update(id, fields) {
     const keys = Object.keys(fields);
     if (!keys.length) return;
@@ -90,10 +117,12 @@ const Contribution = {
     await pool.query(`UPDATE contributions SET ${setClauses} WHERE id = ?`, values);
   },
 
+  // ── delete ──────────────────────────────────────────────────
   async delete(id) {
     await pool.query('DELETE FROM contributions WHERE id = ?', [id]);
   },
 
+  // ── hide / restore ──────────────────────────────────────────
   async hide(id) {
     await pool.query(
       'UPDATE contributions SET is_hidden = TRUE, hidden_at = NOW() WHERE id = ?',
@@ -108,6 +137,7 @@ const Contribution = {
     );
   },
 
+  // ── updatePaymentStatus ─────────────────────────────────────
   async updatePaymentStatus(id) {
     const [sumRows] = await pool.query(
       'SELECT COALESCE(SUM(amount), 0) AS total_paid FROM payment_history WHERE contribution_id = ?',
@@ -124,9 +154,9 @@ const Contribution = {
     const pledgeAmount = parseFloat(contribRows[0].amount);
 
     let status;
-    if (paidAmount <= 0)             status = 'pledge';
+    if (paidAmount <= 0)                status = 'pledge';
     else if (paidAmount < pledgeAmount) status = 'partial';
-    else                               status = 'paid';
+    else                                status = 'paid';
 
     await pool.query(
       'UPDATE contributions SET paid_amount = ?, status = ? WHERE id = ?',
@@ -136,29 +166,47 @@ const Contribution = {
     return { paid_amount: paidAmount, status };
   },
 
+  // ── getStats ────────────────────────────────────────────────
+  // Falls back gracefully if is_hidden column doesn't exist yet.
   async getStats({ organizationId, createdBy } = {}) {
-    let query = `
-      SELECT
-        COUNT(c.id)                     AS total_contributors,
-        COALESCE(SUM(c.amount), 0)      AS total_pledged,
-        COALESCE(SUM(c.paid_amount), 0) AS total_paid
-      FROM contributions c
-      JOIN events e ON e.id = c.event_id
-      WHERE c.is_hidden = FALSE
-    `;
-    const params = [];
+    const buildQuery = (includeHiddenFilter) => {
+      let q = `
+        SELECT
+          COUNT(c.id)                     AS total_contributors,
+          COALESCE(SUM(c.amount), 0)      AS total_pledged,
+          COALESCE(SUM(c.paid_amount), 0) AS total_paid
+        FROM contributions c
+        JOIN events e ON e.id = c.event_id
+        WHERE ${includeHiddenFilter ? 'c.is_hidden = FALSE' : '1=1'}
+      `;
+      const params = [];
 
-    if (createdBy !== null && createdBy !== undefined) {
-      query += ' AND e.created_by = ?';
-      params.push(createdBy);
-    }
-    if (organizationId !== null && organizationId !== undefined) {
-      query += ' AND e.organization_id = ?';
-      params.push(organizationId);
+      if (createdBy !== null && createdBy !== undefined) {
+        q += ' AND e.created_by = ?';
+        params.push(createdBy);
+      }
+      if (organizationId !== null && organizationId !== undefined) {
+        q += ' AND e.organization_id = ?';
+        params.push(organizationId);
+      }
+      return { q, params };
+    };
+
+    let row;
+    try {
+      const { q, params } = buildQuery(true);
+      const [rows] = await pool.query(q, params);
+      row = rows[0];
+    } catch (err) {
+      if (err.errno === ERR_UNKNOWN_COLUMN) {
+        const { q, params } = buildQuery(false);
+        const [rows] = await pool.query(q, params);
+        row = rows[0];
+      } else {
+        throw err;
+      }
     }
 
-    const [rows] = await pool.query(query, params);
-    const row = rows[0];
     return {
       total_contributors: row.total_contributors,
       total_pledged:      parseFloat(row.total_pledged),
