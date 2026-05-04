@@ -184,6 +184,7 @@ export default function HiddenRecords() {
           />
         ) : (
           <div className="section-card">
+            {/* Desktop table */}
             <div className="hr-table-wrap">
               <table className="data-table hr-table">
                 <thead>
@@ -227,6 +228,48 @@ export default function HiddenRecords() {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile cards */}
+            <div className="hidden-container">
+              {contributions.map(c => (
+                <div key={c.id} className="hidden-card">
+                  <div className="hidden-card-header">
+                    <span className="hidden-card-name">{c.contributor_name}</span>
+                    <span className={`status-badge ${c.status}`}>{c.status}</span>
+                  </div>
+                  <div className="hidden-card-row">
+                    <span className="hidden-card-label">Event</span>
+                    <span className="hidden-card-value">{c.event_name || '—'}</span>
+                  </div>
+                  <div className="hidden-card-row">
+                    <span className="hidden-card-label">Pledged</span>
+                    <span className="hidden-card-value">{formatCurrency(c.amount)}</span>
+                  </div>
+                  <div className="hidden-card-row">
+                    <span className="hidden-card-label">Paid</span>
+                    <span className="hidden-card-value td-paid">{formatCurrency(c.paid_amount)}</span>
+                  </div>
+                  <div className="hidden-card-row">
+                    <span className="hidden-card-label">Hidden On</span>
+                    <span className="hidden-card-value">{c.hidden_at ? formatDate(c.hidden_at) : '—'}</span>
+                  </div>
+                  <div className="hidden-actions">
+                    <button
+                      className="hidden-action-btn hidden-action-restore"
+                      onClick={() => setConfirmRestoreContrib(c)}
+                    >
+                      <FiRefreshCw size={14} /> Restore
+                    </button>
+                    <button
+                      className="hidden-action-btn hidden-action-delete"
+                      onClick={() => setConfirmDeleteContrib(c)}
+                    >
+                      <FiTrash2 size={14} /> Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )
 
@@ -241,6 +284,7 @@ export default function HiddenRecords() {
           />
         ) : (
           <div className="section-card">
+            {/* Desktop table */}
             <div className="hr-table-wrap">
               <table className="data-table hr-table">
                 <thead>
@@ -283,6 +327,42 @@ export default function HiddenRecords() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="hidden-container">
+              {hiddenUsers.map(u => (
+                <div key={u.id} className="hidden-card">
+                  <div className="hidden-card-header">
+                    <span className="hidden-card-name">{u.name}</span>
+                    <span className={`role-badge role-${u.role}`}>
+                      {ROLE_LABELS[u.role] || u.role}
+                    </span>
+                  </div>
+                  <div className="hidden-card-row">
+                    <span className="hidden-card-label">Email</span>
+                    <span className="hidden-card-value">{u.email}</span>
+                  </div>
+                  <div className="hidden-card-row">
+                    <span className="hidden-card-label">Hidden On</span>
+                    <span className="hidden-card-value">{u.hidden_at ? formatDate(u.hidden_at) : '—'}</span>
+                  </div>
+                  <div className="hidden-actions">
+                    <button
+                      className="hidden-action-btn hidden-action-restore"
+                      onClick={() => setConfirmRestoreUser(u)}
+                    >
+                      <FiRefreshCw size={14} /> Restore
+                    </button>
+                    <button
+                      className="hidden-action-btn hidden-action-delete"
+                      onClick={() => setConfirmDeleteUser(u)}
+                    >
+                      <FiTrash2 size={14} /> Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )
