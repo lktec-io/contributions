@@ -192,8 +192,13 @@ async function forgotPassword(req, res, next) {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const resetUrl    = `${frontendUrl}/reset-password?token=${resetToken}`;
 
+    const transporter = getTransporter();
+    if (!transporter) {
+      return res.status(500).json({ success: false, message: 'Email service unavailable', errors: [] });
+    }
+
     try {
-      await getTransporter().sendMail({
+      await transporter.sendMail({
         from:    process.env.EMAIL_FROM || process.env.EMAIL_USER,
         to:      user.email,
         subject: 'Reset Your Password',
