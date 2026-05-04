@@ -10,22 +10,37 @@ const { generateAccessToken, generateRefreshToken, getRefreshExpiry } = require(
 let _transporter = null;
 
 function getTransporter() {
-  // Return null immediately if credentials aren't configured — callers
-  // treat null as "email not available" and return a proper error.
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) return null;
   if (_transporter) return _transporter;
+
+  // Warn about missing config — don't crash, let sendMail() fail naturally
+  const missing = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASS', 'EMAIL_FROM', 'FRONTEND_URL']
+    .filter(k => !process.env[k]);
+  if (missing.length) {
+    console.warn('[email] Missing env vars:', missing.join(', '));
+  }
+
   try {
     // eslint-disable-next-line global-require
     const nodemailer = require('nodemailer');
     _transporter = nodemailer.createTransport({
-      host:   'smtp.gmail.com',
-      port:   587,
-      secure: false,           // STARTTLS on port 587
+      host:   process.env.EMAIL_HOST || 'smtp.gmail.com',
+      port:   parseInt(process.env.EMAIL_PORT, 10) || 587,
+      secure: false,  // STARTTLS on port 587
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
     });
+
+    _transporter.verify((error) => {
+      if (error) {
+        console.error('[email] CONFIG ERROR:', error.message);
+        _transporter = null;  // force re-create on next request after config is fixed
+      } else {
+        console.log('[email] Service is ready');
+      }
+    });
+
     return _transporter;
   } catch (err) {
     console.error('[email] nodemailer unavailable:', err.message);
@@ -148,6 +163,8 @@ async function forgotPassword(req, res, next) {
       return res.status(400).json({ success: false, message: 'Email is required', errors: [] });
     }
 
+    console.log('[forgot-password] Reset request for:', email.trim());
+
     const [users] = await pool.query(
       'SELECT id, name, email FROM users WHERE email = ?',
       [email.trim().toLowerCase()]
@@ -175,39 +192,31 @@ async function forgotPassword(req, res, next) {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const resetUrl    = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-    const transporter = getTransporter();
-    if (!transporter) {
-      console.error('[forgot-password] Email not configured — set EMAIL_USER and EMAIL_PASS in .env');
-      return res.status(500).json({ success: false, message: 'Email service not configured', errors: [] });
-    }
-
-    console.log('[forgot-password] Sending reset email to:', user.email);
-
     try {
-      await transporter.sendMail({
-        from:    process.env.EMAIL_USER,
+      await getTransporter().sendMail({
+        from:    process.env.EMAIL_FROM || process.env.EMAIL_USER,
         to:      user.email,
-        subject: 'Reset Your Password — Finance Hub',
+        subject: 'Reset Your Password',
         html: `
-          <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#0f172a;border-radius:12px;color:#e2e8f0;">
-            <h2 style="color:#2ecc71;margin:0 0 16px;">Password Reset</h2>
-            <p>Hi <strong>${user.name}</strong>,</p>
-            <p>We received a request to reset your Finance Hub password. Click the button below — this link expires in <strong>15 minutes</strong>.</p>
-            <a href="${resetUrl}" style="display:inline-block;margin:24px 0;padding:12px 28px;background:#2ecc71;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;">
+          <div style="font-family:sans-serif">
+            <h2>Password Reset</h2>
+            <p>Hi <strong>${user.name}</strong>, click the button below to reset your password:</p>
+            <a href="${resetUrl}" style="display:inline-block;padding:10px 20px;background:#007bff;color:#fff;text-decoration:none;border-radius:5px;">
               Reset Password
             </a>
-            <p style="font-size:12px;color:#64748b;">If you did not request this, please ignore this email. Your password will not change.</p>
-            <p style="font-size:12px;color:#64748b;">Or copy this link: <a href="${resetUrl}" style="color:#2ecc71;">${resetUrl}</a></p>
+            <p>This link expires in <strong>15 minutes</strong>.</p>
+            <p style="font-size:12px;color:#888;">If you did not request this, ignore this email — your password will not change.</p>
+            <p style="font-size:12px;color:#888;">Or copy this link: ${resetUrl}</p>
           </div>
         `,
       });
     } catch (emailErr) {
-      console.error('[forgot-password] Email send failed:', emailErr.message);
-      return res.status(500).json({ success: false, message: 'Failed to send email. Please try again later.', errors: [] });
+      console.error('[forgot-password] EMAIL SEND ERROR:', emailErr);
+      return res.status(500).json({ success: false, message: 'Failed to send reset email', errors: [] });
     }
 
-    console.log('[forgot-password] Reset email sent successfully to:', user.email);
-    return res.json({ success: true, data: { message: 'Reset link has been sent to your email.' } });
+    console.log('[forgot-password] Reset email sent to:', user.email);
+    return res.json({ success: true, data: { message: 'If that email exists, a reset link has been sent.' } });
   } catch (err) {
     next(err);
   }
