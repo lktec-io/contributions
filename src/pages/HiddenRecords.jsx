@@ -1,8 +1,12 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
-import { FiArchive, FiRefreshCw, FiTrash2, FiArrowLeft, FiAlertTriangle } from 'react-icons/fi';
+import {
+  FiArchive, FiRefreshCw, FiTrash2, FiArrowLeft, FiAlertTriangle,
+  FiUsers, FiGrid,
+} from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { ToastContext } from '../context/ToastContext';
 import { contributionService } from '../services/contributionService';
+import { userService } from '../services/userService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { getErrorMessage } from '../utils/helpers';
 import ConfirmDialog from '../components/common/ConfirmDialog';
@@ -10,25 +14,43 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyState from '../components/common/EmptyState';
 import './HiddenRecords.css';
 
+const ROLE_LABELS = {
+  super_admin: 'Super Admin',
+  admin:       'Admin',
+  client_user: 'Client User',
+};
+
 export default function HiddenRecords() {
-  const { toast }    = useContext(ToastContext);
-  const navigate     = useNavigate();
+  const { toast } = useContext(ToastContext);
+  const navigate  = useNavigate();
 
+  const [activeTab,     setActiveTab]     = useState('contributions');
   const [contributions, setContributions] = useState([]);
-  const [loading,        setLoading]        = useState(true);
-  const [error,          setError]          = useState(null);
+  const [hiddenUsers,   setHiddenUsers]   = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [error,         setError]         = useState(null);
 
-  const [confirmRestore, setConfirmRestore] = useState(null);
-  const [confirmDelete,  setConfirmDelete]  = useState(null);
-  const [actionLoading,  setActionLoading]  = useState(false);
+  // Contribution dialogs
+  const [confirmRestoreContrib, setConfirmRestoreContrib] = useState(null);
+  const [confirmDeleteContrib,  setConfirmDeleteContrib]  = useState(null);
 
-  const fetchHidden = useCallback(async () => {
+  // User dialogs
+  const [confirmRestoreUser, setConfirmRestoreUser] = useState(null);
+  const [confirmDeleteUser,  setConfirmDeleteUser]  = useState(null);
+
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await contributionService.getHidden();
-      const data = res.data.data;
-      setContributions(data.contributions || data);
+      const [contribRes, usersRes] = await Promise.all([
+        contributionService.getHidden(),
+        userService.getHidden(),
+      ]);
+      const cData = contribRes.data.data;
+      setContributions(cData.contributions || cData || []);
+      setHiddenUsers(usersRes.data.data || []);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -36,15 +58,16 @@ export default function HiddenRecords() {
     }
   }, []);
 
-  useEffect(() => { fetchHidden(); }, [fetchHidden]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const handleRestore = async () => {
+  // ── Contribution actions ────────────────────────────────────
+  const handleRestoreContrib = async () => {
     setActionLoading(true);
     try {
-      await contributionService.restore(confirmRestore.id);
-      toast.success(`"${confirmRestore.contributor_name}" restored`);
-      setConfirmRestore(null);
-      fetchHidden();
+      await contributionService.restore(confirmRestoreContrib.id);
+      toast.success(`"${confirmRestoreContrib.contributor_name}" restored`);
+      setConfirmRestoreContrib(null);
+      fetchAll();
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -52,19 +75,50 @@ export default function HiddenRecords() {
     }
   };
 
-  const handlePermanentDelete = async () => {
+  const handleDeleteContrib = async () => {
     setActionLoading(true);
     try {
-      await contributionService.permanentDelete(confirmDelete.id);
-      toast.success(`"${confirmDelete.contributor_name}" permanently deleted`);
-      setConfirmDelete(null);
-      fetchHidden();
+      await contributionService.permanentDelete(confirmDeleteContrib.id);
+      toast.success(`"${confirmDeleteContrib.contributor_name}" permanently deleted`);
+      setConfirmDeleteContrib(null);
+      fetchAll();
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
       setActionLoading(false);
     }
   };
+
+  // ── User actions ────────────────────────────────────────────
+  const handleRestoreUser = async () => {
+    setActionLoading(true);
+    try {
+      await userService.restore(confirmRestoreUser.id);
+      toast.success(`"${confirmRestoreUser.name}" restored`);
+      setConfirmRestoreUser(null);
+      fetchAll();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    setActionLoading(true);
+    try {
+      await userService.permanentDelete(confirmDeleteUser.id);
+      toast.success(`"${confirmDeleteUser.name}" permanently deleted`);
+      setConfirmDeleteUser(null);
+      fetchAll();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const totalHidden = contributions.length + hiddenUsers.length;
 
   return (
     <div className="hidden-records">
@@ -79,11 +133,35 @@ export default function HiddenRecords() {
             Hidden Records
           </h2>
           <p className="hr-subtitle">
-            {contributions.length} hidden contributor{contributions.length !== 1 ? 's' : ''} — auto-deleted after 30 days
+            {totalHidden} hidden record{totalHidden !== 1 ? 's' : ''} — auto-deleted after 30 days
           </p>
         </div>
-        <button className="hr-refresh-btn" onClick={fetchHidden} title="Refresh" disabled={loading}>
+        <button className="hr-refresh-btn" onClick={fetchAll} title="Refresh" disabled={loading}>
           <FiRefreshCw size={15} className={loading ? 'spin' : ''} />
+        </button>
+      </div>
+
+      {/* ── Tabs ─────────────────────────────────────────── */}
+      <div className="hr-tabs">
+        <button
+          className={`hr-tab ${activeTab === 'contributions' ? 'hr-tab-active' : ''}`}
+          onClick={() => setActiveTab('contributions')}
+        >
+          <FiGrid size={14} />
+          Contributors
+          {contributions.length > 0 && (
+            <span className="hr-tab-count">{contributions.length}</span>
+          )}
+        </button>
+        <button
+          className={`hr-tab ${activeTab === 'users' ? 'hr-tab-active' : ''}`}
+          onClick={() => setActiveTab('users')}
+        >
+          <FiUsers size={14} />
+          Users
+          {hiddenUsers.length > 0 && (
+            <span className="hr-tab-count">{hiddenUsers.length}</span>
+          )}
         </button>
       </div>
 
@@ -93,79 +171,162 @@ export default function HiddenRecords() {
         <div className="hr-error">
           <FiAlertTriangle size={32} color="var(--accent-orange)" />
           <p>{error}</p>
-          <button className="btn" onClick={fetchHidden}>Retry</button>
+          <button className="btn" onClick={fetchAll}>Retry</button>
         </div>
-      ) : contributions.length === 0 ? (
-        <EmptyState
-          IconComponent={FiArchive}
-          title="No hidden records"
-          description="Contributors that are hidden will appear here."
-        />
-      ) : (
-        <div className="section-card">
-          <div className="hr-table-wrap">
-            <table className="data-table hr-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Event</th>
-                  <th>Pledged</th>
-                  <th>Paid</th>
-                  <th>Status</th>
-                  <th>Hidden On</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {contributions.map(c => (
-                  <tr key={c.id} className="hr-row">
-                    <td className="td-name">{c.contributor_name}</td>
-                    <td>{c.event_name || '—'}</td>
-                    <td className="td-money">{formatCurrency(c.amount)}</td>
-                    <td className="td-money td-paid">{formatCurrency(c.paid_amount)}</td>
-                    <td><span className={`status-badge ${c.status}`}>{c.status}</span></td>
-                    <td className="td-date">{c.hidden_at ? formatDate(c.hidden_at) : '—'}</td>
-                    <td className="td-actions">
-                      <button
-                        className="icon-btn icon-btn-green"
-                        onClick={() => setConfirmRestore(c)}
-                        title="Restore contributor"
-                      >
-                        <FiRefreshCw size={15} />
-                      </button>
-                      <button
-                        className="icon-btn icon-btn-red"
-                        onClick={() => setConfirmDelete(c)}
-                        title="Delete permanently"
-                      >
-                        <FiTrash2 size={15} />
-                      </button>
-                    </td>
+      ) : activeTab === 'contributions' ? (
+
+        // ── Contributors tab ──────────────────────────────
+        contributions.length === 0 ? (
+          <EmptyState
+            IconComponent={FiArchive}
+            title="No hidden contributors"
+            description="Contributors that are hidden will appear here."
+          />
+        ) : (
+          <div className="section-card">
+            <div className="hr-table-wrap">
+              <table className="data-table hr-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Event</th>
+                    <th>Pledged</th>
+                    <th>Paid</th>
+                    <th>Status</th>
+                    <th>Hidden On</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {contributions.map(c => (
+                    <tr key={c.id} className="hr-row">
+                      <td className="td-name">{c.contributor_name}</td>
+                      <td>{c.event_name || '—'}</td>
+                      <td className="td-money">{formatCurrency(c.amount)}</td>
+                      <td className="td-money td-paid">{formatCurrency(c.paid_amount)}</td>
+                      <td><span className={`status-badge ${c.status}`}>{c.status}</span></td>
+                      <td className="td-date">{c.hidden_at ? formatDate(c.hidden_at) : '—'}</td>
+                      <td className="td-actions">
+                        <button
+                          className="icon-btn icon-btn-green"
+                          onClick={() => setConfirmRestoreContrib(c)}
+                          title="Restore contributor"
+                        >
+                          <FiRefreshCw size={15} />
+                        </button>
+                        <button
+                          className="icon-btn icon-btn-red"
+                          onClick={() => setConfirmDeleteContrib(c)}
+                          title="Delete permanently"
+                        >
+                          <FiTrash2 size={15} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )
+
+      ) : (
+
+        // ── Users tab ─────────────────────────────────────
+        hiddenUsers.length === 0 ? (
+          <EmptyState
+            IconComponent={FiUsers}
+            title="No hidden users"
+            description="Users that are hidden will appear here."
+          />
+        ) : (
+          <div className="section-card">
+            <div className="hr-table-wrap">
+              <table className="data-table hr-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Hidden On</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {hiddenUsers.map(u => (
+                    <tr key={u.id} className="hr-row">
+                      <td className="td-name">{u.name}</td>
+                      <td className="td-secondary">{u.email}</td>
+                      <td>
+                        <span className={`role-badge role-${u.role}`}>
+                          {ROLE_LABELS[u.role] || u.role}
+                        </span>
+                      </td>
+                      <td className="td-date">{u.hidden_at ? formatDate(u.hidden_at) : '—'}</td>
+                      <td className="td-actions">
+                        <button
+                          className="icon-btn icon-btn-green"
+                          onClick={() => setConfirmRestoreUser(u)}
+                          title="Restore user"
+                        >
+                          <FiRefreshCw size={15} />
+                        </button>
+                        <button
+                          className="icon-btn icon-btn-red"
+                          onClick={() => setConfirmDeleteUser(u)}
+                          title="Delete permanently"
+                        >
+                          <FiTrash2 size={15} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
       )}
 
+      {/* ── Contribution dialogs ───────────────────────── */}
       <ConfirmDialog
-        isOpen={!!confirmRestore}
-        onClose={() => setConfirmRestore(null)}
-        onConfirm={handleRestore}
+        isOpen={!!confirmRestoreContrib}
+        onClose={() => setConfirmRestoreContrib(null)}
+        onConfirm={handleRestoreContrib}
         title="Restore Contributor"
-        message={`Restore "${confirmRestore?.contributor_name}"? They will become visible again in the active contributions list.`}
+        message={`Restore "${confirmRestoreContrib?.contributor_name}"? They will become visible again in the active contributions list.`}
         confirmText="Restore"
         confirmVariant="success"
         loading={actionLoading}
       />
-
       <ConfirmDialog
-        isOpen={!!confirmDelete}
-        onClose={() => setConfirmDelete(null)}
-        onConfirm={handlePermanentDelete}
-        title="Permanently Delete"
-        message={`Permanently delete "${confirmDelete?.contributor_name}"? This cannot be undone and all payment history will be removed.`}
+        isOpen={!!confirmDeleteContrib}
+        onClose={() => setConfirmDeleteContrib(null)}
+        onConfirm={handleDeleteContrib}
+        title="Permanently Delete Contributor"
+        message={`Permanently delete "${confirmDeleteContrib?.contributor_name}"? This cannot be undone and all payment history will be removed.`}
+        confirmText="Delete Permanently"
+        confirmVariant="danger"
+        loading={actionLoading}
+      />
+
+      {/* ── User dialogs ───────────────────────────────── */}
+      <ConfirmDialog
+        isOpen={!!confirmRestoreUser}
+        onClose={() => setConfirmRestoreUser(null)}
+        onConfirm={handleRestoreUser}
+        title="Restore User"
+        message={`Restore "${confirmRestoreUser?.name}"? Their account and contributions will become active again.`}
+        confirmText="Restore"
+        confirmVariant="success"
+        loading={actionLoading}
+      />
+      <ConfirmDialog
+        isOpen={!!confirmDeleteUser}
+        onClose={() => setConfirmDeleteUser(null)}
+        onConfirm={handleDeleteUser}
+        title="Permanently Delete User"
+        message={`Permanently delete "${confirmDeleteUser?.name}"? This will remove their account and all associated data. This cannot be undone.`}
         confirmText="Delete Permanently"
         confirmVariant="danger"
         loading={actionLoading}

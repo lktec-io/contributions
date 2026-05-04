@@ -61,6 +61,8 @@ async function ensureSchema() {
   const steps = [
     { col: 'contributions.is_hidden', sql: 'ALTER TABLE contributions ADD COLUMN is_hidden BOOLEAN NOT NULL DEFAULT FALSE' },
     { col: 'contributions.hidden_at', sql: 'ALTER TABLE contributions ADD COLUMN hidden_at DATETIME NULL' },
+    { col: 'users.is_hidden',         sql: 'ALTER TABLE users ADD COLUMN is_hidden BOOLEAN NOT NULL DEFAULT FALSE' },
+    { col: 'users.hidden_at',         sql: 'ALTER TABLE users ADD COLUMN hidden_at DATETIME NULL' },
     { col: 'users.reset_token',       sql: 'ALTER TABLE users ADD COLUMN reset_token VARCHAR(255) NULL' },
     { col: 'users.reset_expires',     sql: 'ALTER TABLE users ADD COLUMN reset_expires DATETIME NULL' },
   ];
@@ -87,16 +89,29 @@ function startCron() {
     const cron = require('node-cron');
     cron.schedule('0 0 * * *', async () => {
       try {
-        const [result] = await pool.query(
+        const [cResult] = await pool.query(
           `DELETE FROM contributions
            WHERE is_hidden = TRUE
            AND hidden_at <= DATE_SUB(NOW(), INTERVAL 30 DAY)`
         );
-        if (result.affectedRows > 0) {
-          console.log(`[cron] Auto-deleted ${result.affectedRows} contribution(s) hidden 30+ days`);
+        if (cResult.affectedRows > 0) {
+          console.log(`[cron] Auto-deleted ${cResult.affectedRows} contribution(s) hidden 30+ days`);
         }
       } catch (err) {
-        console.error('[cron] Auto-delete query error:', err.message);
+        console.error('[cron] Auto-delete contributions error:', err.message);
+      }
+
+      try {
+        const [uResult] = await pool.query(
+          `DELETE FROM users
+           WHERE is_hidden = TRUE
+           AND hidden_at <= DATE_SUB(NOW(), INTERVAL 30 DAY)`
+        );
+        if (uResult.affectedRows > 0) {
+          console.log(`[cron] Auto-deleted ${uResult.affectedRows} user(s) hidden 30+ days`);
+        }
+      } catch (err) {
+        console.error('[cron] Auto-delete users error:', err.message);
       }
     });
     console.log('[cron] Daily auto-delete job registered');

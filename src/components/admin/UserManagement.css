@@ -108,6 +108,20 @@
   color: #fff;
 }
 
+.btn-sm-orange {
+  background-color: transparent;
+  color: var(--accent-orange);
+  border-color: rgba(255, 165, 0, 0.4);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-sm-orange:hover:not(:disabled) {
+  background-color: var(--accent-orange);
+  color: #fff;
+}
+
 .btn-sm:disabled {
   opacity: 0.5;
   cursor: not-allowed;

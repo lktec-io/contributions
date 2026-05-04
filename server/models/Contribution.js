@@ -137,6 +137,29 @@ const Contribution = {
     );
   },
 
+  // ── hideByOrganization / restoreByOrganization ──────────────
+  // Cascade: called when a user (organization) is hidden/restored.
+  // Hides/restores all contributions on events assigned to that user.
+  async hideByOrganization(organizationId) {
+    await pool.query(
+      `UPDATE contributions c
+       JOIN events e ON e.id = c.event_id
+       SET c.is_hidden = TRUE, c.hidden_at = NOW()
+       WHERE e.organization_id = ? AND c.is_hidden = FALSE`,
+      [organizationId]
+    );
+  },
+
+  async restoreByOrganization(organizationId) {
+    await pool.query(
+      `UPDATE contributions c
+       JOIN events e ON e.id = c.event_id
+       SET c.is_hidden = FALSE, c.hidden_at = NULL
+       WHERE e.organization_id = ?`,
+      [organizationId]
+    );
+  },
+
   // ── updatePaymentStatus ─────────────────────────────────────
   async updatePaymentStatus(id) {
     const [sumRows] = await pool.query(

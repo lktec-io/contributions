@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { FiPlus, FiUsers, FiAlertTriangle, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiPlus, FiUsers, FiAlertTriangle, FiEye, FiEyeOff, FiArchive } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import { ToastContext } from '../../context/ToastContext';
 import { userService } from '../../services/userService';
@@ -26,17 +26,19 @@ export default function UserManagement() {
   const { toast } = useContext(ToastContext);
   const isSuperAdmin = currentUser?.role === 'super_admin';
 
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [users,        setUsers]        = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState(null);
+  const [showModal,    setShowModal]    = useState(false);
+  const [showConfirm,  setShowConfirm]  = useState(false);
+  const [confirmHide,  setConfirmHide]  = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [formData, setFormData] = useState(buildEmptyForm());
-  const [formErrors, setFormErrors] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [togglingId, setTogglingId] = useState(null);
+  const [formData,     setFormData]     = useState(buildEmptyForm());
+  const [formErrors,   setFormErrors]   = useState({});
+  const [saving,       setSaving]       = useState(false);
+  const [deleting,     setDeleting]     = useState(false);
+  const [hiding,       setHiding]       = useState(false);
+  const [togglingId,   setTogglingId]   = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => { fetchUsers(); }, []);
@@ -110,6 +112,20 @@ export default function UserManagement() {
       toast.error(getErrorMessage(err));
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleHideConfirm = async () => {
+    setHiding(true);
+    try {
+      await userService.hide(confirmHide.id);
+      toast.success(`"${confirmHide.name}" moved to hidden`);
+      setConfirmHide(null);
+      fetchUsers();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setHiding(false);
     }
   };
 
@@ -188,6 +204,13 @@ export default function UserManagement() {
                         {togglingId === u.id ? '…' : u.is_active ? 'Deactivate' : 'Activate'}
                       </button>
                       <button
+                        className="btn-sm btn-sm-orange"
+                        onClick={() => setConfirmHide(u)}
+                        title="Move to hidden (recoverable for 30 days)"
+                      >
+                        <FiArchive size={12} /> Hide
+                      </button>
+                      <button
                         className="btn-sm btn-sm-danger"
                         onClick={() => { setSelectedUser(u); setShowConfirm(true); }}
                       >
@@ -236,7 +259,6 @@ export default function UserManagement() {
             <label>Role</label>
             <select name="role" value={formData.role} onChange={handleChange}>
               <option value="client_user">Client User</option>
-              {/* Only super_admin can create admin accounts */}
               {isSuperAdmin && <option value="admin">Admin</option>}
             </select>
           </div>
@@ -251,6 +273,19 @@ export default function UserManagement() {
         </form>
       </Modal>
 
+      {/* ── Hide confirm ───────────────────────────────── */}
+      <ConfirmDialog
+        isOpen={!!confirmHide}
+        onClose={() => setConfirmHide(null)}
+        onConfirm={handleHideConfirm}
+        title="Hide User"
+        message={`Hide "${confirmHide?.name}"? Their account and contributions will be hidden. You can restore them from Hidden Records within 30 days.`}
+        confirmText="Hide User"
+        confirmVariant="warning"
+        loading={hiding}
+      />
+
+      {/* ── Delete confirm ─────────────────────────────── */}
       <ConfirmDialog
         isOpen={showConfirm}
         onClose={() => { setShowConfirm(false); setSelectedUser(null); }}

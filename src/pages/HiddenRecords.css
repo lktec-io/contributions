@@ -102,8 +102,75 @@
   background: rgba(0, 0, 0, 0.07);
 }
 
+/* ── Tabs ────────────────────────────────────────────────── */
+.hr-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  margin-bottom: 24px;
+}
+
+.hr-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-body);
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.hr-tab:hover:not(.hr-tab-active) {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.hr-tab-active {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.hr-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: rgba(255, 165, 0, 0.18);
+  color: var(--accent-orange);
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+[data-theme="light"] .hr-tabs {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .hr-tab:hover:not(.hr-tab-active) {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .hr-tab-active {
+  background: rgba(0, 0, 0, 0.07);
+}
+
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 768px) {
   .hidden-records { padding: 16px; }
   .hr-title { font-size: 18px; }
+  .hr-tab { font-size: 12px; padding: 7px 10px; }
 }
