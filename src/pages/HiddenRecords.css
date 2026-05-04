@@ -168,9 +168,152 @@
   background: rgba(0, 0, 0, 0.07);
 }
 
+/* ── Mobile cards (hidden on desktop) ───────────────────── */
+.hidden-container {
+  display: none;
+}
+
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .hidden-records { padding: 16px; }
+  .hidden-records {
+    padding: 16px;
+    overflow-x: hidden;
+  }
+
   .hr-title { font-size: 18px; }
-  .hr-tab { font-size: 12px; padding: 7px 10px; }
+  .hr-tab   { font-size: 12px; padding: 7px 10px; }
+
+  /* Swap: hide table, show card grid */
+  .hr-table-wrap  { display: none; }
+
+  .hidden-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  /* ── Card ──────────────────────────────────── */
+  .hidden-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .hidden-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .hidden-card-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+
+  /* ── Key/value rows ────────────────────────── */
+  .hidden-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    gap: 12px;
+  }
+
+  .hidden-card-row:last-of-type {
+    border-bottom: none;
+  }
+
+  .hidden-card-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .hidden-card-value {
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 500;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 65%;
+  }
+
+  /* ── Action buttons ────────────────────────── */
+  .hidden-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .hidden-action-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.18s ease, opacity 0.18s ease;
+    white-space: nowrap;
+  }
+
+  .hidden-action-restore {
+    background: rgba(0, 184, 148, 0.12);
+    color: var(--accent-green);
+    border-color: rgba(0, 184, 148, 0.3);
+  }
+
+  .hidden-action-restore:hover {
+    background: rgba(0, 184, 148, 0.22);
+  }
+
+  .hidden-action-delete {
+    background: rgba(255, 76, 76, 0.10);
+    color: var(--accent-red);
+    border-color: rgba(255, 76, 76, 0.28);
+  }
+
+  .hidden-action-delete:hover {
+    background: rgba(255, 76, 76, 0.20);
+  }
+
+  /* Light theme card overrides */
+  [data-theme="light"] .hidden-card {
+    background: rgba(0, 0, 0, 0.02);
+  }
+
+  [data-theme="light"] .hidden-card-row {
+    border-bottom-color: rgba(0, 0, 0, 0.06);
+  }
 }
