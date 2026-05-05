@@ -20,7 +20,7 @@ function fmtAmt(amount) {
 
 function buildMessage(name, pledged, paid, balance, eventName) {
   return (
-    `[${eventName || 'Finance Hub'}]\n` +
+    `[${(eventName || 'Finance Hub').toUpperCase()}]\n` +
     `Habari ${(name || '').toUpperCase()}, Hatua uliyopiga ni kubwa, tayari umechangia TZS ${fmtAmt(paid)}.\n` +
     `Lengo ni TZS ${fmtAmt(pledged)}, kiasi kilichobaki ni TZS ${fmtAmt(balance)} tu kumaliza.\n` +
     `Tafadhali kamilisha mchango wako. Asante sana!`
