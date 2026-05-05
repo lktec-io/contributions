@@ -1,6 +1,7 @@
 'use strict';
 
 const axios        = require('axios');
+const pool         = require('../config/db');
 const Contribution = require('../models/Contribution');
 const { getIsolationFilter, canAccessContribution } = require('../utils/tenantHelpers');
 
@@ -25,6 +26,33 @@ function buildMessage(name, pledged, paid, balance, eventName) {
     `Lengo ni TZS ${fmtAmt(pledged)}, kiasi kilichobaki ni TZS ${fmtAmt(balance)} tu kumaliza.\n` +
     `Tafadhali kamilisha mchango wako. Asante sana!`
   );
+}
+
+async function checkBulkLimit(userId) {
+  try {
+    const [rows] = await pool.query(
+      'SELECT sent_at FROM sms_logs WHERE user_id = ? AND type = ? ORDER BY sent_at DESC LIMIT 1',
+      [userId, 'bulk']
+    );
+    if (!rows.length) return { canSend: true, daysRemaining: 0 };
+    const diffDays = (Date.now() - new Date(rows[0].sent_at).getTime()) / 86400000;
+    if (diffDays < 7) {
+      return { canSend: false, daysRemaining: Math.ceil(7 - diffDays) };
+    }
+    return { canSend: true, daysRemaining: 0 };
+  } catch {
+    // sms_logs table may not exist yet — allow sending
+    return { canSend: true, daysRemaining: 0 };
+  }
+}
+
+async function getBulkStatus(req, res, next) {
+  try {
+    const status = await checkBulkLimit(req.user.userId);
+    return res.json({ success: true, data: status });
+  } catch (err) {
+    next(err);
+  }
 }
 
 async function sendBeemSms(phone, message) {
@@ -94,6 +122,16 @@ async function sendReminder(req, res) {
 
 async function sendBulkReminders(req, res) {
   try {
+    const limit = await checkBulkLimit(req.user.userId);
+    if (!limit.canSend) {
+      return res.status(429).json({
+        success: false,
+        message: `You can send bulk SMS once per week. Try again in ${limit.daysRemaining} day(s).`,
+        data:    { daysRemaining: limit.daysRemaining },
+        errors:  [],
+      });
+    }
+
     const { eventId } = req.body;
     const filter = getIsolationFilter(req);
     if (eventId) filter.eventId = eventId;
@@ -102,7 +140,7 @@ async function sendBulkReminders(req, res) {
     const targets = all.filter(c => c.status !== 'paid' && c.phone);
 
     if (!targets.length) {
-      return res.status(400).json({ success: false, message: 'No unpaid contributors with a phone number found' });
+      return res.status(400).json({ success: false, message: 'No unpaid contributors with a phone number found', errors: [] });
     }
 
     let sent = 0;
@@ -118,15 +156,23 @@ async function sendBulkReminders(req, res) {
         const message = buildMessage(c.contributor_name, pledged, paid, balance, c.event_name);
 
         await sendBeemSms(phone, message);
+        await new Promise(r => setTimeout(r, 300));
         sent++;
       } catch (err) {
         console.error('BEEM ERROR FULL:', err.response?.data || err.message);
       }
     }
 
+    // Log the bulk dispatch so the weekly limit resets from now
+    try {
+      await pool.query('INSERT INTO sms_logs (user_id, type) VALUES (?, ?)', [req.user.userId, 'bulk']);
+    } catch (err) {
+      console.error('[sms] Failed to log bulk send:', err.message);
+    }
+
     return res.json({
       success: true,
-      message: 'SMS sent successfully',
+      message: `SMS dispatched to ${sent} of ${targets.length} contributor(s)`,
       data:    { sent, total: targets.length },
     });
   } catch (err) {
@@ -135,8 +181,9 @@ async function sendBulkReminders(req, res) {
       success: false,
       message: 'Failed to send SMS',
       error:   err.response?.data || err.message,
+      errors:  [],
     });
   }
 }
 
-module.exports = { sendReminder, sendBulkReminders };
+module.exports = { sendReminder, sendBulkReminders, getBulkStatus };

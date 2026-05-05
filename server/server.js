@@ -79,6 +79,21 @@ async function ensureSchema() {
       }
     }
   }
+
+  // Create sms_logs table (idempotent)
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sms_logs (
+        id      INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT         NOT NULL,
+        type    VARCHAR(50) NOT NULL DEFAULT 'bulk',
+        sent_at TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('[migration] sms_logs table ready');
+  } catch (err) {
+    console.error('[migration] sms_logs table error:', err.message);
+  }
 }
 
 // ── Cron: auto-delete contributions hidden for 30+ days ─────

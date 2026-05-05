@@ -1,10 +1,11 @@
 import { useState, useEffect, useContext, useCallback, useRef } from 'react';
-import { FiPlus, FiDownload, FiGrid, FiList } from 'react-icons/fi';
+import { FiPlus, FiDownload, FiGrid, FiList, FiSend } from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
 import { useContributions } from '../../hooks/useContributions';
 import { eventService } from '../../services/eventService';
 import { paymentService } from '../../services/paymentService';
 import { exportService } from '../../services/exportService';
+import { smsService } from '../../services/smsService';
 import { getErrorMessage, debounce } from '../../utils/helpers';
 import Modal from '../common/Modal';
 import ConfirmDialog from '../common/ConfirmDialog';
@@ -35,12 +36,22 @@ export default function ClientContributions() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [exporting, setExporting] = useState('');
 
+  // Bulk SMS dispatch state
+  const [bulkSending,  setBulkSending]  = useState(false);
+  const [bulkStatus,   setBulkStatus]   = useState(null); // { canSend, daysRemaining }
+
   const currentFilters = useRef({ search: '', eventId: '', status: '' });
 
   useEffect(() => {
     eventService.getAll()
       .then(res => setEvents(res.data.data || []))
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    smsService.getBulkStatus()
+      .then(res => setBulkStatus(res.data.data))
+      .catch(() => setBulkStatus({ canSend: true, daysRemaining: 0 }));
   }, []);
 
   useEffect(() => {
@@ -78,6 +89,33 @@ export default function ClientContributions() {
   };
 
   const hasFilters = search || selectedEvent || selectedStatus;
+
+  // Derived dispatch eligibility
+  const hasUnpaid   = contributions.some(c => c.status !== 'paid' && c.phone);
+  const canDispatch  = hasUnpaid && (bulkStatus?.canSend ?? true);
+
+  const dispatchLabel = () => {
+    if (bulkSending) return 'Sending…';
+    if (bulkStatus && !bulkStatus.canSend) return `Next SMS in ${bulkStatus.daysRemaining} day(s)`;
+    if (!hasUnpaid && contributions.length > 0) return 'All contributors have paid';
+    return 'Dispatch SMS to All';
+  };
+
+  const handleDispatch = async () => {
+    setBulkSending(true);
+    try {
+      const res = await smsService.sendBulkReminders(selectedEvent || undefined);
+      const { sent, total: t } = res.data.data;
+      toast.success(`SMS dispatched to ${sent} of ${t} contributor(s)`);
+      // Refresh weekly limit status
+      const statusRes = await smsService.getBulkStatus();
+      setBulkStatus(statusRes.data.data);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setBulkSending(false);
+    }
+  };
 
   const handleAddSubmit = async (data) => {
     setAddLoading(true);
@@ -192,6 +230,15 @@ export default function ClientContributions() {
               <FiDownload size={13} /> {exporting === 'pdf' ? '…' : 'PDF'}
             </button>
           </div>
+          <button
+            className="btn btn-dispatch"
+            onClick={handleDispatch}
+            disabled={!canDispatch || bulkSending}
+            title={dispatchLabel()}
+          >
+            <FiSend size={14} className={bulkSending ? 'spin' : ''} />
+            {dispatchLabel()}
+          </button>
           <button className="btn" onClick={() => setShowAddModal(true)}>
             <FiPlus size={16} /> Add Contributor
           </button>
