@@ -4,11 +4,13 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import { smsService } from '../../services/smsService';
 import { ContributorsGridSkeleton } from '../common/SkeletonLoader';
 import EmptyState from '../common/EmptyState';
+import SuccessToast from '../common/SuccessToast';
 import './ContributorsGrid.css';
 
 export default function ContributorsGrid({ contributions, loading, hasFilters, onEdit, onRecordPayment, onDelete }) {
-  const [smsSending, setSmsSending] = useState(new Set());
-  const [smsSuccess, setSmsSuccess] = useState(new Set());
+  const [smsSending,  setSmsSending]  = useState(new Set());
+  const [smsSuccess,  setSmsSuccess]  = useState(new Set());
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSendReminder = async (c) => {
     if (!c.phone) return;
@@ -20,6 +22,8 @@ export default function ContributorsGrid({ contributions, loading, hasFilters, o
         setTimeout(() => setSmsSuccess(s => { const n = new Set(s); n.delete(c.id); return n; }), 3000);
         return next;
       });
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
     } catch {
       // silent
     } finally {
@@ -40,6 +44,8 @@ export default function ContributorsGrid({ contributions, loading, hasFilters, o
   }
 
   return (
+    <>
+    <SuccessToast message="SMS sent successfully" show={showSuccess} />
     <div className="contributors-grid">
       {contributions.map(c => {
         const outstanding = parseFloat(c.amount) - parseFloat(c.paid_amount);
@@ -112,5 +118,6 @@ export default function ContributorsGrid({ contributions, loading, hasFilters, o
         );
       })}
     </div>
+    </>
   );
 }

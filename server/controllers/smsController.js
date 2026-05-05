@@ -14,20 +14,18 @@ function formatPhone(phone) {
   return n;
 }
 
-function formatCurrency(amount) {
-  return `TZS ${parseFloat(amount || 0).toLocaleString('en-TZ', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+function fmtAmt(amount) {
+  return parseFloat(amount || 0).toLocaleString('en', { maximumFractionDigits: 0 });
 }
 
-function buildMessage(name, pledged, paid, balance) {
+function buildMessage(name, pledged, paid, balance, eventName) {
   return (
-    `Habari ${name},\n` +
-    `Umechangia ${formatCurrency(paid)}.\n` +
-    `Ulichopanga ni ${formatCurrency(pledged)}.\n` +
-    `Salio lako ni ${formatCurrency(balance)}.\n` +
-    `Tafadhali kamilisha mchango wako. Asante sana.`
+    `[${eventName || 'Finance Hub'}]\n\n` +
+    `Habari ${(name || '').toUpperCase()}! \n\n` +
+    `Hatua uliyopiga ni kubwa 👏 tayari, umechangia TZS ${fmtAmt(paid)}.\n` +
+    `Lengo ni TZS ${fmtAmt(pledged)}, kiasi kilichobaki ni TZS ${fmtAmt(balance)} tu kumaliza.\n\n` +
+    `Tafadhali kamilisha mchango wako\n\n` +
+    `Asante sana!`
   );
 }
 
@@ -81,7 +79,7 @@ async function sendReminder(req, res) {
     const pledged = parseFloat(contribution.amount)      || 0;
     const paid    = parseFloat(contribution.paid_amount) || 0;
     const balance = pledged - paid;
-    const message = buildMessage(contribution.contributor_name, pledged, paid, balance);
+    const message = buildMessage(contribution.contributor_name, pledged, paid, balance, contribution.event_name);
 
     await sendBeemSms(phone, message);
 
@@ -119,7 +117,7 @@ async function sendBulkReminders(req, res) {
         const pledged = parseFloat(c.amount)      || 0;
         const paid    = parseFloat(c.paid_amount) || 0;
         const balance = pledged - paid;
-        const message = buildMessage(c.contributor_name, pledged, paid, balance);
+        const message = buildMessage(c.contributor_name, pledged, paid, balance, c.event_name);
 
         await sendBeemSms(phone, message);
         sent++;

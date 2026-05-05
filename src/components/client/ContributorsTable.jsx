@@ -4,11 +4,13 @@ import { formatCurrency, formatDate, getStatusBadgeClass } from '../../utils/for
 import { smsService } from '../../services/smsService';
 import { TableSkeleton } from '../common/SkeletonLoader';
 import EmptyState from '../common/EmptyState';
+import SuccessToast from '../common/SuccessToast';
 import './ContributorsTable.css';
 
 export default function ContributorsTable({ contributions, loading, onEdit, onRecordPayment, onDelete }) {
-  const [smsSending, setSmsSending] = useState(new Set());
-  const [smsSuccess, setSmsSuccess] = useState(new Set());
+  const [smsSending,   setSmsSending]   = useState(new Set());
+  const [smsSuccess,   setSmsSuccess]   = useState(new Set());
+  const [showSuccess,  setShowSuccess]  = useState(false);
 
   const handleSendReminder = async (c) => {
     if (!c.phone) return;
@@ -17,10 +19,11 @@ export default function ContributorsTable({ contributions, loading, onEdit, onRe
       await smsService.sendReminder(c.id);
       setSmsSuccess(prev => {
         const next = new Set(prev).add(c.id);
-        // clear success indicator after 3 s
         setTimeout(() => setSmsSuccess(s => { const n = new Set(s); n.delete(c.id); return n; }), 3000);
         return next;
       });
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
     } catch {
       // silent fail — toast is shown by api interceptor
     } finally {
@@ -41,6 +44,8 @@ export default function ContributorsTable({ contributions, loading, onEdit, onRe
   }
 
   return (
+    <>
+    <SuccessToast message="SMS sent successfully" show={showSuccess} />
     <div className="contributors-table-wrap">
       <table className="data-table contributors-table">
         <thead>
@@ -103,5 +108,6 @@ export default function ContributorsTable({ contributions, loading, onEdit, onRe
         </tbody>
       </table>
     </div>
+    </>
   );
 }
