@@ -94,6 +94,23 @@ async function ensureSchema() {
   } catch (err) {
     console.error('[migration] sms_logs table error:', err.message);
   }
+
+  // Create event_assignments table (idempotent)
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS event_assignments (
+        id            INT AUTO_INCREMENT PRIMARY KEY,
+        event_id      INT            NOT NULL,
+        user_id       INT            NOT NULL,
+        target_amount DECIMAL(15,2)  NOT NULL DEFAULT 0,
+        created_at    TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_event_user (event_id, user_id)
+      )
+    `);
+    console.log('[migration] event_assignments table ready');
+  } catch (err) {
+    console.error('[migration] event_assignments table error:', err.message);
+  }
 }
 
 // ── Cron: auto-delete contributions hidden for 30+ days ─────
