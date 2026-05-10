@@ -341,12 +341,13 @@ export default function AdminEvents() {
         <EmptyState IconComponent={FiCalendar} title="No events yet" description="Create an event and assign it to client users." />
       ) : (
         <div className="section-card">
-          <div className="table-wrap">
-            <table className="data-table">
+          {/* ── Desktop / tablet: scrollable table ── */}
+          <div className="table-wrap ae-events-table-wrap">
+            <table className="data-table ae-events-table">
               <thead>
                 <tr>
                   <th>Event Name</th>
-                  <th>Description</th>
+                  <th className="th-desc">Description</th>
                   <th>Total Target</th>
                   <th>Assigned To</th>
                   <th>Created</th>
@@ -358,10 +359,10 @@ export default function AdminEvents() {
                   const asgns = ev.assignments || [];
                   return (
                     <tr key={ev.id}>
-                      <td className="td-name">{ev.name}</td>
+                      <td className="td-name ae-td-name">{ev.name}</td>
                       <td className="td-desc">{truncate(ev.description || '—', 60)}</td>
                       <td className="td-money">{formatCurrency(ev.target_amount)}</td>
-                      <td>
+                      <td className="ae-td-assigned">
                         <div className="assignment-chips">
                           {asgns.slice(0, 2).map(a => (
                             <span key={a.user_id} className="owner-chip" title={`${a.user_name} — TZS ${parseFloat(a.target_amount).toLocaleString()}`}>
@@ -394,6 +395,59 @@ export default function AdminEvents() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* ── Mobile: card layout (≤600px) ── */}
+          <div className="ae-events-cards">
+            {events.map(ev => {
+              const asgns = ev.assignments || [];
+              return (
+                <div key={ev.id} className="ae-event-card">
+                  <div className="ae-ec-header">
+                    <span className="ae-ec-name">{ev.name}</span>
+                    <div className="td-actions ae-ec-actions">
+                      <button className="icon-btn" onClick={() => openEdit(ev)} title="Edit event">
+                        <FiEdit2 size={15} />
+                      </button>
+                      <button className="icon-btn icon-btn-red" onClick={() => handleDeleteClick(ev)} title="Delete event">
+                        <FiTrash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                  {ev.description && (
+                    <p className="ae-ec-desc">{ev.description}</p>
+                  )}
+                  <div className="ae-ec-row">
+                    <span className="ae-ec-label">Target</span>
+                    <span className="ae-ec-value td-money">{formatCurrency(ev.target_amount)}</span>
+                  </div>
+                  <div className="ae-ec-row">
+                    <span className="ae-ec-label">Assigned To</span>
+                    <div className="assignment-chips ae-ec-chips">
+                      {asgns.slice(0, 2).map(a => (
+                        <span key={a.user_id} className="owner-chip" title={`${a.user_name} — TZS ${parseFloat(a.target_amount).toLocaleString()}`}>
+                          <span className="owner-avatar">{a.user_name?.[0]?.toUpperCase()}</span>
+                          {a.user_name}
+                        </span>
+                      ))}
+                      {asgns.length === 0 && (
+                        <span className="owner-chip">
+                          <span className="owner-avatar">{ev.owner_name?.[0]?.toUpperCase()}</span>
+                          {ev.owner_name}
+                        </span>
+                      )}
+                      {asgns.length > 2 && (
+                        <span className="chip-more">+{asgns.length - 2}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="ae-ec-row ae-ec-row-last">
+                    <span className="ae-ec-label">Created</span>
+                    <span className="ae-ec-value td-date">{formatDate(ev.created_at)}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
