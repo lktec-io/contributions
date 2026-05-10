@@ -100,5 +100,15 @@
 @media (max-width: 600px) {
   .events-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
+}
+
+@media (max-width: 480px) {
+  .event-card {
+    padding: 14px;
+  }
+
+  .event-card-name { font-size: 14px; }
+  .meta-value      { font-size: 13px; }
 }

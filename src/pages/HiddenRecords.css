@@ -180,8 +180,8 @@
     overflow-x: hidden;
   }
 
-  .hr-title { font-size: 18px; }
-  .hr-tab   { font-size: 12px; padding: 7px 10px; }
+  .hr-title  { font-size: 18px; }
+  .hr-tab    { font-size: 12px; padding: 7px 10px; }
 
   /* Swap: hide table, show card grid */
   .hr-table-wrap  { display: none; }
@@ -316,4 +316,12 @@
   [data-theme="light"] .hidden-card-row {
     border-bottom-color: rgba(0, 0, 0, 0.06);
   }
+}
+
+@media (max-width: 360px) {
+  .hidden-records { padding: 10px; }
+  .hr-header      { gap: 8px; }
+  .hr-title       { font-size: 15px; }
+  .hr-subtitle    { font-size: 11px; }
+  .hr-tab         { font-size: 11px; padding: 6px 8px; }
 }

@@ -89,3 +89,17 @@
     justify-content: flex-start;
   }
 }
+
+@media (max-width: 480px) {
+  .btn-export {
+    font-size: 11px;
+    padding: 5px 9px;
+  }
+
+  /* Tighten money cells to prevent overflow on narrow screens */
+  .td-paid,
+  .td-outstanding,
+  .td-muted {
+    font-size: 12px;
+  }
+}

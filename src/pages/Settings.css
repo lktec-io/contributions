@@ -559,3 +559,14 @@
 
   .st-info-box { flex-direction: column; gap: 6px; }
 }
+
+/* 360px — prevent overflow on smallest devices */
+@media (max-width: 360px) {
+  .st-card-head,
+  .st-card-body { padding: 12px; }
+
+  .st-page-title { font-size: 17px; }
+  .st-toggle-label { font-size: 13px; }
+  .st-toggle-sub   { font-size: 11px; }
+  .st-toggle-row   { gap: 12px; }
+}

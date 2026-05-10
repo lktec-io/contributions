@@ -148,3 +148,10 @@
     padding: 16px 20px 24px;
   }
 }
+
+/* 360px — tightest modal padding */
+@media (max-width: 360px) {
+  .modal-header { padding: 14px 16px 12px; }
+  .modal-body   { padding: 14px 16px 20px; }
+  .modal-title  { font-size: 14px; }
+}

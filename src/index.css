@@ -949,6 +949,12 @@ img, svg {
   .form-actions .btn-secondary {
     width: 100% !important;
   }
+
+  /* Stack form-action buttons vertically so 100%-wide buttons don't overflow */
+  .form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
 }
 
 /* Section-card padding tightens on small screens */
@@ -963,6 +969,19 @@ img, svg {
     margin-bottom: 12px;
     padding-bottom: 10px;
   }
+
+  /* Page-header CTA button goes full-width when it wraps to its own row */
+  .page-header > .btn {
+    width: 100% !important;
+    justify-content: center;
+  }
+}
+
+/* 360px and below — tightest padding */
+@media (max-width: 360px) {
+  .page-title    { font-size: 16px; }
+  .page-subtitle { font-size: 12px; }
+  .tab-button    { font-size: 12px; padding: 7px 8px; }
 }
 
 /* Prevent any inner element from causing horizontal overflow */

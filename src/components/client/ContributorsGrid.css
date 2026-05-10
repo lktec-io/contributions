@@ -160,5 +160,16 @@
 @media (max-width: 600px) {
   .contributors-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
+}
+
+@media (max-width: 480px) {
+  .contributor-card {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .ccard-identity h4 { font-size: 13px; }
+  .card-amount-value  { font-size: 12px; }
 }

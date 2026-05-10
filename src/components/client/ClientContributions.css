@@ -121,4 +121,17 @@
   .filter-select {
     width: 100%;
   }
+
+  /* Dispatch button — full width when stacked */
+  .btn-dispatch {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-export {
+    font-size: 11px;
+    padding: 5px 9px;
+  }
 }

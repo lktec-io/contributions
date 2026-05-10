@@ -143,3 +143,16 @@
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+
+/* ── Mobile touch targets ────────────────────── */
+@media (max-width: 768px) {
+  .icon-btn {
+    min-width: 38px;
+    min-height: 38px;
+    padding: 8px;
+  }
+
+  .td-actions {
+    gap: 6px;
+  }
+}

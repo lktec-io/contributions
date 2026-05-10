@@ -79,3 +79,13 @@
   gap: 10px;
   margin-top: 8px;
 }
+
+@media (max-width: 480px) {
+  .ps-outstanding { font-size: 15px; }
+
+  .form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+  }
+}

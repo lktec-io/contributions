@@ -383,7 +383,55 @@
 /* ── Responsive ──────────────────────────────── */
 @media (max-width: 768px) {
   .ae-amount-input { width: 80px; }
-  .td-desc { display: none; }
+  .td-desc         { display: none; }
   .ae-amounts-list { max-height: 180px; }
-  .ae-user-list { max-height: 140px; }
+  .ae-user-list    { max-height: 140px; }
+
+  /* Chips — slightly smaller in scrolling table on mobile */
+  .owner-chip {
+    font-size: 11px;
+    padding: 2px 7px 2px 3px;
+    gap: 4px;
+  }
+  .owner-avatar { width: 18px; height: 18px; font-size: 9px; }
+}
+
+/* ── Assignment form — mobile card layout ────── */
+@media (max-width: 480px) {
+  /* Compact mode tabs */
+  .ae-mode-tabs {
+    gap: 3px;
+    padding: 3px;
+  }
+
+  .ae-mode-tab {
+    font-size: 11px;
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  /* Amount row: two-row grid card so nothing gets cramped */
+  .ae-amount-row {
+    display: grid;
+    grid-template-areas:
+      "avatar name   remove"
+      "input  input  input";
+    grid-template-columns: 24px 1fr auto;
+    gap: 6px 8px;
+    padding: 10px 12px;
+    align-items: center;
+  }
+
+  .ae-amount-avatar     { grid-area: avatar; align-self: center; }
+  .ae-amount-name       { grid-area: name;   align-self: center; }
+  .ae-amount-input-wrap { grid-area: input;  width: 100%; }
+  .ae-amount-remove     { grid-area: remove; align-self: center; }
+  .ae-amount-input      { width: 100%; text-align: left; }
+
+  /* Tighter scroll areas on small screens */
+  .ae-amounts-list { max-height: 200px; }
+  .ae-user-list    { max-height: 160px; }
+
+  /* Amounts label — tighter */
+  .ae-amounts-label { padding: 7px 12px; }
 }

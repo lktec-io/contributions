@@ -127,3 +127,22 @@
   cursor: not-allowed;
   pointer-events: none;
 }
+
+/* ── Mobile ──────────────────────────────────── */
+@media (max-width: 480px) {
+  /* Tighter role / status badges */
+  .role-badge,
+  .status-pill {
+    font-size: 10px;
+    padding: 2px 7px;
+  }
+
+  /* Small action buttons stay compact */
+  .btn-sm {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  /* Email shrinks — table scrolls, so this just prevents odd overflow */
+  .td-email { font-size: 12px; }
+}

@@ -16,3 +16,11 @@
 .app-footer p {
   margin: 0;
 }
+
+/* On mobile the sticky footer can overlap content when the soft keyboard opens */
+@media (max-width: 768px) {
+  .app-footer {
+    position: static;
+    padding: 10px 16px;
+  }
+}
