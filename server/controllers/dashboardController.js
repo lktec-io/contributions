@@ -81,12 +81,38 @@ async function getAdminStats(req, res, next) {
 
 async function getClientStats(req, res, next) {
   try {
+    const ERR_TABLE_NOT_EXISTS = 1146;
     const orgId = req.user.userId;
 
-    const [[eventsRow]] = await pool.query(
-      'SELECT COUNT(*) AS count FROM events WHERE organization_id = ?',
-      [orgId]
-    );
+    // Collect all event IDs where the user is primary owner OR an assigned user
+    let eventIds;
+    try {
+      const [rows] = await pool.query(
+        `SELECT DISTINCT e.id FROM events e
+         LEFT JOIN event_assignments ea ON ea.event_id = e.id
+         WHERE e.organization_id = ? OR ea.user_id = ?`,
+        [orgId, orgId]
+      );
+      eventIds = rows.map(r => r.id);
+    } catch (err) {
+      if (err.errno !== ERR_TABLE_NOT_EXISTS) throw err;
+      const [rows] = await pool.query('SELECT id FROM events WHERE organization_id = ?', [orgId]);
+      eventIds = rows.map(r => r.id);
+    }
+
+    if (eventIds.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          myEvents: 0, myContributors: 0,
+          totalPledged: 0, totalPaid: 0, outstanding: 0,
+          chartData: { paid: 0, pending: 0, unpaid: 0 },
+          recentContributions: [],
+        },
+      });
+    }
+
+    const placeholders = eventIds.map(() => '?').join(',');
 
     const [[contribRow]] = await pool.query(
       `SELECT COUNT(c.id) AS count,
@@ -95,9 +121,8 @@ async function getClientStats(req, res, next) {
               COALESCE(SUM(CASE WHEN c.status = 'partial' THEN (c.amount - c.paid_amount) ELSE 0 END), 0) AS pending_sum,
               COALESCE(SUM(CASE WHEN c.status = 'pledge'  THEN c.amount                  ELSE 0 END), 0) AS unpaid_sum
        FROM contributions c
-       JOIN events e ON e.id = c.event_id
-       WHERE e.organization_id = ?`,
-      [orgId]
+       WHERE c.event_id IN (${placeholders})`,
+      eventIds
     );
 
     const [recentContributions] = await pool.query(
@@ -105,9 +130,9 @@ async function getClientStats(req, res, next) {
               e.name AS event_name
        FROM contributions c
        JOIN events e ON e.id = c.event_id
-       WHERE e.organization_id = ?
+       WHERE c.event_id IN (${placeholders})
        ORDER BY c.created_at DESC LIMIT 5`,
-      [orgId]
+      eventIds
     );
 
     const totalPledged = parseFloat(contribRow.total_pledged);
@@ -116,7 +141,7 @@ async function getClientStats(req, res, next) {
     return res.json({
       success: true,
       data: {
-        myEvents:           eventsRow.count,
+        myEvents:           eventIds.length,
         myContributors:     contribRow.count,
         totalPledged,
         totalPaid,

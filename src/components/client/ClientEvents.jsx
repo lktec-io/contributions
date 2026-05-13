@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { FiCalendar, FiAlertTriangle, FiEye } from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
+import { AuthContext } from '../../context/AuthContext';
 import { eventService } from '../../services/eventService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { getErrorMessage } from '../../utils/helpers';
@@ -10,6 +11,7 @@ import './ClientEvents.css';
 
 export default function ClientEvents({ onViewContributions }) {
   const { toast } = useContext(ToastContext);
+  const { user } = useContext(AuthContext);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,7 +59,10 @@ export default function ClientEvents({ onViewContributions }) {
         />
       ) : (
         <div className="events-grid">
-          {events.map(ev => (
+          {events.map(ev => {
+            const myAssignment = ev.assignments?.find(a => a.user_id === user?.id);
+            const myTarget = myAssignment?.target_amount ?? ev.target_amount;
+            return (
             <div key={ev.id} className="event-card">
               <div className="event-card-top">
                 <h3 className="event-card-name">{ev.name}</h3>
@@ -68,8 +73,8 @@ export default function ClientEvents({ onViewContributions }) {
               )}
               <div className="event-card-meta">
                 <div className="meta-item">
-                  <span className="meta-label">Target</span>
-                  <span className="meta-value">{formatCurrency(ev.target_amount)}</span>
+                  <span className="meta-label">My Target</span>
+                  <span className="meta-value">{formatCurrency(myTarget)}</span>
                 </div>
               </div>
               <button
@@ -79,7 +84,8 @@ export default function ClientEvents({ onViewContributions }) {
                 <FiEye size={14} /> View Contributors
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
