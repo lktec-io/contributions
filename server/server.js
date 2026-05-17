@@ -58,7 +58,7 @@ app.use(errorHandler);
 
 // ── Schema auto-migration ───────────────────────────────────
 // Adds new columns to existing tables without touching any data.
-// Safe to run repeatedly: error 1060 (Duplicate column) is silently ignored.
+// Safe to run repeatedly: error 1060 (Duplicate column) is silently ignored
 async function ensureSchema() {
   const steps = [
     { col: 'contributions.is_hidden', sql: 'ALTER TABLE contributions ADD COLUMN is_hidden BOOLEAN NOT NULL DEFAULT FALSE' },
