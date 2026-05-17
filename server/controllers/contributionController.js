@@ -1,6 +1,7 @@
 'use strict';
 
 const Contribution = require('../models/Contribution');
+const Contributor  = require('../models/Contributor');
 const Event = require('../models/Event');
 const Notification = require('../models/Notification');
 const { getIsolationFilter, canAccessContribution, canAccessEvent } = require('../utils/tenantHelpers');
@@ -185,4 +186,81 @@ async function permanentDelete(req, res, next) {
   }
 }
 
-module.exports = { getAll, getById, create, update, remove, hide, restore, getHidden, permanentDelete };
+// ── createBulk ────────────────────────────────────────────────────────────────
+// Creates ONE contributor (find-or-create by phone/email) and ONE contribution
+// row per selected event. Used by the multi-event assignment form.
+async function createBulk(req, res, next) {
+  try {
+    const { contributor_name, phone, email, events } = req.body;
+
+    if (!contributor_name || !Array.isArray(events) || events.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: [
+          !contributor_name           && { field: 'contributor_name', message: 'contributor_name is required' },
+          (!events || !events.length) && { field: 'events',           message: 'At least one event is required' },
+        ].filter(Boolean),
+      });
+    }
+
+    for (const ev of events) {
+      if (!ev.event_id || !ev.amount || parseFloat(ev.amount) <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Each event assignment must include a valid event_id and amount > 0',
+          errors: [],
+        });
+      }
+    }
+
+    // Access-check all events before writing anything
+    const resolvedEvents = [];
+    for (const ev of events) {
+      const event = await Event.findById(ev.event_id);
+      if (!event) {
+        return res.status(404).json({ success: false, message: `Event ${ev.event_id} not found`, errors: [] });
+      }
+      if (!canAccessEvent(req, event)) {
+        return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+      }
+      resolvedEvents.push({ event, amount: ev.amount });
+    }
+
+    // Ensure one global contributor record (deduplicates by phone or email)
+    try {
+      await Contributor.findOrCreate({
+        name:       contributor_name,
+        phone:      phone || null,
+        email:      email || null,
+        created_by: req.user.userId,
+      });
+    } catch (err) {
+      console.error('[createBulk] find-or-create contributor failed:', err.message);
+    }
+
+    // Create one contribution row per selected event
+    for (const { event, amount } of resolvedEvents) {
+      await Contribution.create({
+        event_id:         event.id,
+        contributor_name,
+        phone:            phone  || null,
+        email:            email  || null,
+        amount,
+      });
+
+      await Notification.create({
+        user_id: event.organization_id,
+        title:   'New Contribution Added',
+        message: `${contributor_name} pledged ${parseFloat(amount).toLocaleString()} for event "${event.name}".`,
+        type:    'contribution_added',
+      });
+    }
+
+    return res.status(201).json({ success: true, data: { created: resolvedEvents.length } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getAll, getById, create, createBulk, update, remove, hide, restore, getHidden, permanentDelete };

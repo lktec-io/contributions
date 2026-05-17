@@ -2,6 +2,7 @@ import { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { FiPlus, FiDownload, FiGrid, FiList, FiSend } from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
 import { useContributions } from '../../hooks/useContributions';
+import { contributionService } from '../../services/contributionService';
 import { eventService } from '../../services/eventService';
 import { paymentService } from '../../services/paymentService';
 import { exportService } from '../../services/exportService';
@@ -120,8 +121,9 @@ export default function ClientContributions() {
   const handleAddSubmit = async (data) => {
     setAddLoading(true);
     try {
-      await createContribution(data);
-      toast.success('Contributor added');
+      await contributionService.createBulk(data);
+      const count = data.events?.length ?? 1;
+      toast.success(`Contributor added to ${count} event${count !== 1 ? 's' : ''}`);
       setShowAddModal(false);
       refreshList();
     } catch (err) {

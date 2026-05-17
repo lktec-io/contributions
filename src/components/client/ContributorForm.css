@@ -60,6 +60,170 @@
   font-size: 13px;
 }
 
+/* ── Contributor name autocomplete ───────────────────────── */
+.cf-name-wrap {
+  position: relative;
+}
+
+.cf-suggestions {
+  position: absolute;
+  top: calc(100% - 2px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.cf-suggestion-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.cf-suggestion-item:hover {
+  background: rgba(0, 184, 148, 0.08);
+}
+
+.cf-sug-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cf-sug-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ── Event assignment section ────────────────────────────── */
+.cf-event-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0, 184, 148, 0.15);
+  color: var(--accent-green);
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 1px 7px;
+  margin-left: 7px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.cf-no-events {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 4px 0 0;
+}
+
+.cf-event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* ── Individual event row ────────────────────────────────── */
+.cf-event-item {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.cf-event-item--on {
+  border-color: rgba(0, 184, 148, 0.5);
+  background: rgba(0, 184, 148, 0.04);
+}
+
+.cf-event-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.cf-event-toggle:hover {
+  background: rgba(0, 184, 148, 0.06);
+}
+
+.cf-check {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: color 0.15s;
+}
+
+.cf-check--on {
+  color: var(--accent-green);
+}
+
+.cf-event-label {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+/* ── Per-event amount input ──────────────────────────────── */
+.cf-event-amount {
+  padding: 0 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cf-amount-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.cf-event-amount input {
+  padding: 7px 10px;
+  font-size: 13px;
+  border-radius: 7px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-input, var(--bg-card));
+  color: var(--text-primary);
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.cf-event-amount input:focus {
+  outline: none;
+  border-color: var(--accent-green);
+}
+
+.cf-input-err {
+  border-color: var(--accent-red) !important;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 480px) {
   .cf-row {
     grid-template-columns: 1fr;
