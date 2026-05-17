@@ -1,6 +1,7 @@
 'use strict';
 
 const Contribution = require('../models/Contribution');
+const Contributor  = require('../models/Contributor');
 const Event = require('../models/Event');
 const Notification = require('../models/Notification');
 const { getIsolationFilter, canAccessContribution, canAccessEvent } = require('../utils/tenantHelpers');
@@ -55,7 +56,20 @@ async function create(req, res, next) {
       return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
     }
 
-    const id = await Contribution.create({ event_id, contributor_name, phone, email, amount });
+    // Find or create a global contributor record (non-fatal if table missing)
+    let contributorId = null;
+    try {
+      contributorId = await Contributor.findOrCreate({
+        name:       contributor_name,
+        phone:      phone  || null,
+        email:      email  || null,
+        created_by: req.user.userId,
+      });
+    } catch (err) {
+      console.error('[create contribution] find-or-create contributor failed:', err.message);
+    }
+
+    const id = await Contribution.create({ event_id, contributor_id: contributorId, contributor_name, phone, email, amount });
 
     await Notification.create({
       user_id: event.organization_id,

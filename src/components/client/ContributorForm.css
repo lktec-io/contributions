@@ -60,6 +60,53 @@
   font-size: 13px;
 }
 
+/* ── Contributor search dropdown ──────────────────────────── */
+.cf-name-wrap {
+  position: relative;
+}
+
+.cf-suggestions {
+  position: absolute;
+  top: calc(100% - 2px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.cf-suggestion-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cf-suggestion-item:hover {
+  background: rgba(0, 184, 148, 0.08);
+}
+
+.cf-sug-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cf-sug-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
 @media (max-width: 480px) {
   .cf-row {
     grid-template-columns: 1fr;

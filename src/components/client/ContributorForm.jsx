@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { contributorService } from '../../services/contributorService';
 import './ContributorForm.css';
 
 export default function ContributorForm({ initialData, events, onSubmit, onCancel, loading }) {
@@ -9,19 +10,34 @@ export default function ContributorForm({ initialData, events, onSubmit, onCance
     email: '',
     amount: '',
   });
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors]         = useState({});
+  const [suggestions, setSuggestions] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [searchTimer, setSearchTimer]   = useState(null);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     if (initialData) {
       setFormData({
-        event_id: initialData.event_id || '',
+        event_id:         initialData.event_id         || '',
         contributor_name: initialData.contributor_name || '',
-        phone: initialData.phone || '',
-        email: initialData.email || '',
-        amount: initialData.amount || '',
+        phone:            initialData.phone            || '',
+        email:            initialData.email            || '',
+        amount:           initialData.amount           || '',
       });
     }
   }, [initialData]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const validate = () => {
     const errs = {};
@@ -36,6 +52,40 @@ export default function ContributorForm({ initialData, events, onSubmit, onCance
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+
+    // Trigger contributor search when typing in the name field (add mode only)
+    if (name === 'contributor_name' && !initialData) {
+      clearTimeout(searchTimer);
+      const q = value.trim();
+      if (q.length < 2) {
+        setSuggestions([]);
+        setShowDropdown(false);
+        return;
+      }
+      const timer = setTimeout(async () => {
+        try {
+          const res = await contributorService.search(q);
+          const hits = res.data.data || [];
+          setSuggestions(hits);
+          setShowDropdown(hits.length > 0);
+        } catch {
+          setSuggestions([]);
+          setShowDropdown(false);
+        }
+      }, 300);
+      setSearchTimer(timer);
+    }
+  };
+
+  const selectSuggestion = (contributor) => {
+    setFormData(prev => ({
+      ...prev,
+      contributor_name: contributor.name,
+      phone:            contributor.phone || '',
+      email:            contributor.email || '',
+    }));
+    setSuggestions([]);
+    setShowDropdown(false);
   };
 
   const handleSubmit = (e) => {
@@ -59,16 +109,31 @@ export default function ContributorForm({ initialData, events, onSubmit, onCance
         {errors.event_id && <span className="field-error">{errors.event_id}</span>}
       </div>
 
-      <div className="form-group">
+      {/* Name with contributor search (add mode only) */}
+      <div className="form-group cf-name-wrap" ref={dropdownRef}>
         <label>Contributor Name *</label>
         <input
           type="text"
           name="contributor_name"
           value={formData.contributor_name}
           onChange={handleChange}
-          placeholder="Full name"
+          placeholder={isEdit ? 'Full name' : 'Type to search or add new…'}
+          autoComplete="off"
         />
         {errors.contributor_name && <span className="field-error">{errors.contributor_name}</span>}
+
+        {showDropdown && suggestions.length > 0 && (
+          <ul className="cf-suggestions">
+            {suggestions.map(s => (
+              <li key={s.id} className="cf-suggestion-item" onMouseDown={() => selectSuggestion(s)}>
+                <span className="cf-sug-name">{s.name}</span>
+                {(s.phone || s.email) && (
+                  <span className="cf-sug-sub">{s.phone || s.email}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="cf-row">

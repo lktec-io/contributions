@@ -8,6 +8,7 @@ const authRoutes         = require('./routes/authRoutes');
 const userRoutes         = require('./routes/userRoutes');
 const eventRoutes        = require('./routes/eventRoutes');
 const contributionRoutes = require('./routes/contributionRoutes');
+const contributorRoutes  = require('./routes/contributorRoutes');
 const paymentRoutes      = require('./routes/paymentRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const exportRoutes       = require('./routes/exportRoutes');
@@ -33,6 +34,7 @@ app.use('/api/auth',          authRoutes);
 app.use('/api/users',         userRoutes);
 app.use('/api/events',        eventRoutes);
 app.use('/api/contributions', contributionRoutes);
+app.use('/api/contributors',  contributorRoutes);
 app.use('/api/payments',      paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/export',        exportRoutes);
@@ -111,6 +113,101 @@ async function ensureSchema() {
   } catch (err) {
     console.error('[migration] event_assignments table error:', err.message);
   }
+
+  // Create global contributors table (idempotent)
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS contributors (
+        id         INT AUTO_INCREMENT PRIMARY KEY,
+        name       VARCHAR(255)  NOT NULL,
+        phone      VARCHAR(50)   NULL,
+        email      VARCHAR(255)  NULL,
+        created_by INT           NULL,
+        created_at TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_contributors_phone (phone),
+        INDEX idx_contributors_email (email)
+      )
+    `);
+    console.log('[migration] contributors table ready');
+  } catch (err) {
+    console.error('[migration] contributors table error:', err.message);
+  }
+
+  // Add contributor_id FK column to contributions (nullable, backward-compatible)
+  try {
+    await pool.query(
+      'ALTER TABLE contributions ADD COLUMN contributor_id INT NULL'
+    );
+    console.log('[migration] Added contributions.contributor_id');
+  } catch (err) {
+    if (err.errno !== 1060) {
+      console.error('[migration] contributions.contributor_id error:', err.message);
+    }
+  }
+
+  // Add index on contributor_id (ignore error if already exists)
+  try {
+    await pool.query(
+      'ALTER TABLE contributions ADD INDEX idx_contrib_contributor_id (contributor_id)'
+    );
+  } catch (_) { /* index may already exist */ }
+}
+
+// ── One-time data migration: populate global contributors table ─
+// Processes only contributions where contributor_id IS NULL (idempotent).
+async function migrateContributors() {
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, contributor_name, phone, email, created_at FROM contributions WHERE contributor_id IS NULL'
+    );
+    if (!rows.length) return;
+
+    let migrated = 0;
+    for (const c of rows) {
+      try {
+        let contributorId = null;
+
+        const conditions = [];
+        const params     = [];
+        if (c.phone) { conditions.push('phone = ?'); params.push(c.phone); }
+        if (c.email) { conditions.push('email = ?'); params.push(c.email); }
+
+        if (conditions.length > 0) {
+          const [existing] = await pool.query(
+            `SELECT id FROM contributors WHERE ${conditions.join(' OR ')} LIMIT 1`,
+            params
+          );
+          if (existing.length > 0) contributorId = existing[0].id;
+        }
+
+        if (!contributorId) {
+          const [result] = await pool.query(
+            'INSERT INTO contributors (name, phone, email, created_at) VALUES (?, ?, ?, ?)',
+            [c.contributor_name, c.phone || null, c.email || null, c.created_at]
+          );
+          contributorId = result.insertId;
+        }
+
+        await pool.query(
+          'UPDATE contributions SET contributor_id = ? WHERE id = ?',
+          [contributorId, c.id]
+        );
+        migrated++;
+      } catch (rowErr) {
+        console.error(`[migration] Failed to migrate contribution ${c.id}:`, rowErr.message);
+      }
+    }
+
+    if (migrated > 0) {
+      console.log(`[migration] Migrated ${migrated} contribution(s) to global contributors`);
+    }
+  } catch (err) {
+    // Contributors table may not exist yet on first run; ensureSchema creates it first
+    if (err.errno !== 1146) {
+      console.error('[migration] migrateContributors error:', err.message);
+    }
+  }
 }
 
 // ── Cron: auto-delete contributions hidden for 30+ days ─────
@@ -157,8 +254,13 @@ async function start() {
   try {
     await ensureSchema();
   } catch (err) {
-    // Schema migration failed entirely — log but don't block startup
     console.error('[migration] Schema migration failed (non-fatal):', err.message);
+  }
+
+  try {
+    await migrateContributors();
+  } catch (err) {
+    console.error('[migration] Contributor migration failed (non-fatal):', err.message);
   }
 
   startCron();
