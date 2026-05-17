@@ -18,12 +18,26 @@ async function search(req, res, next) {
 
 async function getAll(req, res, next) {
   try {
-    const filter       = getIsolationFilter(req);
-    const contributors = await Contributor.findAll(filter);
+    const { search, eventId, status } = req.query;
+    const filter = getIsolationFilter(req);
+    const contributors = await Contributor.findAll({ ...filter, search, eventId, status });
     return res.json({ success: true, data: { contributors, total: contributors.length } });
   } catch (err) {
     next(err);
   }
 }
 
-module.exports = { search, getAll };
+async function getById(req, res, next) {
+  try {
+    const filter = getIsolationFilter(req);
+    const contributor = await Contributor.findById(req.params.id, filter);
+    if (!contributor) {
+      return res.status(404).json({ success: false, message: 'Contributor not found', errors: [] });
+    }
+    return res.json({ success: true, data: contributor });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { search, getAll, getById };

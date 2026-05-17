@@ -1,44 +1,39 @@
 import { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { FiPlus, FiDownload, FiGrid, FiList, FiSend } from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
-import { useContributions } from '../../hooks/useContributions';
+import { contributorService } from '../../services/contributorService';
 import { eventService } from '../../services/eventService';
-import { paymentService } from '../../services/paymentService';
 import { exportService } from '../../services/exportService';
 import { smsService } from '../../services/smsService';
 import { getErrorMessage, debounce } from '../../utils/helpers';
 import Modal from '../common/Modal';
-import ConfirmDialog from '../common/ConfirmDialog';
 import ContributorForm from './ContributorForm';
-import PaymentForm from './PaymentForm';
+import ContributorDetails from './ContributorDetails';
 import ContributorsTable from './ContributorsTable';
 import ContributorsGrid from './ContributorsGrid';
 import './ClientContributions.css';
 
 export default function ClientContributions() {
   const { toast } = useContext(ToastContext);
-  const { contributions, loading, total, fetchContributions, createContribution, updateContribution, deleteContribution } = useContributions();
 
-  const [events, setEvents] = useState([]);
-  const [search, setSearch] = useState('');
+  const [contributors, setContributors] = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [events, setEvents]             = useState([]);
+  const [total, setTotal]               = useState(0);
+
+  const [search, setSearch]               = useState('');
   const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
-  const [viewMode, setViewMode] = useState('table');
+  const [viewMode, setViewMode]           = useState('table');
 
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showAddModal,     setShowAddModal]     = useState(false);
+  const [showDetailModal,  setShowDetailModal]  = useState(false);
 
-  const [selectedContrib, setSelectedContrib] = useState(null);
-  const [addLoading, setAddLoading] = useState(false);
-  const [payLoading, setPayLoading] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [exporting, setExporting] = useState('');
-
-  // Bulk SMS dispatch state
-  const [bulkSending,  setBulkSending]  = useState(false);
-  const [bulkStatus,   setBulkStatus]   = useState(null); // { canSend, daysRemaining }
+  const [selectedContributor, setSelectedContributor] = useState(null);
+  const [addLoading, setAddLoading]   = useState(false);
+  const [exporting, setExporting]     = useState('');
+  const [bulkSending, setBulkSending] = useState(false);
+  const [bulkStatus, setBulkStatus]   = useState(null);
 
   const currentFilters = useRef({ search: '', eventId: '', status: '' });
 
@@ -57,16 +52,30 @@ export default function ClientContributions() {
   useEffect(() => {
     const params = { search, eventId: selectedEvent, status: selectedStatus };
     currentFilters.current = params;
-    fetchContributions(params);
+    fetchContributors(params);
   }, [selectedEvent, selectedStatus]);
+
+  const fetchContributors = async (params = {}) => {
+    setLoading(true);
+    try {
+      const res = await contributorService.getAll(params);
+      const list = res.data.data?.contributors || [];
+      setContributors(list);
+      setTotal(list.length);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const debouncedFetch = useCallback(
     debounce((q) => {
       const params = { search: q, eventId: currentFilters.current.eventId, status: currentFilters.current.status };
       currentFilters.current = params;
-      fetchContributions(params);
+      fetchContributors(params);
     }, 300),
-    [fetchContributions]
+    []
   );
 
   const handleSearchChange = (e) => {
@@ -81,23 +90,15 @@ export default function ClientContributions() {
     setSelectedEvent('');
     setSelectedStatus('');
     currentFilters.current = { search: '', eventId: '', status: '' };
-    fetchContributions({});
-  };
-
-  const refreshList = () => {
-    fetchContributions(currentFilters.current);
+    fetchContributors({});
   };
 
   const hasFilters = search || selectedEvent || selectedStatus;
 
-  // Derived dispatch eligibility
-  const hasUnpaid   = contributions.some(c => c.status !== 'paid' && c.phone);
-  const canDispatch  = hasUnpaid && (bulkStatus?.canSend ?? true);
-
+  const canDispatch  = bulkStatus?.canSend ?? true;
   const dispatchLabel = () => {
     if (bulkSending) return 'Sending…';
     if (bulkStatus && !bulkStatus.canSend) return `Next SMS in ${bulkStatus.daysRemaining} day(s)`;
-    if (!hasUnpaid && contributions.length > 0) return 'All contributors have paid';
     return 'Dispatch SMS to All';
   };
 
@@ -107,7 +108,6 @@ export default function ClientContributions() {
       const res = await smsService.sendBulkReminders(selectedEvent || undefined);
       const { sent, total: t } = res.data.data;
       toast.success(`SMS dispatched to ${sent} of ${t} contributor(s)`);
-      // Refresh weekly limit status
       const statusRes = await smsService.getBulkStatus();
       setBulkStatus(statusRes.data.data);
     } catch (err) {
@@ -119,60 +119,17 @@ export default function ClientContributions() {
 
   const handleAddSubmit = async (data) => {
     setAddLoading(true);
+    // Use the underlying contributions API to create the event-contributor record
     try {
-      await createContribution(data);
+      const { contributionService } = await import('../../services/contributionService');
+      await contributionService.create(data);
       toast.success('Contributor added');
       setShowAddModal(false);
-      refreshList();
+      fetchContributors(currentFilters.current);
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
       setAddLoading(false);
-    }
-  };
-
-  const handleEditSubmit = async (data) => {
-    setAddLoading(true);
-    try {
-      await updateContribution(selectedContrib.id, data);
-      toast.success('Contributor updated');
-      setShowEditModal(false);
-      setSelectedContrib(null);
-      refreshList();
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    } finally {
-      setAddLoading(false);
-    }
-  };
-
-  const handlePaymentSubmit = async (data) => {
-    setPayLoading(true);
-    try {
-      await paymentService.create(data);
-      toast.success('Payment recorded');
-      setShowPaymentModal(false);
-      setSelectedContrib(null);
-      refreshList();
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    } finally {
-      setPayLoading(false);
-    }
-  };
-
-  const handleDeleteConfirm = async () => {
-    setDeleteLoading(true);
-    try {
-      await deleteContribution(selectedContrib.id);
-      toast.success('Contributor deleted');
-      setShowDeleteConfirm(false);
-      setSelectedContrib(null);
-      refreshList();
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    } finally {
-      setDeleteLoading(false);
     }
   };
 
@@ -190,19 +147,23 @@ export default function ClientContributions() {
     }
   };
 
-  const tableActions = {
-    onEdit: (c) => { setSelectedContrib(c); setShowEditModal(true); },
-    onRecordPayment: (c) => { setSelectedContrib(c); setShowPaymentModal(true); },
-    onDelete: (c) => { setSelectedContrib(c); setShowDeleteConfirm(true); },
+  const openDetail = (contributor) => {
+    setSelectedContributor(contributor);
+    setShowDetailModal(true);
+  };
+
+  const closeDetail = () => {
+    setShowDetailModal(false);
+    setSelectedContributor(null);
   };
 
   return (
     <div className="client-contributions">
       <div className="page-header">
         <div>
-          <h2 className="page-title">My Contributions</h2>
+          <h2 className="page-title">My Contributors</h2>
           <p className="page-subtitle">
-            Showing {contributions.length} of {total} contributor{total !== 1 ? 's' : ''}
+            {total} unique contributor{total !== 1 ? 's' : ''}
           </p>
         </div>
         <div className="cc-header-actions">
@@ -249,7 +210,7 @@ export default function ClientContributions() {
         <input
           type="text"
           className="filter-search"
-          placeholder="Search by name…"
+          placeholder="Search by name, phone or email…"
           value={search}
           onChange={handleSearchChange}
         />
@@ -271,20 +232,21 @@ export default function ClientContributions() {
       {viewMode === 'table' ? (
         <div className="section-card">
           <ContributorsTable
-            contributions={contributions}
+            contributors={contributors}
             loading={loading}
-            {...tableActions}
+            onView={openDetail}
           />
         </div>
       ) : (
         <ContributorsGrid
-          contributions={contributions}
+          contributors={contributors}
           loading={loading}
           hasFilters={hasFilters}
-          {...tableActions}
+          onView={openDetail}
         />
       )}
 
+      {/* Add Contributor */}
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add Contributor" size="medium">
         <ContributorForm
           events={events}
@@ -294,35 +256,22 @@ export default function ClientContributions() {
         />
       </Modal>
 
-      <Modal isOpen={showEditModal} onClose={() => { setShowEditModal(false); setSelectedContrib(null); }} title="Edit Contributor" size="medium">
-        <ContributorForm
-          initialData={selectedContrib}
-          events={events}
-          onSubmit={handleEditSubmit}
-          onCancel={() => { setShowEditModal(false); setSelectedContrib(null); }}
-          loading={addLoading}
-        />
+      {/* Contributor Detail — all event assignments */}
+      <Modal
+        isOpen={showDetailModal}
+        onClose={closeDetail}
+        title={selectedContributor ? selectedContributor.name : 'Contributor Details'}
+        size="large"
+      >
+        {selectedContributor && (
+          <ContributorDetails
+            contributorId={selectedContributor.id}
+            events={events}
+            onClose={closeDetail}
+            onRefreshList={() => fetchContributors(currentFilters.current)}
+          />
+        )}
       </Modal>
-
-      <Modal isOpen={showPaymentModal} onClose={() => { setShowPaymentModal(false); setSelectedContrib(null); }} title="Record Payment" size="small">
-        <PaymentForm
-          contribution={selectedContrib}
-          onSubmit={handlePaymentSubmit}
-          onCancel={() => { setShowPaymentModal(false); setSelectedContrib(null); }}
-          loading={payLoading}
-        />
-      </Modal>
-
-      <ConfirmDialog
-        isOpen={showDeleteConfirm}
-        onClose={() => { setShowDeleteConfirm(false); setSelectedContrib(null); }}
-        onConfirm={handleDeleteConfirm}
-        title="Delete Contributor"
-        message={`Delete "${selectedContrib?.contributor_name}"? All payment history will also be removed.`}
-        confirmText="Delete"
-        confirmVariant="danger"
-        loading={deleteLoading}
-      />
     </div>
   );
 }

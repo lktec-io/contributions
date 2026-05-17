@@ -1,0 +1,201 @@
+/* ══════════════════════════════════════════════
+   CONTRIBUTOR DETAILS MODAL
+   ══════════════════════════════════════════════ */
+
+.cd-loading,
+.cd-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 0;
+  color: var(--text-secondary);
+}
+
+/* ── Profile header ──────────────────────────── */
+.cd-profile {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 20px;
+}
+
+.cd-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-green), var(--accent-green-hover));
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cd-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cd-name {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.cd-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cd-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.cd-stats {
+  display: flex;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.cd-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.cd-stat-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.cd-stat-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* ── Events section ──────────────────────────── */
+.cd-events-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 14px;
+}
+
+.cd-no-events {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 24px 0;
+}
+
+.cd-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Per-event card ──────────────────────────── */
+.cd-event-card {
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cd-ec-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cd-ec-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cd-ec-amounts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.cd-ec-amount-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cd-ec-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: 500;
+}
+
+.cd-ec-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.cd-paid        { color: var(--accent-green); }
+.cd-outstanding { color: var(--accent-orange); }
+
+.cd-ec-actions {
+  display: flex;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+/* ── Responsive ──────────────────────────────── */
+@media (max-width: 480px) {
+  .cd-profile {
+    flex-wrap: wrap;
+  }
+
+  .cd-stats {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 24px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .cd-ec-amounts {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+}

@@ -210,6 +210,74 @@ async function migrateContributors() {
   }
 }
 
+// ── Merge duplicate contributors ────────────────────────────
+// Runs on every startup (idempotent). Finds contributors sharing
+// the same phone OR email, keeps the earliest (min id), moves all
+// contribution references to the keeper, then deletes the duplicates.
+async function deduplicateContributors() {
+  try {
+    let merged = 0;
+
+    // Deduplicate by phone
+    const [phoneDups] = await pool.query(`
+      SELECT phone, MIN(id) AS keep_id, COUNT(*) AS cnt
+      FROM contributors
+      WHERE phone IS NOT NULL AND phone != ''
+      GROUP BY phone
+      HAVING cnt > 1
+    `);
+
+    for (const dup of phoneDups) {
+      const [toDelete] = await pool.query(
+        'SELECT id FROM contributors WHERE phone = ? AND id != ?',
+        [dup.phone, dup.keep_id]
+      );
+      const ids = toDelete.map(r => r.id);
+      if (!ids.length) continue;
+      const ph = ids.map(() => '?').join(',');
+      await pool.query(
+        `UPDATE contributions SET contributor_id = ? WHERE contributor_id IN (${ph})`,
+        [dup.keep_id, ...ids]
+      );
+      await pool.query(`DELETE FROM contributors WHERE id IN (${ph})`, ids);
+      merged += ids.length;
+    }
+
+    // Deduplicate by email (after phone pass, table is smaller)
+    const [emailDups] = await pool.query(`
+      SELECT email, MIN(id) AS keep_id, COUNT(*) AS cnt
+      FROM contributors
+      WHERE email IS NOT NULL AND email != ''
+      GROUP BY email
+      HAVING cnt > 1
+    `);
+
+    for (const dup of emailDups) {
+      const [toDelete] = await pool.query(
+        'SELECT id FROM contributors WHERE email = ? AND id != ?',
+        [dup.email, dup.keep_id]
+      );
+      const ids = toDelete.map(r => r.id);
+      if (!ids.length) continue;
+      const ph = ids.map(() => '?').join(',');
+      await pool.query(
+        `UPDATE contributions SET contributor_id = ? WHERE contributor_id IN (${ph})`,
+        [dup.keep_id, ...ids]
+      );
+      await pool.query(`DELETE FROM contributors WHERE id IN (${ph})`, ids);
+      merged += ids.length;
+    }
+
+    if (merged > 0) {
+      console.log(`[migration] deduplicateContributors: merged ${merged} duplicate record(s)`);
+    }
+  } catch (err) {
+    if (err.errno !== 1146) {
+      console.error('[migration] deduplicateContributors error:', err.message);
+    }
+  }
+}
+
 // ── Cron: auto-delete contributions hidden for 30+ days ─────
 // Wrapped in try/catch so a missing package or schema issue
 // never brings down the server.
@@ -261,6 +329,12 @@ async function start() {
     await migrateContributors();
   } catch (err) {
     console.error('[migration] Contributor migration failed (non-fatal):', err.message);
+  }
+
+  try {
+    await deduplicateContributors();
+  } catch (err) {
+    console.error('[migration] Deduplication failed (non-fatal):', err.message);
   }
 
   startCron();

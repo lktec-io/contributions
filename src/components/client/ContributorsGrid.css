@@ -30,6 +30,14 @@
   border-color: rgba(0, 184, 148, 0.25);
 }
 
+.cg-clickable { cursor: pointer; }
+
+.cg-view-btn {
+  flex-shrink: 0;
+  color: var(--accent-green);
+  border-color: rgba(0, 184, 148, 0.2);
+}
+
 /* ── Card header ─────────────────────────────── */
 .card-header {
   display: flex;
