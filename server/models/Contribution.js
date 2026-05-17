@@ -12,15 +12,11 @@ const Contribution = {
   async findAll({ eventId, status, search, organizationId, createdBy } = {}) {
     const buildQuery = (includeHiddenFilter) => {
       let q = `
-        SELECT c.id, c.event_id, c.contributor_id,
-               COALESCE(co.name,  c.contributor_name) AS contributor_name,
-               COALESCE(co.phone, c.phone)             AS phone,
-               COALESCE(co.email, c.email)             AS email,
+        SELECT c.id, c.event_id, c.contributor_name, c.phone, c.email,
                c.amount, c.paid_amount, c.status, c.created_at, c.updated_at,
                e.name AS event_name, e.organization_id, e.created_by AS event_created_by
         FROM contributions c
         JOIN events e ON e.id = c.event_id
-        LEFT JOIN contributors co ON co.id = c.contributor_id
         WHERE ${includeHiddenFilter ? 'c.is_hidden = FALSE' : '1=1'}
       `;
       const params = [];
@@ -68,15 +64,11 @@ const Contribution = {
   // ── findHidden ──────────────────────────────────────────────
   async findHidden({ organizationId, createdBy } = {}) {
     let query = `
-      SELECT c.id, c.event_id, c.contributor_id,
-             COALESCE(co.name,  c.contributor_name) AS contributor_name,
-             COALESCE(co.phone, c.phone)             AS phone,
-             COALESCE(co.email, c.email)             AS email,
+      SELECT c.id, c.event_id, c.contributor_name, c.phone, c.email,
              c.amount, c.paid_amount, c.status, c.created_at, c.hidden_at,
              e.name AS event_name, e.organization_id, e.created_by AS event_created_by
       FROM contributions c
       JOIN events e ON e.id = c.event_id
-      LEFT JOIN contributors co ON co.id = c.contributor_id
       WHERE c.is_hidden = TRUE
     `;
     const params = [];
@@ -98,16 +90,9 @@ const Contribution = {
   // ── findById ────────────────────────────────────────────────
   async findById(id) {
     const [rows] = await pool.query(
-      `SELECT c.id, c.event_id, c.contributor_id,
-              COALESCE(co.name,  c.contributor_name) AS contributor_name,
-              COALESCE(co.phone, c.phone)             AS phone,
-              COALESCE(co.email, c.email)             AS email,
-              c.amount, c.paid_amount, c.status, c.is_hidden, c.hidden_at,
-              c.created_at, c.updated_at,
-              e.name AS event_name, e.organization_id, e.created_by AS event_created_by
+      `SELECT c.*, e.name AS event_name, e.organization_id, e.created_by AS event_created_by
        FROM contributions c
        JOIN events e ON e.id = c.event_id
-       LEFT JOIN contributors co ON co.id = c.contributor_id
        WHERE c.id = ?`,
       [id]
     );
@@ -115,53 +100,21 @@ const Contribution = {
   },
 
   // ── create ──────────────────────────────────────────────────
-  // contributor_id is optional (null for rows created before migration).
-  // contributor_name/phone/email are always written for backward compat
-  // (SMS, exports, etc. read directly from contributions).
-  async create({ event_id, contributor_id, contributor_name, phone, email, amount }) {
+  async create({ event_id, contributor_name, phone, email, amount }) {
     const [result] = await pool.query(
-      `INSERT INTO contributions
-         (event_id, contributor_id, contributor_name, phone, email, amount)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [event_id, contributor_id || null, contributor_name, phone || null, email || null, amount]
+      'INSERT INTO contributions (event_id, contributor_name, phone, email, amount) VALUES (?, ?, ?, ?, ?)',
+      [event_id, contributor_name, phone || null, email || null, amount]
     );
     return result.insertId;
   },
 
   // ── update ──────────────────────────────────────────────────
-  // Updates the contribution row and propagates name/phone/email changes
-  // to the linked global contributor record so all events stay in sync.
   async update(id, fields) {
     const keys = Object.keys(fields);
     if (!keys.length) return;
     const setClauses = keys.map(k => `${k} = ?`).join(', ');
     const values = [...Object.values(fields), id];
     await pool.query(`UPDATE contributions SET ${setClauses} WHERE id = ?`, values);
-
-    // Propagate identity fields to the global contributors table
-    const identityMap = { contributor_name: 'name', phone: 'phone', email: 'email' };
-    const globalFields = {};
-    for (const [contribKey, globalKey] of Object.entries(identityMap)) {
-      if (fields[contribKey] !== undefined) globalFields[globalKey] = fields[contribKey];
-    }
-
-    if (Object.keys(globalFields).length > 0) {
-      try {
-        const [rows] = await pool.query(
-          'SELECT contributor_id FROM contributions WHERE id = ?', [id]
-        );
-        const contributorId = rows[0]?.contributor_id;
-        if (contributorId) {
-          const upd    = Object.keys(globalFields).map(k => `${k} = ?`).join(', ');
-          const upVals = [...Object.values(globalFields), contributorId];
-          await pool.query(`UPDATE contributors SET ${upd} WHERE id = ?`, upVals);
-        }
-      } catch (err) {
-        if (err.errno !== 1146) {
-          console.error('[Contribution.update] Failed to sync contributors:', err.message);
-        }
-      }
-    }
   },
 
   // ── delete ──────────────────────────────────────────────────

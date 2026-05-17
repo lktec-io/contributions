@@ -1,13 +1,39 @@
-import { FiUser, FiPhone, FiMail, FiCalendar, FiEye, FiTrash2 } from 'react-icons/fi';
-import { formatCurrency } from '../../utils/formatters';
+import { useState } from 'react';
+import { FiEdit2, FiCreditCard, FiTrash2, FiUser, FiPhone, FiMail, FiSend } from 'react-icons/fi';
+import { formatCurrency, formatDate } from '../../utils/formatters';
+import { smsService } from '../../services/smsService';
 import { ContributorsGridSkeleton } from '../common/SkeletonLoader';
 import EmptyState from '../common/EmptyState';
+import SuccessToast from '../common/SuccessToast';
 import './ContributorsGrid.css';
 
-export default function ContributorsGrid({ contributors, loading, hasFilters, onView, onDelete }) {
+export default function ContributorsGrid({ contributions, loading, hasFilters, onEdit, onRecordPayment, onDelete }) {
+  const [smsSending,  setSmsSending]  = useState(new Set());
+  const [smsSuccess,  setSmsSuccess]  = useState(new Set());
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const handleSendReminder = async (c) => {
+    if (!c.phone) return;
+    setSmsSending(prev => new Set(prev).add(c.id));
+    try {
+      await smsService.sendReminder(c.id);
+      setSmsSuccess(prev => {
+        const next = new Set(prev).add(c.id);
+        setTimeout(() => setSmsSuccess(s => { const n = new Set(s); n.delete(c.id); return n; }), 3000);
+        return next;
+      });
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+    } catch {
+      // silent
+    } finally {
+      setSmsSending(prev => { const next = new Set(prev); next.delete(c.id); return next; });
+    }
+  };
+
   if (loading) return <ContributorsGridSkeleton count={6} />;
 
-  if (!contributors?.length) {
+  if (!contributions?.length) {
     return (
       <EmptyState
         IconComponent={FiUser}
@@ -18,42 +44,41 @@ export default function ContributorsGrid({ contributors, loading, hasFilters, on
   }
 
   return (
+    <>
+    <SuccessToast message="SMS sent successfully" show={showSuccess} />
     <div className="contributors-grid">
-      {contributors.map(c => {
-        const pledged     = parseFloat(c.total_pledged || 0);
-        const paid        = parseFloat(c.total_paid    || 0);
-        const outstanding = pledged - paid;
-
+      {contributions.map(c => {
+        const outstanding = parseFloat(c.amount) - parseFloat(c.paid_amount);
+        const isSending   = smsSending.has(c.id);
+        const isSent      = smsSuccess.has(c.id);
         return (
-          <div key={c.id} className="contributor-card cg-clickable" onClick={() => onView(c)}>
+          <div key={c.id} className="contributor-card">
             <div className="card-header">
-              <div className="ccard-avatar">{c.name?.[0]?.toUpperCase()}</div>
+              <div className="ccard-avatar">{c.contributor_name?.[0]?.toUpperCase()}</div>
               <div className="ccard-identity">
-                <h4>{c.name}</h4>
-                <span className="ccard-event-tag">
-                  <FiCalendar size={11} /> {c.event_count ?? 0} event{(c.event_count ?? 0) !== 1 ? 's' : ''}
-                </span>
+                <h4>{c.contributor_name}</h4>
+                {c.event_name && <span className="ccard-event-tag">{c.event_name}</span>}
               </div>
-              <button
-                className="icon-btn cg-view-btn"
-                onClick={e => { e.stopPropagation(); onView(c); }}
-                title="View events"
-              >
-                <FiEye size={15} />
-              </button>
+              <span className={`status-badge ${c.status}`}>{c.status}</span>
             </div>
 
             <div className="card-body">
-              <p><FiPhone size={14} /><span>{c.phone || 'N/A'}</span></p>
-              <p><FiMail  size={14} /><span>{c.email || 'N/A'}</span></p>
+              <p>
+                <FiPhone size={14} />
+                <span>{c.phone || 'N/A'}</span>
+              </p>
+              <p>
+                <FiMail size={14} />
+                <span>{c.email || 'N/A'}</span>
+              </p>
               <div className="card-amounts">
                 <div className="card-amount-item">
                   <span className="card-amount-label">Pledged</span>
-                  <span className="card-amount-value">{formatCurrency(pledged)}</span>
+                  <span className="card-amount-value">{formatCurrency(c.amount)}</span>
                 </div>
                 <div className="card-amount-item">
                   <span className="card-amount-label">Paid</span>
-                  <span className="card-amount-value ccard-paid">{formatCurrency(paid)}</span>
+                  <span className="card-amount-value ccard-paid">{formatCurrency(c.paid_amount)}</span>
                 </div>
                 <div className="card-amount-item">
                   <span className="card-amount-label">Outstanding</span>
@@ -62,14 +87,30 @@ export default function ContributorsGrid({ contributors, loading, hasFilters, on
               </div>
             </div>
 
-            <div className="card-actions" onClick={e => e.stopPropagation()}>
-              <span className="ccard-date">{c.event_count ?? 0} event{(c.event_count ?? 0) !== 1 ? 's' : ''}</span>
+            <div className="card-actions">
+              <span className="ccard-date">{formatDate(c.created_at)}</span>
               <div className="ccard-btns">
-                <button className="icon-btn" onClick={() => onView(c)} title="View events">
-                  <FiEye size={15} />
+                <button className="icon-btn" onClick={() => onEdit(c)} title="Edit contributor">
+                  <FiEdit2 size={16} />
                 </button>
-                <button className="icon-btn icon-btn-red" onClick={e => onDelete(c, e)} title="Delete contributor">
-                  <FiTrash2 size={15} />
+                <button
+                  className="icon-btn icon-btn-green"
+                  onClick={() => onRecordPayment(c)}
+                  title={c.status === 'paid' ? 'Fully paid' : 'Record payment'}
+                  disabled={c.status === 'paid'}
+                >
+                  <FiCreditCard size={16} />
+                </button>
+                <button
+                  className={`icon-btn icon-btn-sms ${isSent ? 'icon-btn-sms-sent' : ''}`}
+                  onClick={() => handleSendReminder(c)}
+                  title={!c.phone ? 'No phone number' : isSent ? 'Reminder sent!' : 'Send SMS reminder'}
+                  disabled={!c.phone || isSending || c.status === 'paid'}
+                >
+                  <FiSend size={15} className={isSending ? 'spin' : ''} />
+                </button>
+                <button className="icon-btn icon-btn-red" onClick={() => onDelete(c)} title="Delete">
+                  <FiTrash2 size={16} />
                 </button>
               </div>
             </div>
@@ -77,5 +118,6 @@ export default function ContributorsGrid({ contributors, loading, hasFilters, on
         );
       })}
     </div>
+    </>
   );
 }

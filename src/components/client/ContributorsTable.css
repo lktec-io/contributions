@@ -12,32 +12,6 @@
   padding: 60px 0;
 }
 
-/* ── Clickable row ───────────────────────────── */
-.ct-row {
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.ct-row:hover {
-  background: rgba(0, 184, 148, 0.04);
-}
-
-.td-center { text-align: center; }
-
-.ct-event-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 184, 148, 0.12);
-  color: var(--accent-green);
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 12px;
-  min-width: 24px;
-  height: 22px;
-  padding: 0 7px;
-}
-
 /* ── Cell variants ───────────────────────────── */
 .contributors-table .td-secondary {
   color: var(--text-secondary);
