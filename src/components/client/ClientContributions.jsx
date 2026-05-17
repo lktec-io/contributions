@@ -125,8 +125,9 @@ export default function ClientContributions() {
   const handleAddSubmit = async (data) => {
     setAddLoading(true);
     try {
-      await contributionService.create(data);
-      toast.success('Contributor added');
+      await contributionService.createBulk(data);
+      const count = data.events?.length ?? 1;
+      toast.success(`Contributor added to ${count} event${count !== 1 ? 's' : ''}`);
       setShowAddModal(false);
       fetchContributors(currentFilters.current);
     } catch (err) {

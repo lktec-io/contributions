@@ -85,6 +85,85 @@ async function create(req, res, next) {
   }
 }
 
+async function createBulk(req, res, next) {
+  try {
+    const { contributor_name, phone, email, events } = req.body;
+
+    if (!contributor_name || !Array.isArray(events) || events.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: [
+          !contributor_name       && { field: 'contributor_name', message: 'contributor_name is required' },
+          (!events || !events.length) && { field: 'events', message: 'At least one event is required' },
+        ].filter(Boolean),
+      });
+    }
+
+    for (const ev of events) {
+      if (!ev.event_id || !ev.amount || parseFloat(ev.amount) <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Each event assignment must have a valid event_id and amount > 0',
+          errors: [],
+        });
+      }
+    }
+
+    // Resolve and access-check all events up front
+    const resolvedEvents = [];
+    for (const ev of events) {
+      const event = await Event.findById(ev.event_id);
+      if (!event) {
+        return res.status(404).json({ success: false, message: `Event ${ev.event_id} not found`, errors: [] });
+      }
+      if (!canAccessEvent(req, event)) {
+        return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+      }
+      resolvedEvents.push({ event, amount: ev.amount });
+    }
+
+    // Find or create the contributor once
+    let contributorId = null;
+    try {
+      contributorId = await Contributor.findOrCreate({
+        name:       contributor_name,
+        phone:      phone  || null,
+        email:      email  || null,
+        created_by: req.user.userId,
+      });
+    } catch (err) {
+      console.error('[createBulk] find-or-create contributor failed:', err.message);
+    }
+
+    // Create one contribution per event
+    const created = [];
+    for (const { event, amount } of resolvedEvents) {
+      const id = await Contribution.create({
+        event_id:         event.id,
+        contributor_id:   contributorId,
+        contributor_name,
+        phone:            phone  || null,
+        email:            email  || null,
+        amount,
+      });
+
+      await Notification.create({
+        user_id: event.organization_id,
+        title:   'New Contribution Added',
+        message: `${contributor_name} pledged ${parseFloat(amount).toLocaleString()} for event "${event.name}".`,
+        type:    'contribution_added',
+      });
+
+      created.push(id);
+    }
+
+    return res.status(201).json({ success: true, data: { created: created.length } });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function update(req, res, next) {
   try {
     const contribution = await Contribution.findById(req.params.id);
@@ -199,4 +278,4 @@ async function permanentDelete(req, res, next) {
   }
 }
 
-module.exports = { getAll, getById, create, update, remove, hide, restore, getHidden, permanentDelete };
+module.exports = { getAll, getById, create, createBulk, update, remove, hide, restore, getHidden, permanentDelete };
