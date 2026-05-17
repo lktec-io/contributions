@@ -40,22 +40,27 @@ const Contributor = {
   // Uses INNER JOIN so only contributors with accessible contributions are returned.
   async findAll({ organizationId, createdBy, eventId, status, search } = {}) {
     try {
-      const joinConditions = ['c.is_hidden = FALSE'];
+      // Only c.* conditions belong in the ON clause — e.* refs are invalid
+      // there because events e hasn't been joined yet when MySQL parses it.
+      const cJoinConditions = ['c.is_hidden = FALSE'];
       const params = [];
 
       if (eventId) {
-        joinConditions.push('c.event_id = ?');
+        cJoinConditions.push('c.event_id = ?');
         params.push(eventId);
       }
       if (status) {
-        joinConditions.push('c.status = ?');
+        cJoinConditions.push('c.status = ?');
         params.push(status);
       }
+
+      // e.* conditions go in WHERE (evaluated after all JOINs are resolved)
+      const whereConditions = [];
       if (createdBy !== null && createdBy !== undefined) {
-        joinConditions.push('e.created_by = ?');
+        whereConditions.push('e.created_by = ?');
         params.push(createdBy);
       } else if (organizationId !== null && organizationId !== undefined) {
-        joinConditions.push('e.organization_id = ?');
+        whereConditions.push('e.organization_id = ?');
         params.push(organizationId);
       }
 
@@ -71,8 +76,9 @@ const Contributor = {
                COALESCE(SUM(c.amount),      0)  AS total_pledged,
                COALESCE(SUM(c.paid_amount), 0)  AS total_paid
         FROM contributors co
-        JOIN contributions c ON c.contributor_id = co.id AND ${joinConditions.join(' AND ')}
+        JOIN contributions c ON c.contributor_id = co.id AND ${cJoinConditions.join(' AND ')}
         JOIN events e         ON e.id = c.event_id
+        ${whereConditions.length ? `WHERE ${whereConditions.join(' AND ')}` : ''}
         GROUP BY co.id
         ${havingParts.length ? `HAVING ${havingParts.join(' AND ')}` : ''}
         ORDER BY co.name ASC
