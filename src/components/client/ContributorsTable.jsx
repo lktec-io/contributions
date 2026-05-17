@@ -1,10 +1,10 @@
-import { FiUser, FiEye } from 'react-icons/fi';
+import { FiUser, FiEye, FiTrash2 } from 'react-icons/fi';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { TableSkeleton } from '../common/SkeletonLoader';
 import EmptyState from '../common/EmptyState';
 import './ContributorsTable.css';
 
-export default function ContributorsTable({ contributors, loading, onView }) {
+export default function ContributorsTable({ contributors, loading, onView, onDelete }) {
   if (loading) return <div className="contributors-table-wrap"><TableSkeleton rows={6} cols={7} /></div>;
 
   if (!contributors?.length) {
@@ -52,6 +52,9 @@ export default function ContributorsTable({ contributors, loading, onView }) {
                 <td className="td-actions" onClick={e => e.stopPropagation()}>
                   <button className="icon-btn" onClick={() => onView(c)} title="View events">
                     <FiEye size={16} />
+                  </button>
+                  <button className="icon-btn icon-btn-red" onClick={e => onDelete(c, e)} title="Delete contributor">
+                    <FiTrash2 size={16} />
                   </button>
                 </td>
               </tr>

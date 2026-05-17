@@ -2,11 +2,13 @@ import { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { FiPlus, FiDownload, FiGrid, FiList, FiSend } from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
 import { contributorService } from '../../services/contributorService';
+import { contributionService } from '../../services/contributionService';
 import { eventService } from '../../services/eventService';
 import { exportService } from '../../services/exportService';
 import { smsService } from '../../services/smsService';
 import { getErrorMessage, debounce } from '../../utils/helpers';
 import Modal from '../common/Modal';
+import ConfirmDialog from '../common/ConfirmDialog';
 import ContributorForm from './ContributorForm';
 import ContributorDetails from './ContributorDetails';
 import ContributorsTable from './ContributorsTable';
@@ -28,9 +30,12 @@ export default function ClientContributions() {
 
   const [showAddModal,     setShowAddModal]     = useState(false);
   const [showDetailModal,  setShowDetailModal]  = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const [selectedContributor, setSelectedContributor] = useState(null);
+  const [selectedContributor,         setSelectedContributor]         = useState(null);
+  const [contributorToDelete,         setContributorToDelete]         = useState(null);
   const [addLoading, setAddLoading]   = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [exporting, setExporting]     = useState('');
   const [bulkSending, setBulkSending] = useState(false);
   const [bulkStatus, setBulkStatus]   = useState(null);
@@ -119,9 +124,7 @@ export default function ClientContributions() {
 
   const handleAddSubmit = async (data) => {
     setAddLoading(true);
-    // Use the underlying contributions API to create the event-contributor record
     try {
-      const { contributionService } = await import('../../services/contributionService');
       await contributionService.create(data);
       toast.success('Contributor added');
       setShowAddModal(false);
@@ -130,6 +133,28 @@ export default function ClientContributions() {
       toast.error(getErrorMessage(err));
     } finally {
       setAddLoading(false);
+    }
+  };
+
+  const openDeleteConfirm = (contributor, e) => {
+    e?.stopPropagation();
+    setContributorToDelete(contributor);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDelete = async () => {
+    if (!contributorToDelete) return;
+    setDeleteLoading(true);
+    try {
+      await contributorService.delete(contributorToDelete.id);
+      toast.success('Contributor deleted');
+      setShowDeleteConfirm(false);
+      setContributorToDelete(null);
+      fetchContributors(currentFilters.current);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -235,6 +260,7 @@ export default function ClientContributions() {
             contributors={contributors}
             loading={loading}
             onView={openDetail}
+            onDelete={openDeleteConfirm}
           />
         </div>
       ) : (
@@ -243,6 +269,7 @@ export default function ClientContributions() {
           loading={loading}
           hasFilters={hasFilters}
           onView={openDetail}
+          onDelete={openDeleteConfirm}
         />
       )}
 
@@ -255,6 +282,18 @@ export default function ClientContributions() {
           loading={addLoading}
         />
       </Modal>
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete Contributor"
+        message={`Are you sure you want to delete "${contributorToDelete?.name}"? This will remove all their contributions across every event.`}
+        confirmText="Delete"
+        confirmVariant="danger"
+        loading={deleteLoading}
+        onConfirm={handleDelete}
+        onClose={() => { setShowDeleteConfirm(false); setContributorToDelete(null); }}
+      />
 
       {/* Contributor Detail — all event assignments */}
       <Modal

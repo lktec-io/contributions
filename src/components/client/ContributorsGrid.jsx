@@ -1,10 +1,10 @@
-import { FiUser, FiPhone, FiMail, FiCalendar, FiEye } from 'react-icons/fi';
+import { FiUser, FiPhone, FiMail, FiCalendar, FiEye, FiTrash2 } from 'react-icons/fi';
 import { formatCurrency } from '../../utils/formatters';
 import { ContributorsGridSkeleton } from '../common/SkeletonLoader';
 import EmptyState from '../common/EmptyState';
 import './ContributorsGrid.css';
 
-export default function ContributorsGrid({ contributors, loading, hasFilters, onView }) {
+export default function ContributorsGrid({ contributors, loading, hasFilters, onView, onDelete }) {
   if (loading) return <ContributorsGridSkeleton count={6} />;
 
   if (!contributors?.length) {
@@ -59,6 +59,18 @@ export default function ContributorsGrid({ contributors, loading, hasFilters, on
                   <span className="card-amount-label">Outstanding</span>
                   <span className="card-amount-value ccard-outstanding">{formatCurrency(outstanding)}</span>
                 </div>
+              </div>
+            </div>
+
+            <div className="card-actions" onClick={e => e.stopPropagation()}>
+              <span className="ccard-date">{c.event_count ?? 0} event{(c.event_count ?? 0) !== 1 ? 's' : ''}</span>
+              <div className="ccard-btns">
+                <button className="icon-btn" onClick={() => onView(c)} title="View events">
+                  <FiEye size={15} />
+                </button>
+                <button className="icon-btn icon-btn-red" onClick={e => onDelete(c, e)} title="Delete contributor">
+                  <FiTrash2 size={15} />
+                </button>
               </div>
             </div>
           </div>

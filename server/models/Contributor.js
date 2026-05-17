@@ -132,6 +132,28 @@ const Contributor = {
     }
   },
 
+  // ── delete ───────────────────────────────────────────────────
+  // Removes a contributor and all their contributions (cascades payment_history).
+  async delete(id) {
+    try {
+      // payment_history rows reference contributions.id — delete those first
+      await pool.query(
+        `DELETE ph FROM payment_history ph
+         JOIN contributions c ON c.id = ph.contribution_id
+         WHERE c.contributor_id = ?`,
+        [id]
+      );
+      // Remove all event-contribution records for this contributor
+      await pool.query('DELETE FROM contributions WHERE contributor_id = ?', [id]);
+      // Remove the global contributor record
+      const [result] = await pool.query('DELETE FROM contributors WHERE id = ?', [id]);
+      return result.affectedRows > 0;
+    } catch (err) {
+      if (err.errno === ERR_TABLE_NOT_EXISTS) return false;
+      throw err;
+    }
+  },
+
   // ── search ───────────────────────────────────────────────────
   // Autocomplete: search by name, phone, or email, scoped to tenant.
   async search(q, { organizationId, createdBy } = {}) {
