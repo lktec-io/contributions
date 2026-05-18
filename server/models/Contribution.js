@@ -2,15 +2,25 @@
 
 const pool = require('../config/db');
 
-// MySQL error 1054 = "Unknown column" — column doesn't exist yet (migration pending)
-const ERR_UNKNOWN_COLUMN = 1054;
+// MySQL error codes for schema mismatches (missing column or table)
+const ERR_UNKNOWN_COLUMN   = 1054;
+const ERR_TABLE_NOT_EXISTS = 1146;
+
+const isSchemaErr = (err) =>
+  err.errno === ERR_UNKNOWN_COLUMN || err.errno === ERR_TABLE_NOT_EXISTS;
 
 const Contribution = {
 
   // ── findAll ─────────────────────────────────────────────────
-  // Falls back gracefully when is_hidden or sms_sent columns are missing.
+  // Isolation includes events accessible via event_assignments so that
+  // contributions created for assigned events are always visible.
+  // Falls back through four levels when columns/tables are missing.
   async findAll({ eventId, status, search, organizationId, createdBy } = {}) {
-    const buildQuery = (includeHiddenFilter, includeSmsTracking) => {
+
+    // includeHiddenFilter : add WHERE c.is_hidden = FALSE
+    // includeSmsTracking  : add c.sms_sent, c.sms_sent_at to SELECT
+    // includeAssignments  : extend isolation WHERE to cover event_assignments
+    const buildQuery = (includeHiddenFilter, includeSmsTracking, includeAssignments) => {
       let q = `
         SELECT c.id, c.event_id, c.contributor_name, c.phone, c.email,
                c.amount, c.paid_amount, c.status, c.created_at, c.updated_at,
@@ -22,50 +32,74 @@ const Contribution = {
       `;
       const params = [];
 
+      // Tenant isolation — also covers events the user can access via
+      // event_assignments (secondary assignee), not just direct ownership.
       if (createdBy !== null && createdBy !== undefined) {
-        q += ' AND e.created_by = ?';
-        params.push(createdBy);
+        if (includeAssignments) {
+          q += ` AND (e.created_by = ? OR EXISTS (
+                   SELECT 1 FROM event_assignments ea
+                   WHERE ea.event_id = e.id AND ea.user_id = ?
+                 ))`;
+          params.push(createdBy, createdBy);
+        } else {
+          q += ' AND e.created_by = ?';
+          params.push(createdBy);
+        }
       }
       if (organizationId !== null && organizationId !== undefined) {
-        q += ' AND e.organization_id = ?';
-        params.push(organizationId);
+        if (includeAssignments) {
+          q += ` AND (e.organization_id = ? OR EXISTS (
+                   SELECT 1 FROM event_assignments ea
+                   WHERE ea.event_id = e.id AND ea.user_id = ?
+                 ))`;
+          params.push(organizationId, organizationId);
+        } else {
+          q += ' AND e.organization_id = ?';
+          params.push(organizationId);
+        }
       }
-      if (eventId) {
-        q += ' AND c.event_id = ?';
-        params.push(eventId);
-      }
-      if (status) {
-        q += ' AND c.status = ?';
-        params.push(status);
-      }
-      if (search) {
-        q += ' AND c.contributor_name LIKE ?';
-        params.push(`%${search}%`);
-      }
+
+      if (eventId) { q += ' AND c.event_id = ?'; params.push(eventId); }
+      if (status)  { q += ' AND c.status = ?';   params.push(status); }
+      if (search)  { q += ' AND c.contributor_name LIKE ?'; params.push(`%${search}%`); }
 
       q += ' ORDER BY c.created_at DESC';
       return { q, params };
     };
 
+    const noSms = (rows) => rows.map(r => ({ ...r, sms_sent: false, sms_sent_at: null }));
+
+    // Level 1 — full query
     try {
-      const { q, params } = buildQuery(true, true);
+      const { q, params } = buildQuery(true, true, true);
       const [rows] = await pool.query(q, params);
       return rows;
     } catch (err) {
-      if (err.errno !== ERR_UNKNOWN_COLUMN) throw err;
-      // sms_sent or is_hidden column missing — try without sms_sent first
-      try {
-        const { q, params } = buildQuery(true, false);
-        const [rows] = await pool.query(q, params);
-        return rows.map(r => ({ ...r, sms_sent: false, sms_sent_at: null }));
-      } catch (err2) {
-        if (err2.errno !== ERR_UNKNOWN_COLUMN) throw err2;
-        // is_hidden also missing
-        const { q, params } = buildQuery(false, false);
-        const [rows] = await pool.query(q, params);
-        return rows.map(r => ({ ...r, sms_sent: false, sms_sent_at: null }));
-      }
+      if (!isSchemaErr(err)) throw err;
     }
+
+    // Level 2 — sms columns missing; still try event_assignments
+    try {
+      const { q, params } = buildQuery(true, false, true);
+      const [rows] = await pool.query(q, params);
+      return noSms(rows);
+    } catch (err) {
+      if (!isSchemaErr(err)) throw err;
+    }
+
+    // Level 3 — is_hidden also missing; still try event_assignments
+    try {
+      const { q, params } = buildQuery(false, false, true);
+      const [rows] = await pool.query(q, params);
+      return noSms(rows);
+    } catch (err) {
+      if (!isSchemaErr(err)) throw err;
+    }
+
+    // Level 4 — event_assignments table missing; plain ownership check
+    const { q, params } = buildQuery(false, false, false);
+    const [rows] = await pool.query(q, params);
+    return noSms(rows);
   },
 
   // ── findHidden ──────────────────────────────────────────────

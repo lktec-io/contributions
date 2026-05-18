@@ -127,7 +127,13 @@ export default function ClientContributions() {
       const count = data.events?.length ?? 1;
       toast.success(`Contributor added to ${count} event${count !== 1 ? 's' : ''}`);
       setShowAddModal(false);
-      refreshList();
+      // Clear filters so all newly created rows are visible regardless of
+      // which event or status was previously selected
+      setSearch('');
+      setSelectedEvent('');
+      setSelectedStatus('');
+      currentFilters.current = { search: '', eventId: '', status: '' };
+      fetchContributions({});
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {

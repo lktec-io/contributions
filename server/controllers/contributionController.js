@@ -247,11 +247,16 @@ async function createBulk(req, res, next) {
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
+      const insertedIds = [];
       for (const { event, amount } of resolvedEvents) {
-        await conn.query(
+        const [result] = await conn.query(
           'INSERT INTO contributions (event_id, contributor_name, phone, email, amount) VALUES (?, ?, ?, ?, ?)',
           [event.id, contributor_name, phone || null, email || null, parseFloat(amount)]
         );
+        insertedIds.push(result.insertId);
+      }
+      if (insertedIds.length !== resolvedEvents.length) {
+        throw new Error(`Insert count mismatch: expected ${resolvedEvents.length}, got ${insertedIds.length}`);
       }
       await conn.commit();
     } catch (err) {
