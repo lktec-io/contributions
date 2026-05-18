@@ -23,10 +23,10 @@ import PieChartCard from '../common/PieChartCard';
 import './AdminDashboard.css';
 
 const STAT_CARDS = [
-  { key: 'totalUsers',         label: 'Total Users',     Icon: FiUsers,       color: '#3B82F6' },
-  { key: 'totalEvents',        label: 'Total Events',    Icon: FiCalendar,    color: '#A78BFA' },
-  { key: 'totalContributions', label: 'Contributions',   Icon: FiDollarSign,  color: '#FFA500' },
-  { key: 'totalCollected',     label: 'Total Collected', Icon: FiCheckCircle, color: '#00B894', money: true },
+  { key: 'totalUsers',         label: 'Total Users',     Icon: FiUsers,       color: '#3B82F6', to: '/users' },
+  { key: 'totalEvents',        label: 'Total Events',    Icon: FiCalendar,    color: '#A78BFA', to: '/events' },
+  { key: 'totalContributions', label: 'Contributions',   Icon: FiDollarSign,  color: '#FFA500', to: '/contributions' },
+  { key: 'totalCollected',     label: 'Total Collected', Icon: FiCheckCircle, color: '#00B894', money: true, to: '/contributions' },
 ];
 
 // Maps URL paths to admin tab IDs
@@ -145,8 +145,16 @@ export default function AdminDashboard() {
         </div>
 
         <div className="stats-grid">
-          {STAT_CARDS.map(({ key, label, Icon, color, money }) => (
-            <div key={key} className="stat-card">
+          {STAT_CARDS.map(({ key, label, Icon, color, money, to }) => (
+            <div
+              key={key}
+              className="stat-card stat-card--link"
+              onClick={() => navigate(to)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(to); } }}
+              title={`Go to ${label}`}
+            >
               <div className="stat-icon-wrap" style={{ background: `${color}1F` }}>
                 <Icon size={24} color={color} />
               </div>
