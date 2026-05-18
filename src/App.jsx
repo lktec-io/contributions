@@ -1,3 +1,4 @@
+'use strict';
 import { useContext, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
@@ -29,8 +30,29 @@ function AppRoutes() {
     return <LoadingSpinner fullPage />;
   }
 
+  const isAdmin = authCtx.user?.role === 'super_admin' || authCtx.user?.role === 'admin';
+
+  // The shared layout component for the current user's role.
+  // All internal tab-paths render the same shell; the shell reads the URL
+  // to decide which tab content to display.
+  const dashboardEl = (
+    <ProtectedRoute>
+      {isAdmin ? <AdminDashboard /> : <ClientDashboard />}
+    </ProtectedRoute>
+  );
+
+  // Admin-only paths redirect non-admin users to /dashboard
+  const adminOnlyEl = (
+    <ProtectedRoute>
+      {isAdmin
+        ? <AdminDashboard />
+        : <Navigate to="/dashboard" replace />}
+    </ProtectedRoute>
+  );
+
   return (
     <Routes>
+      {/* ── Public (unauthenticated) routes ───────────────── */}
       <Route
         path="/login"
         element={authCtx.user ? <Navigate to="/dashboard" replace /> : <Login />}
@@ -43,33 +65,30 @@ function AppRoutes() {
         path="/reset-password"
         element={authCtx.user ? <Navigate to="/dashboard" replace /> : <ResetPassword />}
       />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            {(authCtx.user?.role === 'super_admin' || authCtx.user?.role === 'admin')
-              ? <AdminDashboard />
-              : <ClientDashboard />}
-          </ProtectedRoute>
-        }
-      />
+
+      {/* ── Internal tab routes (SPA — no page reload) ────── */}
+      <Route path="/dashboard"    element={dashboardEl} />
+      <Route path="/events"       element={dashboardEl} />
+      <Route path="/contributions" element={dashboardEl} />
+
+      {/* Admin-only tab routes */}
+      <Route path="/users"  element={adminOnlyEl} />
+      <Route path="/admins" element={adminOnlyEl} />
+
+      {/* ── Standalone protected pages ─────────────────────── */}
       <Route
         path="/settings"
-        element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute><Settings /></ProtectedRoute>}
       />
       <Route
         path="/hidden-records"
-        element={
-          <ProtectedRoute>
-            <HiddenRecords />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute><HiddenRecords /></ProtectedRoute>}
       />
+
+      {/* ── Root redirect ──────────────────────────────────── */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+      {/* ── Unknown routes ─────────────────────────────────── */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

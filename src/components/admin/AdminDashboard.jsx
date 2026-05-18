@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   FiUsers, FiCalendar, FiDollarSign, FiCheckCircle,
   FiAlertTriangle, FiRefreshCw, FiEye,
@@ -28,10 +29,23 @@ const STAT_CARDS = [
   { key: 'totalCollected',     label: 'Total Collected', Icon: FiCheckCircle, color: '#00B894', money: true },
 ];
 
+// Maps URL paths to admin tab IDs
+function tabFromPath(pathname) {
+  switch (pathname) {
+    case '/users':         return 'users';
+    case '/events':        return 'events';
+    case '/contributions': return 'contributions';
+    case '/admins':        return 'admins';
+    default:               return 'dashboard';
+  }
+}
+
 export default function AdminDashboard() {
   const { user } = useContext(AuthContext);
   const { toast } = useContext(ToastContext);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const navigate   = useNavigate();
+  const location   = useLocation();
+  const activeTab  = tabFromPath(location.pathname);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -112,7 +126,7 @@ export default function AdminDashboard() {
             <div className="welcome-banner-btns">
               <button
                 className="btn btn-secondary btn-view-contribs"
-                onClick={() => setActiveTab('contributions')}
+                onClick={() => navigate('/contributions')}
                 title="View all contributors"
               >
                 <FiEye size={15} /> View Contributors
@@ -222,8 +236,6 @@ export default function AdminDashboard() {
   return (
     <div className="app-layout">
       <Sidebar
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />

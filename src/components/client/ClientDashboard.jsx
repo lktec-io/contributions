@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   FiCalendar, FiUsers, FiDollarSign, FiCheckCircle,
   FiAlertCircle, FiAlertTriangle, FiRefreshCw, FiEye,
@@ -27,10 +28,21 @@ const CLIENT_STATS = [
   { key: 'outstanding',    label: 'Outstanding',   Icon: FiAlertCircle, color: '#FF4C4C', money: true },
 ];
 
+// Maps URL paths to client tab IDs
+function tabFromPath(pathname) {
+  switch (pathname) {
+    case '/events':        return 'events';
+    case '/contributions': return 'contributions';
+    default:               return 'dashboard';
+  }
+}
+
 export default function ClientDashboard() {
   const { user } = useContext(AuthContext);
   const { toast } = useContext(ToastContext);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const activeTab = tabFromPath(location.pathname);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -111,7 +123,7 @@ export default function ClientDashboard() {
             <div className="welcome-banner-btns">
               <button
                 className="btn btn-secondary btn-view-contribs"
-                onClick={() => setActiveTab('contributions')}
+                onClick={() => navigate('/contributions')}
                 title="View all contributors"
               >
                 <FiEye size={15} /> View Contributors
@@ -215,7 +227,7 @@ export default function ClientDashboard() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'events':        return <ClientEvents onViewContributions={() => setActiveTab('contributions')} />;
+      case 'events':        return <ClientEvents onViewContributions={() => navigate('/contributions')} />;
       case 'contributions': return <ClientContributions />;
       default:              return renderDashboardTab();
     }
@@ -224,8 +236,6 @@ export default function ClientDashboard() {
   return (
     <div className="app-layout">
       <Sidebar
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />

@@ -6,6 +6,15 @@ import {
 import { AuthContext } from '../../context/AuthContext';
 import './Sidebar.css';
 
+// Maps sidebar tab IDs to their URL paths
+const TAB_PATHS = {
+  dashboard:     '/dashboard',
+  users:         '/users',
+  events:        '/events',
+  contributions: '/contributions',
+  admins:        '/admins',
+};
+
 const ADMIN_ITEMS = [
   { id: 'dashboard',     label: 'Dashboard',       Icon: FiHome },
   { id: 'users',         label: 'User Management', Icon: FiUsers },
@@ -13,7 +22,6 @@ const ADMIN_ITEMS = [
   { id: 'contributions', label: 'Contributions',    Icon: FiGrid },
 ];
 
-// Extra tab only shown to super_admin
 const SUPER_ADMIN_EXTRA = [
   { id: 'admins', label: 'Admin Accounts', Icon: FiShield },
 ];
@@ -24,13 +32,12 @@ const CLIENT_ITEMS = [
   { id: 'contributions', label: 'My Contributions', Icon: FiList },
 ];
 
-export default function Sidebar({ activeTab, onTabChange, isOpen, onClose }) {
-  const { user }        = useContext(AuthContext);
-  const navigate        = useNavigate();
-  const location        = useLocation();
-  const onSettings      = location.pathname === '/settings';
-  const onHiddenRecords = location.pathname === '/hidden-records';
-  const isAdminRole     = user?.role === 'super_admin' || user?.role === 'admin';
+export default function Sidebar({ isOpen, onClose }) {
+  const { user }    = useContext(AuthContext);
+  const navigate    = useNavigate();
+  const location    = useLocation();
+  const pathname    = location.pathname;
+  const isAdminRole = user?.role === 'super_admin' || user?.role === 'admin';
 
   let items;
   if (user?.role === 'super_admin') {
@@ -41,10 +48,12 @@ export default function Sidebar({ activeTab, onTabChange, isOpen, onClose }) {
     items = CLIENT_ITEMS;
   }
 
-  function handleSettings() {
-    navigate('/settings');
+  const handleNav = (path) => {
+    navigate(path);
     onClose?.();
-  }
+  };
+
+  const isTabActive = (id) => TAB_PATHS[id] === pathname;
 
   return (
     <>
@@ -61,8 +70,8 @@ export default function Sidebar({ activeTab, onTabChange, isOpen, onClose }) {
           {items.map(({ id, label, Icon }) => (
             <button
               key={id}
-              className={`sidebar-item ${activeTab === id && !onSettings ? 'sidebar-item-active' : ''}`}
-              onClick={() => { onTabChange(id); onClose?.(); }}
+              className={`sidebar-item ${isTabActive(id) ? 'sidebar-item-active' : ''}`}
+              onClick={() => handleNav(TAB_PATHS[id])}
             >
               <Icon size={20} className="sidebar-item-icon" />
               <span className="sidebar-item-label">{label}</span>
@@ -72,8 +81,8 @@ export default function Sidebar({ activeTab, onTabChange, isOpen, onClose }) {
           {/* ── Hidden Records — admin/super_admin only ── */}
           {isAdminRole && (
             <button
-              className={`sidebar-item ${onHiddenRecords ? 'sidebar-item-active' : ''}`}
-              onClick={() => { navigate('/hidden-records'); onClose?.(); }}
+              className={`sidebar-item ${pathname === '/hidden-records' ? 'sidebar-item-active' : ''}`}
+              onClick={() => handleNav('/hidden-records')}
             >
               <FiArchive size={20} className="sidebar-item-icon" />
               <span className="sidebar-item-label">Hidden Records</span>
@@ -83,8 +92,8 @@ export default function Sidebar({ activeTab, onTabChange, isOpen, onClose }) {
           {/* ── Settings — pinned to bottom ──────────── */}
           <div className="sidebar-settings-section">
             <button
-              className={`sidebar-item sidebar-settings-item ${onSettings ? 'sidebar-item-active' : ''}`}
-              onClick={handleSettings}
+              className={`sidebar-item sidebar-settings-item ${pathname === '/settings' ? 'sidebar-item-active' : ''}`}
+              onClick={() => handleNav('/settings')}
             >
               <FiSettings size={20} className="sidebar-item-icon" />
               <span className="sidebar-item-label">Settings</span>
