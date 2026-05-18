@@ -131,7 +131,7 @@ async function refresh(req, res, next) {
 
     if (!user || !user.is_active) {
       await pool.query('DELETE FROM refresh_tokens WHERE token = ?', [token]);
-      return res.status(401).json({ success: false, message: 'User not found or inactive', errors: [] });
+      return res.status(401).json({ success: false, message: 'Invalid or expired refresh token', errors: [] });
     }
 
     const accessToken = generateAccessToken({ userId: user.id, email: user.email, role: user.role });

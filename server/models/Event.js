@@ -71,6 +71,52 @@ const Event = {
     return rows[0] || null;
   },
 
+  // ── findAccessibleById ───────────────────────────────────────
+  // Like findById but enforces tenant isolation, including events
+  // the user can access via event_assignments (secondary assignee).
+  // Returns null if the event doesn't exist OR the user can't access it.
+  async findAccessibleById(id, { organizationId, createdBy } = {}) {
+    const params = [id];
+    let accessWhere = '1=1'; // super_admin — no restriction
+
+    if (createdBy !== null && createdBy !== undefined) {
+      accessWhere = 'e.created_by = ?';
+      params.push(createdBy);
+    } else if (organizationId !== null && organizationId !== undefined) {
+      accessWhere = '(e.organization_id = ? OR ea.user_id = ?)';
+      params.push(organizationId, organizationId);
+    }
+
+    try {
+      const [rows] = await pool.query(
+        `SELECT e.*
+         FROM events e
+         LEFT JOIN event_assignments ea ON ea.event_id = e.id
+         WHERE e.id = ? AND ${accessWhere}
+         LIMIT 1`,
+        params
+      );
+      return rows[0] || null;
+    } catch (err) {
+      if (err.errno === ERR_TABLE_NOT_EXISTS) {
+        // event_assignments table not yet created — fall back to basic ownership check
+        const fbParams = [id];
+        let fbWhere = '1=1';
+        if (createdBy !== null && createdBy !== undefined) {
+          fbWhere = 'created_by = ?'; fbParams.push(createdBy);
+        } else if (organizationId !== null && organizationId !== undefined) {
+          fbWhere = 'organization_id = ?'; fbParams.push(organizationId);
+        }
+        const [rows] = await pool.query(
+          `SELECT * FROM events WHERE id = ? AND ${fbWhere} LIMIT 1`,
+          fbParams
+        );
+        return rows[0] || null;
+      }
+      throw err;
+    }
+  },
+
   async create({ name, description, target_amount, organization_id, created_by }) {
     const [result] = await pool.query(
       'INSERT INTO events (name, description, target_amount, organization_id, created_by) VALUES (?, ?, ?, ?, ?)',

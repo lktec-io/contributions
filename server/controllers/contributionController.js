@@ -1,8 +1,9 @@
 'use strict';
 
+const pool         = require('../config/db');
 const Contribution = require('../models/Contribution');
 const Contributor  = require('../models/Contributor');
-const Event = require('../models/Event');
+const Event        = require('../models/Event');
 const Notification = require('../models/Notification');
 const { getIsolationFilter, canAccessContribution, canAccessEvent } = require('../utils/tenantHelpers');
 
@@ -188,7 +189,7 @@ async function permanentDelete(req, res, next) {
 
 // ── createBulk ────────────────────────────────────────────────────────────────
 // Creates ONE contributor (find-or-create by phone/email) and ONE contribution
-// row per selected event. Used by the multi-event assignment form.
+// row per selected event, all inside a single DB transaction.
 async function createBulk(req, res, next) {
   try {
     const { contributor_name, phone, email, events } = req.body;
@@ -214,20 +215,22 @@ async function createBulk(req, res, next) {
       }
     }
 
-    // Access-check all events before writing anything
+    // Verify each event exists AND is accessible to this user.
+    // Uses the same isolation filter as Event.findAll so that events
+    // accessible via event_assignments are allowed (not just direct owners).
+    const filter = getIsolationFilter(req);
     const resolvedEvents = [];
     for (const ev of events) {
-      const event = await Event.findById(ev.event_id);
+      const event = await Event.findAccessibleById(ev.event_id, filter);
       if (!event) {
-        return res.status(404).json({ success: false, message: `Event ${ev.event_id} not found`, errors: [] });
-      }
-      if (!canAccessEvent(req, event)) {
-        return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+        // Return 403 whether the event is missing or just inaccessible
+        // to avoid leaking event IDs.
+        return res.status(403).json({ success: false, message: 'Access denied to one or more selected events', errors: [] });
       }
       resolvedEvents.push({ event, amount: ev.amount });
     }
 
-    // Ensure one global contributor record (deduplicates by phone or email)
+    // Find or create one global contributor record (deduplicates by phone/email)
     try {
       await Contributor.findOrCreate({
         name:       contributor_name,
@@ -239,22 +242,33 @@ async function createBulk(req, res, next) {
       console.error('[createBulk] find-or-create contributor failed:', err.message);
     }
 
-    // Create one contribution row per selected event
-    for (const { event, amount } of resolvedEvents) {
-      await Contribution.create({
-        event_id:         event.id,
-        contributor_name,
-        phone:            phone  || null,
-        email:            email  || null,
-        amount,
-      });
+    // Insert all contribution rows in a single transaction so a partial
+    // failure doesn't leave orphaned records.
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      for (const { event, amount } of resolvedEvents) {
+        await conn.query(
+          'INSERT INTO contributions (event_id, contributor_name, phone, email, amount) VALUES (?, ?, ?, ?, ?)',
+          [event.id, contributor_name, phone || null, email || null, parseFloat(amount)]
+        );
+      }
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
 
-      await Notification.create({
+    // Notifications are best-effort — fired after the transaction commits
+    for (const { event, amount } of resolvedEvents) {
+      Notification.create({
         user_id: event.organization_id,
         title:   'New Contribution Added',
         message: `${contributor_name} pledged ${parseFloat(amount).toLocaleString()} for event "${event.name}".`,
         type:    'contribution_added',
-      });
+      }).catch(err => console.error('[createBulk] notification failed:', err.message));
     }
 
     return res.status(201).json({ success: true, data: { created: resolvedEvents.length } });
