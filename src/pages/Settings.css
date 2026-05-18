@@ -551,9 +551,12 @@
 
   .st-page-title { font-size: 19px; }
 
-  /* Icon-only nav on very small screens */
-  .st-nav-item span { display: none; }
-  .st-nav-item { padding: 10px; justify-content: center; }
+  /* Keep labels visible but shrink them — never hide text */
+  .st-nav-item {
+    padding: 8px 10px;
+    font-size: 12px;
+    gap: 6px;
+  }
 
   .st-sms-cards { gap: 8px; }
 

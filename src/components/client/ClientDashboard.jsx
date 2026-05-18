@@ -21,11 +21,11 @@ import PieChartCard from '../common/PieChartCard';
 import './ClientDashboard.css';
 
 const CLIENT_STATS = [
-  { key: 'myEvents',       label: 'My Events',     Icon: FiCalendar,    color: '#A78BFA' },
-  { key: 'myContributors', label: 'Assignments',   Icon: FiUsers,       color: '#3B82F6' },
-  { key: 'totalPledged',   label: 'Total Pledged', Icon: FiDollarSign,  color: '#FFA500', money: true },
-  { key: 'totalPaid',      label: 'Total Paid',    Icon: FiCheckCircle, color: '#00B894', money: true },
-  { key: 'outstanding',    label: 'Outstanding',   Icon: FiAlertCircle, color: '#FF4C4C', money: true },
+  { key: 'myEvents',       label: 'My Events',     Icon: FiCalendar,    color: '#A78BFA', to: '/events' },
+  { key: 'myContributors', label: 'Assignments',   Icon: FiUsers,       color: '#3B82F6', to: '/contributions' },
+  { key: 'totalPledged',   label: 'Total Pledged', Icon: FiDollarSign,  color: '#FFA500', money: true, to: '/contributions' },
+  { key: 'totalPaid',      label: 'Total Paid',    Icon: FiCheckCircle, color: '#00B894', money: true, to: '/contributions' },
+  { key: 'outstanding',    label: 'Outstanding',   Icon: FiAlertCircle, color: '#FF4C4C', money: true, to: '/contributions' },
 ];
 
 // Maps URL paths to client tab IDs
@@ -142,8 +142,16 @@ export default function ClientDashboard() {
         </div>
 
         <div className="stats-grid stats-grid-5">
-          {CLIENT_STATS.map(({ key, label, Icon, color, money }) => (
-            <div key={key} className="stat-card">
+          {CLIENT_STATS.map(({ key, label, Icon, color, money, to }) => (
+            <div
+              key={key}
+              className="stat-card stat-card--link"
+              onClick={() => navigate(to)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(to); } }}
+              title={`Go to ${label}`}
+            >
               <div className="stat-icon-wrap" style={{ background: `${color}1F` }}>
                 <Icon size={24} color={color} />
               </div>

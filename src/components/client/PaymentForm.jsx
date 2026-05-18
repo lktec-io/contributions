@@ -3,6 +3,16 @@ import { FiCheckCircle } from 'react-icons/fi';
 import { formatCurrency } from '../../utils/formatters';
 import './PaymentForm.css';
 
+const formatCommas = (val) => {
+  if (val === '' || val == null) return '';
+  const str = String(val).replace(/,/g, '');
+  if (!/^\d*\.?\d*$/.test(str)) return String(val);
+  const [int, dec] = str.split('.');
+  const formatted = int.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return dec !== undefined ? `${formatted}.${dec}` : formatted;
+};
+const stripCommas = (val) => String(val).replace(/,/g, '');
+
 export default function PaymentForm({ contribution, onSubmit, onCancel, loading }) {
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
@@ -12,9 +22,17 @@ export default function PaymentForm({ contribution, onSubmit, onCancel, loading 
   const paid = parseFloat(contribution?.paid_amount || 0);
   const outstanding = pledged - paid;
 
+  const handleAmountChange = (e) => {
+    const raw = stripCommas(e.target.value);
+    if (raw === '' || /^\d*\.?\d*$/.test(raw)) {
+      setAmount(raw);
+      setError('');
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    const amt = parseFloat(amount);
+    const amt = parseFloat(stripCommas(amount));
     if (!amount || isNaN(amt) || amt <= 0) {
       setError('Enter a valid payment amount');
       return;
@@ -61,13 +79,12 @@ export default function PaymentForm({ contribution, onSubmit, onCancel, loading 
           <div className="form-group">
             <label>Payment Amount (TZS) *</label>
             <input
-              type="number"
-              value={amount}
-              onChange={e => { setAmount(e.target.value); setError(''); }}
-              placeholder="0.00"
-              min="0.01"
-              step="0.01"
-              max={outstanding}
+              type="text"
+              inputMode="decimal"
+              value={formatCommas(amount)}
+              onChange={handleAmountChange}
+              placeholder="0"
+              autoComplete="off"
             />
             {error && <span className="field-error">{error}</span>}
           </div>

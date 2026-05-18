@@ -220,16 +220,18 @@ export default function ClientContributions() {
             <button
               className={`view-toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
               onClick={() => setViewMode('table')}
-              title="Table view"
+              title="List view"
             >
-              <FiList size={16} />
+              <FiList size={15} />
+              <span className="view-label">List</span>
             </button>
             <button
               className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => setViewMode('grid')}
               title="Grid view"
             >
-              <FiGrid size={16} />
+              <FiGrid size={15} />
+              <span className="view-label">Grid</span>
             </button>
           </div>
           <div className="export-buttons">

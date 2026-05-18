@@ -420,6 +420,25 @@ label {
 * { scrollbar-width: thin; scrollbar-color: var(--text-muted) var(--bg-primary); }
 
 /* ============================================================
+   Global Focus Ring — replaces browser default blue outline
+   ============================================================ */
+/* Mouse clicks: no visible ring. Keyboard navigation: custom ring */
+:focus:not(:focus-visible) { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--accent-green);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Inputs use border+shadow — suppress outline ring */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent-green);
+  box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.15);
+}
+
+/* ============================================================
    Accessibility
    ============================================================ */
 .sr-only {

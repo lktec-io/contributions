@@ -21,13 +21,15 @@
 .view-toggle-btn {
   background: transparent;
   border: none;
-  padding: 7px 10px;
+  padding: 7px 12px;
   cursor: pointer;
   color: var(--text-secondary);
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
   transition: var(--transition);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .view-toggle-btn:hover {
@@ -38,6 +40,17 @@
 .view-toggle-btn.active {
   background-color: var(--accent-green);
   color: #fff;
+}
+
+.view-label {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+@media (max-width: 360px) {
+  .view-label { display: none; }
+  .view-toggle-btn { padding: 7px 10px; }
 }
 
 .filters-bar {

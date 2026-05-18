@@ -133,9 +133,12 @@
   flex-direction: column;
   gap: 6px;
   margin-top: 6px;
-  max-height: 260px;
+  max-height: 320px;
   overflow-y: auto;
-  padding-right: 2px;
+  padding-right: 4px;
+  /* Scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-muted) transparent;
 }
 
 /* ── Individual event row ────────────────────────────────── */
@@ -203,8 +206,8 @@
 }
 
 .cf-event-amount input {
-  padding: 7px 10px;
-  font-size: 13px;
+  padding: 8px 12px;
+  font-size: 14px;
   border-radius: 7px;
   border: 1px solid var(--border-color);
   background: var(--bg-input, var(--bg-card));
@@ -212,6 +215,8 @@
   width: 100%;
   box-sizing: border-box;
   transition: border-color 0.15s;
+  min-height: 40px;
+  font-variant-numeric: tabular-nums;
 }
 
 .cf-event-amount input:focus {

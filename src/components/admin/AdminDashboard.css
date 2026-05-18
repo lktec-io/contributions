@@ -286,6 +286,17 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
+/* Clickable stat card variant */
+.stat-card--link {
+  cursor: pointer;
+  user-select: none;
+}
+
+.stat-card--link:active {
+  transform: translateY(-1px) !important;
+  transition: transform 0.1s ease;
+}
+
 /* Icon container */
 .stat-icon-wrap {
   width: 48px;
