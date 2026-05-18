@@ -87,7 +87,7 @@ async function sendReminder(req, res) {
     if (!contribution) {
       return res.status(404).json({ success: false, message: 'Contributor not found' });
     }
-    if (!canAccessContribution(req, contribution)) {
+    if (!(await canAccessContribution(req, contribution))) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
     if (!contribution.phone) {

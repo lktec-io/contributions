@@ -24,7 +24,7 @@ async function getById(req, res, next) {
     if (!contribution) {
       return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
     }
-    if (!canAccessContribution(req, contribution)) {
+    if (!(await canAccessContribution(req, contribution))) {
       return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
     }
     return res.json({ success: true, data: contribution });
@@ -79,7 +79,7 @@ async function update(req, res, next) {
     if (!contribution) {
       return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
     }
-    if (!canAccessContribution(req, contribution)) {
+    if (!(await canAccessContribution(req, contribution))) {
       return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
     }
 
@@ -106,7 +106,7 @@ async function remove(req, res, next) {
     if (!contribution) {
       return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
     }
-    if (!canAccessContribution(req, contribution)) {
+    if (!(await canAccessContribution(req, contribution))) {
       return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
     }
     await Contribution.delete(req.params.id);
@@ -123,7 +123,7 @@ async function hide(req, res, next) {
     if (!contribution) {
       return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
     }
-    if (!canAccessContribution(req, contribution)) {
+    if (!(await canAccessContribution(req, contribution))) {
       return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
     }
     await Contribution.hide(req.params.id);
@@ -143,7 +143,7 @@ async function restore(req, res, next) {
     if (!contribution) {
       return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
     }
-    if (!canAccessContribution(req, contribution)) {
+    if (!(await canAccessContribution(req, contribution))) {
       return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
     }
     await Contribution.restore(req.params.id);
@@ -177,7 +177,7 @@ async function permanentDelete(req, res, next) {
     if (!contribution) {
       return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
     }
-    if (!canAccessContribution(req, contribution)) {
+    if (!(await canAccessContribution(req, contribution))) {
       return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
     }
     await Contribution.delete(req.params.id);

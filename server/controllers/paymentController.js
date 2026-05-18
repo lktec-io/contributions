@@ -27,7 +27,7 @@ async function create(req, res, next) {
     if (!contribution) {
       return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
     }
-    if (!canAccessContribution(req, contribution)) {
+    if (!(await canAccessContribution(req, contribution))) {
       return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
     }
 
@@ -61,7 +61,7 @@ async function getByContribution(req, res, next) {
     if (!contribution) {
       return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
     }
-    if (!canAccessContribution(req, contribution)) {
+    if (!(await canAccessContribution(req, contribution))) {
       return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
     }
     const payments = await Payment.findByContribution(contributionId);
