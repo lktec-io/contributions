@@ -8,20 +8,17 @@ import SuccessToast from '../common/SuccessToast';
 import './ContributorsTable.css';
 
 export default function ContributorsTable({ contributions, loading, onEdit, onRecordPayment, onDelete }) {
-  const [smsSending,   setSmsSending]   = useState(new Set());
-  const [smsSuccess,   setSmsSuccess]   = useState(new Set());
-  const [showSuccess,  setShowSuccess]  = useState(false);
+  const [smsSending,  setSmsSending]  = useState(new Set());
+  const [smsSentIds,  setSmsSentIds]  = useState(new Set()); // session-level sent set (DB is authoritative on reload)
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSendReminder = async (c) => {
     if (!c.phone) return;
     setSmsSending(prev => new Set(prev).add(c.id));
     try {
       await smsService.sendReminder(c.id);
-      setSmsSuccess(prev => {
-        const next = new Set(prev).add(c.id);
-        setTimeout(() => setSmsSuccess(s => { const n = new Set(s); n.delete(c.id); return n; }), 3000);
-        return next;
-      });
+      // Mark as sent for this session — DB field sms_sent persists across reloads
+      setSmsSentIds(prev => new Set(prev).add(c.id));
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
     } catch {
@@ -66,7 +63,7 @@ export default function ContributorsTable({ contributions, loading, onEdit, onRe
           {contributions.map(c => {
             const outstanding = parseFloat(c.amount) - parseFloat(c.paid_amount);
             const isSending   = smsSending.has(c.id);
-            const isSent      = smsSuccess.has(c.id);
+            const isSent      = c.sms_sent || smsSentIds.has(c.id);
             return (
               <tr key={c.id}>
                 <td className="td-name">{c.contributor_name}</td>
@@ -93,8 +90,8 @@ export default function ContributorsTable({ contributions, loading, onEdit, onRe
                   <button
                     className={`icon-btn icon-btn-sms ${isSent ? 'icon-btn-sms-sent' : ''}`}
                     onClick={() => handleSendReminder(c)}
-                    title={!c.phone ? 'No phone number' : isSent ? 'Reminder sent!' : 'Send SMS reminder'}
-                    disabled={!c.phone || isSending || c.status === 'paid'}
+                    title={!c.phone ? 'No phone number' : isSent ? 'SMS Sent' : 'Send SMS reminder'}
+                    disabled={!c.phone || isSending || isSent || c.status === 'paid'}
                   >
                     <FiSend size={15} className={isSending ? 'spin' : ''} />
                   </button>

@@ -8,12 +8,13 @@ const ERR_UNKNOWN_COLUMN = 1054;
 const Contribution = {
 
   // ── findAll ─────────────────────────────────────────────────
-  // If is_hidden column is missing, falls back to query without the filter.
+  // Falls back gracefully when is_hidden or sms_sent columns are missing.
   async findAll({ eventId, status, search, organizationId, createdBy } = {}) {
-    const buildQuery = (includeHiddenFilter) => {
+    const buildQuery = (includeHiddenFilter, includeSmsTracking) => {
       let q = `
         SELECT c.id, c.event_id, c.contributor_name, c.phone, c.email,
                c.amount, c.paid_amount, c.status, c.created_at, c.updated_at,
+               ${includeSmsTracking ? 'c.sms_sent, c.sms_sent_at,' : ''}
                e.name AS event_name, e.organization_id, e.created_by AS event_created_by
         FROM contributions c
         JOIN events e ON e.id = c.event_id
@@ -47,17 +48,23 @@ const Contribution = {
     };
 
     try {
-      const { q, params } = buildQuery(true);
+      const { q, params } = buildQuery(true, true);
       const [rows] = await pool.query(q, params);
       return rows;
     } catch (err) {
-      if (err.errno === ERR_UNKNOWN_COLUMN) {
-        // Column not yet added — fall back to query without is_hidden filter
-        const { q, params } = buildQuery(false);
+      if (err.errno !== ERR_UNKNOWN_COLUMN) throw err;
+      // sms_sent or is_hidden column missing — try without sms_sent first
+      try {
+        const { q, params } = buildQuery(true, false);
         const [rows] = await pool.query(q, params);
-        return rows;
+        return rows.map(r => ({ ...r, sms_sent: false, sms_sent_at: null }));
+      } catch (err2) {
+        if (err2.errno !== ERR_UNKNOWN_COLUMN) throw err2;
+        // is_hidden also missing
+        const { q, params } = buildQuery(false, false);
+        const [rows] = await pool.query(q, params);
+        return rows.map(r => ({ ...r, sms_sent: false, sms_sent_at: null }));
       }
-      throw err;
     }
   },
 
@@ -90,7 +97,10 @@ const Contribution = {
   // ── findById ────────────────────────────────────────────────
   async findById(id) {
     const [rows] = await pool.query(
-      `SELECT c.*, e.name AS event_name, e.organization_id, e.created_by AS event_created_by
+      `SELECT c.id, c.event_id, c.contributor_name, c.phone, c.email,
+              c.amount, c.paid_amount, c.status, c.is_hidden, c.hidden_at,
+              c.sms_sent, c.sms_sent_at, c.created_at, c.updated_at,
+              e.name AS event_name, e.organization_id, e.created_by AS event_created_by
        FROM contributions c
        JOIN events e ON e.id = c.event_id
        WHERE c.id = ?`,

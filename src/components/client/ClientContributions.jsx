@@ -108,6 +108,8 @@ export default function ClientContributions() {
       const res = await smsService.sendBulkReminders(selectedEvent || undefined);
       const { sent, total: t } = res.data.data;
       toast.success(`SMS dispatched to ${sent} of ${t} contributor(s)`);
+      // Refresh list so rows with sms_sent = true immediately show disabled buttons
+      refreshList();
       // Refresh weekly limit status
       const statusRes = await smsService.getBulkStatus();
       setBulkStatus(statusRes.data.data);

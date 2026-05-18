@@ -109,6 +109,16 @@ async function sendReminder(req, res) {
 
     await sendBeemSms(phone, message);
 
+    // Persist the sent state so the UI can disable the button permanently
+    try {
+      await pool.query(
+        'UPDATE contributions SET sms_sent = TRUE, sms_sent_at = NOW() WHERE id = ?',
+        [contribution.id]
+      );
+    } catch (dbErr) {
+      console.error('[sms] Failed to persist sms_sent flag:', dbErr.message);
+    }
+
     return res.json({ success: true, message: 'SMS sent successfully' });
   } catch (err) {
     console.error('BEEM ERROR FULL:', err.response?.data || err.message);
@@ -144,6 +154,7 @@ async function sendBulkReminders(req, res) {
     }
 
     let sent = 0;
+    const sentIds = [];
 
     for (const c of targets) {
       try {
@@ -156,8 +167,20 @@ async function sendBulkReminders(req, res) {
         const message = buildMessage(c.contributor_name, pledged, paid, balance, c.event_name);
 
         await sendBeemSms(phone, message);
+
+        // Persist sent state immediately so UI can reflect it on next load
+        try {
+          await pool.query(
+            'UPDATE contributions SET sms_sent = TRUE, sms_sent_at = NOW() WHERE id = ?',
+            [c.id]
+          );
+        } catch (dbErr) {
+          console.error('[sms] Failed to persist sms_sent flag:', dbErr.message);
+        }
+
         await new Promise(r => setTimeout(r, 300));
         sent++;
+        sentIds.push(c.id);
       } catch (err) {
         console.error('BEEM ERROR FULL:', err.response?.data || err.message);
       }
@@ -173,7 +196,7 @@ async function sendBulkReminders(req, res) {
     return res.json({
       success: true,
       message: `SMS dispatched to ${sent} of ${targets.length} contributor(s)`,
-      data:    { sent, total: targets.length },
+      data:    { sent, total: targets.length, sentIds },
     });
   } catch (err) {
     console.error('BEEM ERROR FULL:', err.response?.data || err.message);
