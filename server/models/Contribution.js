@@ -95,18 +95,29 @@ const Contribution = {
   },
 
   // ── findById ────────────────────────────────────────────────
+  // Falls back without sms_sent/sms_sent_at if the migration hasn't run yet.
   async findById(id) {
-    const [rows] = await pool.query(
+    const runQuery = (includeSmsTracking) => pool.query(
       `SELECT c.id, c.event_id, c.contributor_name, c.phone, c.email,
               c.amount, c.paid_amount, c.status, c.is_hidden, c.hidden_at,
-              c.sms_sent, c.sms_sent_at, c.created_at, c.updated_at,
+              ${includeSmsTracking ? 'c.sms_sent, c.sms_sent_at,' : ''}
+              c.created_at, c.updated_at,
               e.name AS event_name, e.organization_id, e.created_by AS event_created_by
        FROM contributions c
        JOIN events e ON e.id = c.event_id
        WHERE c.id = ?`,
       [id]
     );
-    return rows[0] || null;
+
+    try {
+      const [rows] = await runQuery(true);
+      return rows[0] || null;
+    } catch (err) {
+      if (err.errno !== ERR_UNKNOWN_COLUMN) throw err;
+      // sms columns not yet migrated — retry without them
+      const [rows] = await runQuery(false);
+      return rows[0] ? { ...rows[0], sms_sent: false, sms_sent_at: null } : null;
+    }
   },
 
   // ── create ──────────────────────────────────────────────────
