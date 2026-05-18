@@ -204,7 +204,7 @@ export default function ClientContributions() {
         <div>
           <h2 className="page-title">My Contributions</h2>
           <p className="page-subtitle">
-            Showing {contributions.length} of {total} contributor{total !== 1 ? 's' : ''}
+            Showing {contributions.length} of {total} assignment{total !== 1 ? 's' : ''}
           </p>
         </div>
         <div className="cc-header-actions">

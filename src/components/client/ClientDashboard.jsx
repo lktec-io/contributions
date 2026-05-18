@@ -21,7 +21,7 @@ import './ClientDashboard.css';
 
 const CLIENT_STATS = [
   { key: 'myEvents',       label: 'My Events',     Icon: FiCalendar,    color: '#A78BFA' },
-  { key: 'myContributors', label: 'Contributors',  Icon: FiUsers,       color: '#3B82F6' },
+  { key: 'myContributors', label: 'Assignments',   Icon: FiUsers,       color: '#3B82F6' },
   { key: 'totalPledged',   label: 'Total Pledged', Icon: FiDollarSign,  color: '#FFA500', money: true },
   { key: 'totalPaid',      label: 'Total Paid',    Icon: FiCheckCircle, color: '#00B894', money: true },
   { key: 'outstanding',    label: 'Outstanding',   Icon: FiAlertCircle, color: '#FF4C4C', money: true },
