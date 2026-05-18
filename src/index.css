@@ -12,6 +12,8 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  /* Suppress the blue tap flash on all Android / iOS WebKit browsers */
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ============================================================
@@ -105,6 +107,7 @@ a {
   color: var(--accent-green);
   text-decoration: none;
   transition: var(--transition);
+  touch-action: manipulation;
 }
 
 a:hover {
@@ -160,6 +163,10 @@ button {
   transition: var(--transition);
   white-space: nowrap;
   outline: none;
+  /* Mobile: prevent 300ms tap delay and text selection during tap */
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 button:disabled {
@@ -275,6 +282,7 @@ textarea {
   -webkit-appearance: none;
   appearance: none;
   min-height: 42px;
+  touch-action: manipulation;
 }
 
 input::placeholder,
