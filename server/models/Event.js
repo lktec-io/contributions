@@ -12,52 +12,26 @@ const Event = {
   // entry in event_assignments. Falls back to organization_id-only
   // query if event_assignments table doesn't exist yet.
   async findAll({ organizationId, createdBy } = {}) {
-    const buildQuery = (withAssignments) => {
-      let query = withAssignments
-        ? `SELECT DISTINCT e.id, e.name, e.description, e.target_amount, e.organization_id,
-                  e.created_by, e.created_at, e.updated_at,
-                  u.name AS owner_name, u.email AS owner_email
-           FROM events e
-           JOIN users u ON u.id = e.organization_id
-           LEFT JOIN event_assignments ea ON ea.event_id = e.id
-           WHERE 1=1`
-        : `SELECT e.id, e.name, e.description, e.target_amount, e.organization_id,
-                  e.created_by, e.created_at, e.updated_at,
-                  u.name AS owner_name, u.email AS owner_email
-           FROM events e
-           JOIN users u ON u.id = e.organization_id
-           WHERE 1=1`;
+    // client_user (organizationId): STRICT — only events where this user is
+    // the primary owner. No event_assignments expansion to prevent cross-user
+    // event/contribution leakage.
+    const query = `
+      SELECT e.id, e.name, e.description, e.target_amount, e.organization_id,
+             e.created_by, e.created_at, e.updated_at,
+             u.name AS owner_name, u.email AS owner_email
+      FROM events e
+      JOIN users u ON u.id = e.organization_id
+      WHERE 1=1
+      ${createdBy      != null ? 'AND e.created_by = ?'      : ''}
+      ${organizationId != null ? 'AND e.organization_id = ?' : ''}
+      ORDER BY e.created_at DESC
+    `;
+    const params = [];
+    if (createdBy      != null) params.push(createdBy);
+    if (organizationId != null) params.push(organizationId);
 
-      const params = [];
-      if (createdBy !== null && createdBy !== undefined) {
-        query += ' AND e.created_by = ?';
-        params.push(createdBy);
-      }
-      if (organizationId !== null && organizationId !== undefined) {
-        if (withAssignments) {
-          query += ' AND (e.organization_id = ? OR ea.user_id = ?)';
-          params.push(organizationId, organizationId);
-        } else {
-          query += ' AND e.organization_id = ?';
-          params.push(organizationId);
-        }
-      }
-      query += ' ORDER BY e.created_at DESC';
-      return { query, params };
-    };
-
-    try {
-      const { query, params } = buildQuery(true);
-      const [rows] = await pool.query(query, params);
-      return rows;
-    } catch (err) {
-      if (err.errno === ERR_TABLE_NOT_EXISTS) {
-        const { query, params } = buildQuery(false);
-        const [rows] = await pool.query(query, params);
-        return rows;
-      }
-      throw err;
-    }
+    const [rows] = await pool.query(query, params);
+    return rows;
   },
 
   async findById(id) {
@@ -75,16 +49,26 @@ const Event = {
   // Like findById but enforces tenant isolation, including events
   // the user can access via event_assignments (secondary assignee).
   // Returns null if the event doesn't exist OR the user can't access it.
+  // Returns the event if it exists AND the caller may access it, else null.
+  // client_user (organizationId): strict primary-owner check only.
+  // admin (createdBy): own events plus event_assignments secondary access.
+  // super_admin (empty filter): unrestricted.
   async findAccessibleById(id, { organizationId, createdBy } = {}) {
-    const params = [id];
-    let accessWhere = '1=1'; // super_admin — no restriction
+    // client_user — simple ownership lookup, no JOIN needed
+    if (organizationId != null) {
+      const [rows] = await pool.query(
+        'SELECT * FROM events WHERE id = ? AND organization_id = ? LIMIT 1',
+        [id, organizationId]
+      );
+      return rows[0] || null;
+    }
 
-    if (createdBy !== null && createdBy !== undefined) {
-      accessWhere = 'e.created_by = ?';
-      params.push(createdBy);
-    } else if (organizationId !== null && organizationId !== undefined) {
-      accessWhere = '(e.organization_id = ? OR ea.user_id = ?)';
-      params.push(organizationId, organizationId);
+    // admin or super_admin — may access via event_assignments
+    const params = [id];
+    let accessWhere = '1=1';
+    if (createdBy != null) {
+      accessWhere = '(e.created_by = ? OR ea.user_id = ?)';
+      params.push(createdBy, createdBy);
     }
 
     try {
@@ -99,14 +83,9 @@ const Event = {
       return rows[0] || null;
     } catch (err) {
       if (err.errno === ERR_TABLE_NOT_EXISTS) {
-        // event_assignments table not yet created — fall back to basic ownership check
         const fbParams = [id];
-        let fbWhere = '1=1';
-        if (createdBy !== null && createdBy !== undefined) {
-          fbWhere = 'created_by = ?'; fbParams.push(createdBy);
-        } else if (organizationId !== null && organizationId !== undefined) {
-          fbWhere = 'organization_id = ?'; fbParams.push(organizationId);
-        }
+        const fbWhere = createdBy != null ? 'created_by = ?' : '1=1';
+        if (createdBy != null) fbParams.push(createdBy);
         const [rows] = await pool.query(
           `SELECT * FROM events WHERE id = ? AND ${fbWhere} LIMIT 1`,
           fbParams

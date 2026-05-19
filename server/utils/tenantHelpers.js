@@ -30,13 +30,14 @@ async function canAccessContribution(req, contribution) {
 
   if (role === 'super_admin') return true;
 
-  // Direct ownership — fast path, no extra DB round-trip needed
-  if (role === 'admin'       && contribution.event_created_by === userId) return true;
-  if (role === 'client_user' && contribution.organization_id  === userId) return true;
+  // client_user: STRICT — must be the primary event owner (organization_id).
+  // No event_assignments fallback; that would leak another user's contributions.
+  if (role === 'client_user') return contribution.organization_id === userId;
 
-  // Secondary access via event_assignments
-  // Covers contributions on events the user can reach as an assignee but
-  // where they are not the primary owner (organization_id / created_by).
+  // admin: direct ownership first (fast path), then event_assignments fallback
+  // for events the admin can reach as a secondary assignee.
+  if (role === 'admin' && contribution.event_created_by === userId) return true;
+
   try {
     const pool = require('../config/db');
     const [rows] = await pool.query(
@@ -45,7 +46,7 @@ async function canAccessContribution(req, contribution) {
     );
     return rows.length > 0;
   } catch (err) {
-    if (err.errno === 1146) return false; // table not yet migrated — deny gracefully
+    if (err.errno === 1146) return false;
     throw err;
   }
 }

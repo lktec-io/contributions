@@ -81,24 +81,15 @@ async function getAdminStats(req, res, next) {
 
 async function getClientStats(req, res, next) {
   try {
-    const ERR_TABLE_NOT_EXISTS = 1146;
     const orgId = req.user.userId;
 
-    // Collect all event IDs where the user is primary owner OR an assigned user
-    let eventIds;
-    try {
-      const [rows] = await pool.query(
-        `SELECT DISTINCT e.id FROM events e
-         LEFT JOIN event_assignments ea ON ea.event_id = e.id
-         WHERE e.organization_id = ? OR ea.user_id = ?`,
-        [orgId, orgId]
-      );
-      eventIds = rows.map(r => r.id);
-    } catch (err) {
-      if (err.errno !== ERR_TABLE_NOT_EXISTS) throw err;
-      const [rows] = await pool.query('SELECT id FROM events WHERE organization_id = ?', [orgId]);
-      eventIds = rows.map(r => r.id);
-    }
+    // Strict isolation: only events where this user is the PRIMARY owner.
+    // Never expand via event_assignments — that leaks other users' data.
+    const [eventRows] = await pool.query(
+      'SELECT id FROM events WHERE organization_id = ?',
+      [orgId]
+    );
+    const eventIds = eventRows.map(r => r.id);
 
     if (eventIds.length === 0) {
       return res.json({

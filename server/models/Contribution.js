@@ -32,8 +32,11 @@ const Contribution = {
       `;
       const params = [];
 
-      // Tenant isolation — also covers events the user can access via
-      // event_assignments (secondary assignee), not just direct ownership.
+      // Tenant isolation.
+      // admin (createdBy): sees own events plus any accessed via event_assignments.
+      // client_user (organizationId): STRICT primary-owner check only —
+      //   never expands through event_assignments, which would leak
+      //   contributions from one user into another user's view.
       if (createdBy !== null && createdBy !== undefined) {
         if (includeAssignments) {
           q += ` AND (e.created_by = ? OR EXISTS (
@@ -47,16 +50,8 @@ const Contribution = {
         }
       }
       if (organizationId !== null && organizationId !== undefined) {
-        if (includeAssignments) {
-          q += ` AND (e.organization_id = ? OR EXISTS (
-                   SELECT 1 FROM event_assignments ea
-                   WHERE ea.event_id = e.id AND ea.user_id = ?
-                 ))`;
-          params.push(organizationId, organizationId);
-        } else {
-          q += ' AND e.organization_id = ?';
-          params.push(organizationId);
-        }
+        q += ' AND e.organization_id = ?';
+        params.push(organizationId);
       }
 
       if (eventId) { q += ' AND c.event_id = ?'; params.push(eventId); }
