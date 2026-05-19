@@ -80,20 +80,20 @@ async function create(req, res, next) {
       if (errMsg) return res.status(403).json({ success: false, message: errMsg, errors: [] });
     }
 
-    const primaryUserId = assignments[0].user_id;
-    const totalTarget   = assignments.reduce((s, a) => s + (parseFloat(a.target_amount) || 0), 0);
-
-    const id = await Event.create({
-      name:            name.trim(),
-      description:     description || null,
-      target_amount:   totalTarget,
-      organization_id: primaryUserId,
-      created_by:      req.user.userId,
-    });
-
-    await Event.setAssignments(id, assignments);
-
+    // Create one independent event row per assigned user so each user has
+    // their own isolated copy (organization_id = that user's id).
+    const createdIds = [];
     for (const a of assignments) {
+      const id = await Event.create({
+        name:            name.trim(),
+        description:     description || null,
+        target_amount:   parseFloat(a.target_amount) || 0,
+        organization_id: a.user_id,
+        created_by:      req.user.userId,
+      });
+      await Event.setAssignments(id, [a]);
+      createdIds.push(id);
+
       await Notification.create({
         user_id: a.user_id,
         title:   'New Event Assigned',
@@ -102,9 +102,7 @@ async function create(req, res, next) {
       });
     }
 
-    const event            = await Event.findById(id);
-    const eventAssignments = await Event.getAssignments(id);
-    return res.status(201).json({ success: true, data: { ...event, assignments: eventAssignments } });
+    return res.status(201).json({ success: true, data: { created: createdIds.length, eventIds: createdIds } });
   } catch (err) {
     next(err);
   }
