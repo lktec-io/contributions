@@ -1,10 +1,11 @@
 'use strict';
 
-const pool         = require('../config/db');
-const Contribution = require('../models/Contribution');
-const Contributor  = require('../models/Contributor');
-const Event        = require('../models/Event');
-const Notification = require('../models/Notification');
+const crypto        = require('crypto');
+const pool          = require('../config/db');
+const Contribution  = require('../models/Contribution');
+const Contributor   = require('../models/Contributor');
+const Event         = require('../models/Event');
+const Notification  = require('../models/Notification');
 const { getIsolationFilter, canAccessContribution, canAccessEvent } = require('../utils/tenantHelpers');
 
 async function getAll(req, res, next) {
@@ -249,11 +250,21 @@ async function createBulk(req, res, next) {
       await conn.beginTransaction();
       const insertedIds = [];
       for (const { event, amount } of resolvedEvents) {
-        const [result] = await conn.query(
-          'INSERT INTO contributions (event_id, contributor_name, phone, email, amount) VALUES (?, ?, ?, ?, ?)',
-          [event.id, contributor_name, phone || null, email || null, parseFloat(amount)]
-        );
-        insertedIds.push(result.insertId);
+        let attempts = 0;
+        while (true) {
+          attempts++;
+          try {
+            const [result] = await conn.query(
+              'INSERT INTO contributions (event_id, contributor_name, phone, email, amount, public_token) VALUES (?, ?, ?, ?, ?, ?)',
+              [event.id, contributor_name, phone || null, email || null, parseFloat(amount), crypto.randomUUID()]
+            );
+            insertedIds.push(result.insertId);
+            break;
+          } catch (err) {
+            if (err.errno === 1062 && attempts < 3) continue; // public_token collision, retry
+            throw err;
+          }
+        }
       }
       if (insertedIds.length !== resolvedEvents.length) {
         throw new Error(`Insert count mismatch: expected ${resolvedEvents.length}, got ${insertedIds.length}`);

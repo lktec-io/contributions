@@ -1,0 +1,98 @@
+'use strict';
+
+const PaymentRequest = require('../models/PaymentRequest');
+const Contribution   = require('../models/Contribution');
+const Notification   = require('../models/Notification');
+const { recordPayment } = require('./paymentController');
+const { getIsolationFilter, canAccessContribution } = require('../utils/tenantHelpers');
+
+// ── GET /api/payment-requests ───────────────────────────────────────
+async function list(req, res, next) {
+  try {
+    const filter = getIsolationFilter(req);
+    if (req.query.status) filter.status = req.query.status;
+
+    const requests = await PaymentRequest.findAllForScope(filter);
+    return res.json({ success: true, data: requests });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── POST /api/payment-requests/:id/approve ──────────────────────────
+async function approve(req, res, next) {
+  try {
+    const request = await PaymentRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Payment request not found', errors: [] });
+    }
+    if (request.status !== 'pending') {
+      return res.status(400).json({ success: false, message: 'This request has already been reviewed', errors: [] });
+    }
+
+    const contribution = await Contribution.findById(request.contribution_id);
+    if (!contribution) {
+      return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
+    }
+    if (!(await canAccessContribution(req, contribution))) {
+      return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+    }
+
+    const note = request.reference_number
+      ? `Verified from contributor payment request (ref: ${request.reference_number})`
+      : 'Verified from contributor payment request';
+
+    const updatedContribution = await recordPayment({
+      contribution,
+      amount: parseFloat(request.submitted_amount),
+      note,
+      recordedBy: req.user.userId,
+    });
+
+    await PaymentRequest.approve(request.id, req.user.userId);
+
+    return res.json({ success: true, data: updatedContribution });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── POST /api/payment-requests/:id/reject ───────────────────────────
+async function reject(req, res, next) {
+  try {
+    const request = await PaymentRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Payment request not found', errors: [] });
+    }
+    if (request.status !== 'pending') {
+      return res.status(400).json({ success: false, message: 'This request has already been reviewed', errors: [] });
+    }
+
+    const contribution = await Contribution.findById(request.contribution_id);
+    if (!contribution) {
+      return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
+    }
+    if (!(await canAccessContribution(req, contribution))) {
+      return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+    }
+
+    await PaymentRequest.reject(request.id, req.user.userId);
+
+    // Only notification path for a rejection — approval already gets one via recordPayment.
+    const targets = new Set([contribution.organization_id, contribution.event_created_by]);
+    for (const userId of targets) {
+      await Notification.create({
+        user_id: userId,
+        title: 'Payment Request Rejected',
+        message: `Payment request from ${contribution.contributor_name} was rejected.`,
+        type: 'payment_verification_rejected',
+      });
+    }
+
+    return res.json({ success: true, message: 'Payment request rejected' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, approve, reject };

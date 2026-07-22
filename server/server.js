@@ -16,6 +16,8 @@ const dashboardRoutes    = require('./routes/dashboardRoutes');
 const smsRoutes          = require('./routes/smsRoutes');
 const adminRoutes        = require('./routes/adminRoutes');
 const settingsRoutes     = require('./routes/settingsRoutes');
+const publicRoutes       = require('./routes/publicRoutes');
+const paymentRequestRoutes = require('./routes/paymentRequestRoutes');
 const errorHandler       = require('./middleware/errorHandler');
 
 const app  = express();
@@ -42,6 +44,8 @@ app.use('/api/dashboard',     dashboardRoutes);
 app.use('/api/sms',           smsRoutes);
 app.use('/api/admin',         adminRoutes);
 app.use('/api/settings',      settingsRoutes);
+app.use('/api/public',        publicRoutes);
+app.use('/api/payment-requests', paymentRequestRoutes);
 
 // ── Health check ────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
@@ -152,6 +156,90 @@ async function ensureSchema() {
       'ALTER TABLE contributions ADD INDEX idx_contrib_contributor_id (contributor_id)'
     );
   } catch (_) { /* index may already exist */ }
+
+  // Add public_token column to contributions (Public Contribution Portal)
+  try {
+    await pool.query(
+      'ALTER TABLE contributions ADD COLUMN public_token VARCHAR(64) NULL'
+    );
+    console.log('[migration] Added contributions.public_token');
+  } catch (err) {
+    if (err.errno !== 1060) {
+      console.error('[migration] contributions.public_token error:', err.message);
+    }
+  }
+
+  // Add unique index on public_token (ignore error if already exists)
+  try {
+    await pool.query(
+      'ALTER TABLE contributions ADD UNIQUE INDEX idx_contrib_public_token (public_token)'
+    );
+  } catch (err) {
+    if (err.errno !== 1061) {
+      console.error('[migration] idx_contrib_public_token error:', err.message);
+    }
+  }
+
+  // Create payment_requests table (idempotent) — Public Contribution Portal
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS payment_requests (
+        id               INT AUTO_INCREMENT PRIMARY KEY,
+        contribution_id  INT            NOT NULL,
+        submitted_amount DECIMAL(15,2)  NOT NULL,
+        reference_number VARCHAR(100)   NULL,
+        message          TEXT           NULL,
+        status           ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+        submitted_at     TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        reviewed_at      DATETIME       NULL,
+        reviewed_by      INT            NULL,
+        INDEX idx_payment_requests_contribution (contribution_id)
+      )
+    `);
+    console.log('[migration] payment_requests table ready');
+  } catch (err) {
+    console.error('[migration] payment_requests table error:', err.message);
+  }
+}
+
+// ── One-time data migration: backfill public_token for existing rows ─
+// Processes only contributions where public_token IS NULL (idempotent).
+async function backfillPublicTokens() {
+  const crypto = require('crypto');
+  try {
+    const [rows] = await pool.query(
+      'SELECT id FROM contributions WHERE public_token IS NULL'
+    );
+    if (!rows.length) return;
+
+    let migrated = 0;
+    for (const c of rows) {
+      let attempts = 0;
+      while (attempts < 3) {
+        attempts++;
+        try {
+          await pool.query(
+            'UPDATE contributions SET public_token = ? WHERE id = ?',
+            [crypto.randomUUID(), c.id]
+          );
+          migrated++;
+          break;
+        } catch (rowErr) {
+          if (rowErr.errno === 1062 && attempts < 3) continue; // token collision, retry
+          console.error(`[migration] Failed to backfill public_token for contribution ${c.id}:`, rowErr.message);
+          break;
+        }
+      }
+    }
+
+    if (migrated > 0) {
+      console.log(`[migration] Backfilled public_token for ${migrated} contribution(s)`);
+    }
+  } catch (err) {
+    if (err.errno !== 1146 && err.errno !== 1054) {
+      console.error('[migration] backfillPublicTokens error:', err.message);
+    }
+  }
 }
 
 // ── One-time data migration: populate global contributors table ─
@@ -335,6 +423,12 @@ async function start() {
     await deduplicateContributors();
   } catch (err) {
     console.error('[migration] Deduplication failed (non-fatal):', err.message);
+  }
+
+  try {
+    await backfillPublicTokens();
+  } catch (err) {
+    console.error('[migration] public_token backfill failed (non-fatal):', err.message);
   }
 
   startCron();

@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const pool = require('../config/db');
 
 // MySQL error codes for schema mismatches (missing column or table)
@@ -23,7 +24,7 @@ const Contribution = {
     const buildQuery = (includeHiddenFilter, includeSmsTracking, includeAssignments) => {
       let q = `
         SELECT c.id, c.event_id, c.contributor_name, c.phone, c.email,
-               c.amount, c.paid_amount, c.status, c.created_at, c.updated_at,
+               c.amount, c.paid_amount, c.status, c.public_token, c.created_at, c.updated_at,
                ${includeSmsTracking ? 'c.sms_sent, c.sms_sent_at,' : ''}
                e.name AS event_name, e.organization_id, e.created_by AS event_created_by
         FROM contributions c
@@ -128,7 +129,7 @@ const Contribution = {
   async findById(id) {
     const runQuery = (includeSmsTracking) => pool.query(
       `SELECT c.id, c.event_id, c.contributor_name, c.phone, c.email,
-              c.amount, c.paid_amount, c.status, c.is_hidden, c.hidden_at,
+              c.amount, c.paid_amount, c.status, c.is_hidden, c.hidden_at, c.public_token,
               ${includeSmsTracking ? 'c.sms_sent, c.sms_sent_at,' : ''}
               c.created_at, c.updated_at,
               e.name AS event_name, e.organization_id, e.created_by AS event_created_by
@@ -149,13 +150,38 @@ const Contribution = {
     }
   },
 
+  // ── findByToken ─────────────────────────────────────────────
+  // Public Contribution Portal lookup — never returns hidden contributions.
+  async findByToken(token) {
+    const [rows] = await pool.query(
+      `SELECT c.id, c.event_id, c.contributor_name, c.phone, c.email,
+              c.amount, c.paid_amount, c.status, c.public_token,
+              c.created_at, c.updated_at,
+              e.name AS event_name, e.organization_id, e.created_by AS event_created_by
+       FROM contributions c
+       JOIN events e ON e.id = c.event_id
+       WHERE c.public_token = ? AND c.is_hidden = FALSE`,
+      [token]
+    );
+    return rows[0] || null;
+  },
+
   // ── create ──────────────────────────────────────────────────
   async create({ event_id, contributor_name, phone, email, amount }) {
-    const [result] = await pool.query(
-      'INSERT INTO contributions (event_id, contributor_name, phone, email, amount) VALUES (?, ?, ?, ?, ?)',
-      [event_id, contributor_name, phone || null, email || null, amount]
-    );
-    return result.insertId;
+    let attempts = 0;
+    while (true) {
+      attempts++;
+      try {
+        const [result] = await pool.query(
+          'INSERT INTO contributions (event_id, contributor_name, phone, email, amount, public_token) VALUES (?, ?, ?, ?, ?, ?)',
+          [event_id, contributor_name, phone || null, email || null, amount, crypto.randomUUID()]
+        );
+        return result.insertId;
+      } catch (err) {
+        if (err.errno === 1062 && attempts < 3) continue; // public_token collision, retry
+        throw err;
+      }
+    }
   },
 
   // ── update ──────────────────────────────────────────────────

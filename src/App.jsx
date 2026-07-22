@@ -12,6 +12,8 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Settings from './pages/Settings';
 import HiddenRecords from './pages/HiddenRecords';
+import PaymentRequests from './pages/PaymentRequests';
+import PublicContribution from './pages/PublicContribution';
 import NotFound from './pages/NotFound';
 import AdminDashboard from './components/admin/AdminDashboard';
 import ClientDashboard from './components/client/ClientDashboard';
@@ -66,6 +68,10 @@ function AppRoutes() {
         element={authCtx.user ? <Navigate to="/dashboard" replace /> : <ResetPassword />}
       />
 
+      {/* Public Contribution Portal — no login required, works regardless
+          of whether the visitor is separately logged in as staff. */}
+      <Route path="/pay/:token" element={<PublicContribution />} />
+
       {/* ── Internal tab routes (SPA — no page reload) ────── */}
       <Route path="/dashboard"    element={dashboardEl} />
       <Route path="/events"       element={dashboardEl} />
@@ -83,6 +89,10 @@ function AppRoutes() {
       <Route
         path="/hidden-records"
         element={<ProtectedRoute><HiddenRecords /></ProtectedRoute>}
+      />
+      <Route
+        path="/payment-requests"
+        element={<ProtectedRoute><PaymentRequests /></ProtectedRoute>}
       />
 
       {/* ── Root redirect ──────────────────────────────────── */}

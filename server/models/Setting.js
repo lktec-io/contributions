@@ -37,6 +37,26 @@ const Setting = {
     return toMap(rows);
   },
 
+  // ── getPaymentMethods ────────────────────────────────────────
+  // Public Contribution Portal: resolves the 3 payment-method strings for a
+  // contribution's owning event. client_user-owned values (personal scope,
+  // keyed by contribution.organization_id) take precedence over the managing
+  // admin's org-wide defaults (org scope, keyed by contribution.event_created_by).
+  // Only the 3 named keys are ever returned — never the full settings map.
+  async getPaymentMethods(contribution) {
+    const KEYS = ['payment_mpesa', 'payment_mixx', 'payment_bank'];
+    const [personal, org] = await Promise.all([
+      Setting.getPersonal(contribution.organization_id),
+      Setting.getOrg(contribution.event_created_by),
+    ]);
+    const merged = { ...org, ...personal };
+    const result = {};
+    for (const key of KEYS) {
+      if (merged[key]) result[key] = merged[key];
+    }
+    return result;
+  },
+
   // ── Write helpers ─────────────────────────────────────────────
 
   async upsert(userId, orgId, key, value) {

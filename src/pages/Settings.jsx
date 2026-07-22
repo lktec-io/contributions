@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   FiUser, FiSettings, FiBell, FiShield, FiGlobe,
   FiMessageSquare, FiEye, FiEyeOff, FiArrowLeft,
-  FiSave, FiCheck, FiImage, FiAlertCircle,
+  FiSave, FiCheck, FiImage, FiAlertCircle, FiCreditCard,
 } from 'react-icons/fi';
 import { AuthContext } from '../context/AuthContext';
 import { ToastContext } from '../context/ToastContext';
@@ -163,6 +163,13 @@ export default function Settings() {
   const [savingNotif, setSavingNotif] = useState(false);
   const [doneNotif,   setDoneNotif]   = useState(false);
 
+  // admin / client_user: payment methods shown on the public contribution portal
+  const [paymentMethods, setPaymentMethods] = useState({
+    payment_mpesa: '', payment_mixx: '', payment_bank: '',
+  });
+  const [savingPayment, setSavingPayment] = useState(false);
+  const [donePayment,   setDonePayment]   = useState(false);
+
   // all roles: password change
   const [pw,     setPw]     = useState({ current_password: '', new_password: '', confirm: '' });
   const [showPw, setShowPw] = useState({ current: false, new: false, confirm: false });
@@ -192,6 +199,11 @@ export default function Settings() {
           sms_provider:         d.sms_provider         ?? 'beem',
         });
         setNotifPref(d.notification_preference ?? 'true');
+        setPaymentMethods({
+          payment_mpesa: d.payment_mpesa ?? '',
+          payment_mixx:  d.payment_mixx  ?? '',
+          payment_bank:  d.payment_bank  ?? '',
+        });
       } catch (err) {
         toast.error(getErrorMessage(err));
       } finally {
@@ -255,6 +267,18 @@ export default function Settings() {
     } finally { setSavingOrg(false); }
   }
 
+  async function savePaymentMethods(e) {
+    e.preventDefault();
+    setSavingPayment(true);
+    try {
+      await settingsService.update(paymentMethods);
+      toast.success('Payment methods saved');
+      flash(setDonePayment);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally { setSavingPayment(false); }
+  }
+
   async function saveNotif(e) {
     e.preventDefault();
     setSavingNotif(true);
@@ -295,6 +319,9 @@ export default function Settings() {
     ] : []),
     ...(role === 'admin' ? [
       { id: 'org',         label: 'Organisation',   Icon: FiGlobe         },
+    ] : []),
+    ...(role === 'admin' || role === 'client_user' ? [
+      { id: 'payment-methods', label: 'Payment Methods', Icon: FiCreditCard },
     ] : []),
     { id: 'notifications', label: 'Notifications',  Icon: FiBell          },
     { id: 'security',      label: 'Security',        Icon: FiShield        },
@@ -498,6 +525,45 @@ export default function Settings() {
 
               <div className="st-form-footer">
                 <SaveBtn loading={savingOrg} done={doneOrg} />
+              </div>
+            </form>
+          </SectionCard>
+        );
+
+      // ── Payment Methods (admin / client_user) ────────────────
+      case 'payment-methods':
+        return (
+          <SectionCard
+            title="Payment Methods"
+            subtitle="Shown as read-only details on your contributors' public contribution pages. Leave blank to hide."
+          >
+            <form onSubmit={savePaymentMethods} className="st-form">
+              <Field label="M-Pesa" hint="e.g. 0712 345 678 - John Doe">
+                <input
+                  className="st-input"
+                  value={paymentMethods.payment_mpesa}
+                  onChange={e => setPaymentMethods(p => ({ ...p, payment_mpesa: e.target.value }))}
+                  placeholder="0712 345 678 - John Doe"
+                />
+              </Field>
+              <Field label="Mixx" hint="e.g. 0782 345 678 - John Doe">
+                <input
+                  className="st-input"
+                  value={paymentMethods.payment_mixx}
+                  onChange={e => setPaymentMethods(p => ({ ...p, payment_mixx: e.target.value }))}
+                  placeholder="0782 345 678 - John Doe"
+                />
+              </Field>
+              <Field label="Bank" hint="e.g. CRDB - 0150 234 567 890 - John Doe">
+                <input
+                  className="st-input"
+                  value={paymentMethods.payment_bank}
+                  onChange={e => setPaymentMethods(p => ({ ...p, payment_bank: e.target.value }))}
+                  placeholder="CRDB - 0150 234 567 890 - John Doe"
+                />
+              </Field>
+              <div className="st-form-footer">
+                <SaveBtn loading={savingPayment} done={donePayment} />
               </div>
             </form>
           </SectionCard>

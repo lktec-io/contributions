@@ -19,13 +19,23 @@ function fmtAmt(amount) {
   return parseFloat(amount || 0).toLocaleString('en', { maximumFractionDigits: 0 });
 }
 
-function buildMessage(name, pledged, paid, balance, eventName) {
-  return (
+function buildMessage(name, pledged, paid, balance, eventName, link) {
+  let message = (
     `[${(eventName || 'Finance Hub').toUpperCase()}]\n` +
     `Habari ${(name || '').toUpperCase()}, Hatua uliyopiga ni kubwa, tayari umechangia TZS ${fmtAmt(paid)}.\n` +
     `Lengo ni TZS ${fmtAmt(pledged)}, kiasi kilichobaki ni TZS ${fmtAmt(balance)} tu kumaliza.\n` +
     `Tafadhali kamilisha mchango wako. Asante sana!`
   );
+  if (link) {
+    message += `\nAngalia taarifa zako za mchango na jinsi ya kulipia hapa:\n${link}`;
+  }
+  return message;
+}
+
+function buildPortalLink(contribution) {
+  if (!contribution.public_token) return null;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  return `${frontendUrl}/pay/${contribution.public_token}`;
 }
 
 async function checkBulkLimit(userId) {
@@ -105,7 +115,7 @@ async function sendReminder(req, res) {
     const pledged = parseFloat(contribution.amount)      || 0;
     const paid    = parseFloat(contribution.paid_amount) || 0;
     const balance = pledged - paid;
-    const message = buildMessage(contribution.contributor_name, pledged, paid, balance, contribution.event_name);
+    const message = buildMessage(contribution.contributor_name, pledged, paid, balance, contribution.event_name, buildPortalLink(contribution));
 
     await sendBeemSms(phone, message);
 
@@ -164,7 +174,7 @@ async function sendBulkReminders(req, res) {
         const pledged = parseFloat(c.amount)      || 0;
         const paid    = parseFloat(c.paid_amount) || 0;
         const balance = pledged - paid;
-        const message = buildMessage(c.contributor_name, pledged, paid, balance, c.event_name);
+        const message = buildMessage(c.contributor_name, pledged, paid, balance, c.event_name, buildPortalLink(c));
 
         await sendBeemSms(phone, message);
 

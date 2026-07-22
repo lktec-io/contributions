@@ -3,6 +3,31 @@ const Contribution = require('../models/Contribution');
 const Notification = require('../models/Notification');
 const { canAccessContribution } = require('../utils/tenantHelpers');
 
+// ── recordPayment ────────────────────────────────────────────
+// Single source of truth for crediting a payment against a contribution:
+// insert into payment_history, recompute paid_amount/status, notify.
+// Used by the manual "Record Payment" flow (create() below) and by the
+// Payment Requests approval flow (paymentRequestController.js).
+async function recordPayment({ contribution, amount, note, recordedBy }) {
+  await Payment.create({
+    contribution_id: contribution.id,
+    amount,
+    note: note || null,
+    recorded_by: recordedBy,
+  });
+
+  await Contribution.updatePaymentStatus(contribution.id);
+
+  await Notification.create({
+    user_id: contribution.organization_id,
+    title: 'Payment Recorded',
+    message: `Payment of ${amount.toLocaleString()} recorded for ${contribution.contributor_name}.`,
+    type: 'payment_recorded',
+  });
+
+  return Contribution.findById(contribution.id);
+}
+
 async function create(req, res, next) {
   try {
     const { contribution_id, amount, note } = req.body;
@@ -31,23 +56,13 @@ async function create(req, res, next) {
       return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
     }
 
-    await Payment.create({
-      contribution_id,
+    const updatedContribution = await recordPayment({
+      contribution,
       amount: parsedAmount,
-      note: note || null,
-      recorded_by: req.user.userId,
+      note,
+      recordedBy: req.user.userId,
     });
 
-    await Contribution.updatePaymentStatus(contribution_id);
-
-    await Notification.create({
-      user_id: contribution.organization_id,
-      title: 'Payment Recorded',
-      message: `Payment of ${parsedAmount.toLocaleString()} recorded for ${contribution.contributor_name}.`,
-      type: 'payment_recorded',
-    });
-
-    const updatedContribution = await Contribution.findById(contribution_id);
     return res.status(201).json({ success: true, data: updatedContribution });
   } catch (err) {
     next(err);
@@ -71,4 +86,4 @@ async function getByContribution(req, res, next) {
   }
 }
 
-module.exports = { create, getByContribution };
+module.exports = { create, getByContribution, recordPayment };

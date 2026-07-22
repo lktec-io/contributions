@@ -1,18 +1,19 @@
 import { useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  FiGrid, FiUsers, FiCalendar, FiList, FiHome, FiShield, FiSettings, FiArchive,
+  FiGrid, FiUsers, FiCalendar, FiList, FiHome, FiShield, FiSettings, FiArchive, FiCheckCircle,
 } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import './Sidebar.css';
 
 // Maps sidebar tab IDs to their URL paths
 const TAB_PATHS = {
-  dashboard:     '/dashboard',
-  users:         '/users',
-  events:        '/events',
-  contributions: '/contributions',
-  admins:        '/admins',
+  dashboard:         '/dashboard',
+  users:             '/users',
+  events:            '/events',
+  contributions:     '/contributions',
+  admins:            '/admins',
+  'payment-requests': '/payment-requests',
 };
 
 const ADMIN_ITEMS = [
@@ -20,6 +21,7 @@ const ADMIN_ITEMS = [
   { id: 'users',         label: 'User Management', Icon: FiUsers },
   { id: 'events',        label: 'Events',           Icon: FiCalendar },
   { id: 'contributions', label: 'Contributions',    Icon: FiGrid },
+  { id: 'payment-requests', label: 'Payment Requests', Icon: FiCheckCircle },
 ];
 
 const SUPER_ADMIN_EXTRA = [
@@ -30,6 +32,7 @@ const CLIENT_ITEMS = [
   { id: 'dashboard',     label: 'Dashboard',       Icon: FiHome },
   { id: 'events',        label: 'My Events',        Icon: FiCalendar },
   { id: 'contributions', label: 'My Contributions', Icon: FiList },
+  { id: 'payment-requests', label: 'Payment Requests', Icon: FiCheckCircle },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {

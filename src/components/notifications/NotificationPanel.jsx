@@ -1,23 +1,27 @@
 import { forwardRef, useEffect, useState } from 'react';
 import {
   FiCalendar, FiDollarSign, FiCheckCircle, FiBell,
-  FiEye, FiTrash2, FiCheck, FiX,
+  FiEye, FiTrash2, FiCheck, FiX, FiClock, FiXCircle,
 } from 'react-icons/fi';
 import { formatDateTime } from '../../utils/formatters';
 import './NotificationPanel.css';
 
 const TYPE_ICONS = {
-  event_assigned:     FiCalendar,
-  contribution_added: FiDollarSign,
-  payment_recorded:   FiCheckCircle,
-  system:             FiBell,
+  event_assigned:                 FiCalendar,
+  contribution_added:             FiDollarSign,
+  payment_recorded:               FiCheckCircle,
+  payment_verification_requested: FiClock,
+  payment_verification_rejected:  FiXCircle,
+  system:                         FiBell,
 };
 
 const TYPE_COLORS = {
-  event_assigned:     '#A78BFA',
-  contribution_added: '#FFA500',
-  payment_recorded:   '#00B894',
-  system:             '#3B82F6',
+  event_assigned:                 '#A78BFA',
+  contribution_added:             '#FFA500',
+  payment_recorded:               '#00B894',
+  payment_verification_requested: '#FFA500',
+  payment_verification_rejected:  '#FF4C4C',
+  system:                         '#3B82F6',
 };
 
 const NotificationPanel = forwardRef(function NotificationPanel(
