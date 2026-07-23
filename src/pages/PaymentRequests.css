@@ -83,7 +83,7 @@
 }
 
 @media (max-width: 768px) {
-  .table-wrap { display: none; }
+  .payment-requests .table-wrap { display: none; }
   .pr-card-list { display: flex; flex-direction: column; gap: 12px; }
 }
 

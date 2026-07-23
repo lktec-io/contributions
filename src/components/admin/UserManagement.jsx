@@ -222,6 +222,56 @@ export default function UserManagement() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile card list */}
+          <div className="um-card-list">
+            {users.map(u => (
+              <div key={u.id} className="um-card">
+                <div className="um-card-row um-card-top">
+                  <span className="um-card-name">{u.name}</span>
+                  <span className={`role-badge role-${u.role}`}>
+                    {ROLE_LABELS[u.role] || u.role}
+                  </span>
+                </div>
+                <div className="um-card-row">
+                  <span className="um-card-label">Email</span>
+                  <span className="um-card-value">{u.email}</span>
+                </div>
+                <div className="um-card-row">
+                  <span className="um-card-label">Status</span>
+                  <span className={`status-pill ${u.is_active ? 'pill-active' : 'pill-inactive'}`}>
+                    {u.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <div className="um-card-row">
+                  <span className="um-card-label">Created</span>
+                  <span className="um-card-value">{formatDate(u.created_at)}</span>
+                </div>
+                <div className="um-card-actions">
+                  <button
+                    className={`btn-sm ${u.is_active ? 'btn-sm-warning' : 'btn-sm-success'}`}
+                    onClick={() => handleToggleStatus(u)}
+                    disabled={togglingId === u.id}
+                  >
+                    {togglingId === u.id ? '…' : u.is_active ? 'Deactivate' : 'Activate'}
+                  </button>
+                  <button
+                    className="btn-sm btn-sm-orange"
+                    onClick={() => setConfirmHide(u)}
+                    title="Move to hidden (recoverable for 30 days)"
+                  >
+                    <FiArchive size={12} /> Hide
+                  </button>
+                  <button
+                    className="btn-sm btn-sm-danger"
+                    onClick={() => { setSelectedUser(u); setShowConfirm(true); }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

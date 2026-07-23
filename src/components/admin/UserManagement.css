@@ -129,6 +129,51 @@
   pointer-events: none;
 }
 
+/* ── Mobile card list ───────────────────────────────────── */
+.um-card-list {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .user-management .table-wrap { display: none; }
+  .um-card-list { display: flex; flex-direction: column; gap: 12px; }
+}
+
+.um-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 12px;
+  background-color: var(--bg-input);
+}
+
+.um-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.um-card-top { margin-bottom: 4px; }
+
+.um-card-name { font-weight: 600; }
+
+.um-card-label { font-size: 12px; color: var(--text-secondary); }
+.um-card-value { font-size: 13px; font-weight: 500; text-align: right; }
+
+.um-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.um-card-actions .btn-sm {
+  flex: 1;
+  min-width: 80px;
+  text-align: center;
+}
+
 /* ── Mobile ──────────────────────────────────── */
 @media (max-width: 480px) {
   /* Tighter role / status badges */

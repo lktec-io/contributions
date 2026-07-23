@@ -193,6 +193,46 @@ export default function AdminManagement() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile card list */}
+          <div className="am-card-list">
+            {admins.map(a => (
+              <div key={a.id} className="am-card">
+                <div className="am-card-row am-card-top">
+                  <span className="am-card-name">
+                    <FiShield size={13} className="admin-shield-icon" />
+                    {a.name}
+                  </span>
+                  <span className={`status-pill ${a.is_active ? 'pill-active' : 'pill-inactive'}`}>
+                    {a.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <div className="am-card-row">
+                  <span className="am-card-label">Email</span>
+                  <span className="am-card-value">{a.email}</span>
+                </div>
+                <div className="am-card-row">
+                  <span className="am-card-label">Created</span>
+                  <span className="am-card-value">{formatDate(a.created_at)}</span>
+                </div>
+                <div className="am-card-actions">
+                  <button
+                    className={`btn-sm ${a.is_active ? 'btn-sm-warning' : 'btn-sm-success'}`}
+                    onClick={() => handleToggle(a)}
+                    disabled={togglingId === a.id}
+                  >
+                    {togglingId === a.id ? '…' : a.is_active ? 'Deactivate' : 'Activate'}
+                  </button>
+                  <button
+                    className="btn-sm btn-sm-danger"
+                    onClick={() => { setSelected(a); setShowConfirm(true); }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

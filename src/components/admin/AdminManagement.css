@@ -22,3 +22,53 @@
   color: #A78BFA;
   border: 1px solid rgba(167, 139, 250, 0.25);
 }
+
+/* ── Mobile card list ───────────────────────────────────── */
+.am-card-list {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .admin-management .table-wrap { display: none; }
+  .am-card-list { display: flex; flex-direction: column; gap: 12px; }
+}
+
+.am-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 12px;
+  background-color: var(--bg-input);
+}
+
+.am-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.am-card-top { margin-bottom: 4px; }
+
+.am-card-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.am-card-label { font-size: 12px; color: var(--text-secondary); }
+.am-card-value { font-size: 13px; font-weight: 500; text-align: right; }
+
+.am-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.am-card-actions .btn-sm {
+  flex: 1;
+  min-width: 80px;
+  text-align: center;
+}

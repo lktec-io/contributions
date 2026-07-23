@@ -199,6 +199,49 @@ export default function AdminContributions() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile card list */}
+          <div className="ac-card-list">
+            {contributions.map(c => (
+              <div key={c.id} className="ac-card">
+                <div className="ac-card-row ac-card-top">
+                  <span className="ac-card-name">{c.contributor_name}</span>
+                  <span className={getStatusBadgeClass(c.status)}>{c.status}</span>
+                </div>
+                <div className="ac-card-row">
+                  <span className="ac-card-label">Event</span>
+                  <span className="ac-card-value">{c.event_name}</span>
+                </div>
+                <div className="ac-card-row">
+                  <span className="ac-card-label">Owner</span>
+                  <span className="ac-card-value">{c.owner_name || '—'}</span>
+                </div>
+                <div className="ac-card-row">
+                  <span className="ac-card-label">Pledged</span>
+                  <span className="ac-card-value">{formatCurrency(c.amount)}</span>
+                </div>
+                <div className="ac-card-row">
+                  <span className="ac-card-label">Paid</span>
+                  <span className="ac-card-value">{formatCurrency(c.paid_amount)}</span>
+                </div>
+                <div className="ac-card-row">
+                  <span className="ac-card-label">Outstanding</span>
+                  <span className="ac-card-value">
+                    {formatCurrency(parseFloat(c.amount) - parseFloat(c.paid_amount))}
+                  </span>
+                </div>
+                <div className="ac-card-row">
+                  <span className="ac-card-label">Date</span>
+                  <span className="ac-card-value">{formatDate(c.created_at)}</span>
+                </div>
+                <div className="ac-card-actions">
+                  <button className="ac-action-btn" onClick={() => setConfirmHide(c)}>
+                    <FiArchive size={14} /> Hide
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
