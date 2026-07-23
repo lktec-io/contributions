@@ -9,4 +9,7 @@ export const paymentRequestService = {
 
   reject: (id) =>
     api.post(`/payment-requests/${id}/reject`),
+
+  remove: (id) =>
+    api.delete(`/payment-requests/${id}`),
 };

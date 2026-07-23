@@ -10,6 +10,21 @@ const ERR_TABLE_NOT_EXISTS = 1146;
 const isSchemaErr = (err) =>
   err.errno === ERR_UNKNOWN_COLUMN || err.errno === ERR_TABLE_NOT_EXISTS;
 
+// ── generatePublicToken ──────────────────────────────────────
+// Short (default 8-char), cryptographically secure, unbiased alphanumeric
+// token for public contribution links. Uses rejection sampling so every
+// character of the 62-char alphabet has equal probability.
+const TOKEN_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+const TOKEN_BYTE_CUTOFF = 256 - (256 % TOKEN_ALPHABET.length);
+function generatePublicToken(length = 8) {
+  let token = '';
+  while (token.length < length) {
+    const byte = crypto.randomBytes(1)[0];
+    if (byte < TOKEN_BYTE_CUTOFF) token += TOKEN_ALPHABET[byte % TOKEN_ALPHABET.length];
+  }
+  return token;
+}
+
 const Contribution = {
 
   // ── findAll ─────────────────────────────────────────────────
@@ -174,7 +189,7 @@ const Contribution = {
       try {
         const [result] = await pool.query(
           'INSERT INTO contributions (event_id, contributor_name, phone, email, amount, public_token) VALUES (?, ?, ?, ?, ?, ?)',
-          [event_id, contributor_name, phone || null, email || null, amount, crypto.randomUUID()]
+          [event_id, contributor_name, phone || null, email || null, amount, generatePublicToken()]
         );
         return result.insertId;
       } catch (err) {
@@ -316,3 +331,4 @@ const Contribution = {
 };
 
 module.exports = Contribution;
+module.exports.generatePublicToken = generatePublicToken;

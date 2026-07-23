@@ -38,23 +38,43 @@ const Setting = {
   },
 
   // ── getPaymentMethods ────────────────────────────────────────
-  // Public Contribution Portal: resolves the 3 payment-method strings for a
-  // contribution's owning event. client_user-owned values (personal scope,
-  // keyed by contribution.organization_id) take precedence over the managing
-  // admin's org-wide defaults (org scope, keyed by contribution.event_created_by).
-  // Only the 3 named keys are ever returned — never the full settings map.
+  // Public Contribution Portal: resolves the structured mobile-money/bank
+  // lists for a contribution's owning event. client_user-owned values
+  // (personal scope, keyed by contribution.organization_id) take precedence
+  // over the managing admin's org-wide defaults (org scope, keyed by
+  // contribution.event_created_by) — resolved independently per list, so a
+  // client_user who's only customised one of the two still inherits the
+  // other from their admin. Only public-safe display fields are ever
+  // returned — never internal ids/enabled/order, never the full settings map.
   async getPaymentMethods(contribution) {
-    const KEYS = ['payment_mpesa', 'payment_mixx', 'payment_bank'];
     const [personal, org] = await Promise.all([
       Setting.getPersonal(contribution.organization_id),
       Setting.getOrg(contribution.event_created_by),
     ]);
-    const merged = { ...org, ...personal };
-    const result = {};
-    for (const key of KEYS) {
-      if (merged[key]) result[key] = merged[key];
-    }
-    return result;
+
+    const parseList = (raw) => {
+      if (!raw) return [];
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const sortByOrder = (a, b) => (Number(a.order) || 0) - (Number(b.order) || 0);
+
+    const mobile = parseList(personal.payment_methods_mobile || org.payment_methods_mobile)
+      .filter(m => m.enabled !== false && m.phone)
+      .sort(sortByOrder)
+      .map(({ network, account_name, phone }) => ({ network, account_name, phone }));
+
+    const bank = parseList(personal.payment_methods_bank || org.payment_methods_bank)
+      .filter(b => b.enabled !== false && b.account_number)
+      .sort(sortByOrder)
+      .map(({ bank_name, account_name, account_number, branch }) => ({ bank_name, account_name, account_number, branch: branch || null }));
+
+    return { mobile, bank };
   },
 
   // ── Write helpers ─────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiRefreshCw, FiCheck, FiX, FiAlertTriangle, FiCheckCircle } from 'react-icons/fi';
+import { FiArrowLeft, FiRefreshCw, FiCheck, FiX, FiAlertTriangle, FiCheckCircle, FiTrash2 } from 'react-icons/fi';
 import { ToastContext } from '../context/ToastContext';
 import { paymentRequestService } from '../services/paymentRequestService';
 import { formatCurrency, formatDateTime, getStatusBadgeClass } from '../utils/formatters';
@@ -20,6 +20,7 @@ export default function PaymentRequests() {
 
   const [confirmApprove, setConfirmApprove] = useState(null);
   const [confirmReject, setConfirmReject]   = useState(null);
+  const [confirmDelete, setConfirmDelete]   = useState(null);
   const [actionLoading, setActionLoading]   = useState(false);
 
   const fetchAll = useCallback(async () => {
@@ -57,6 +58,20 @@ export default function PaymentRequests() {
       await paymentRequestService.reject(confirmReject.id);
       toast.success(`Request from "${confirmReject.contributor_name}" rejected`);
       setConfirmReject(null);
+      fetchAll();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setActionLoading(true);
+    try {
+      await paymentRequestService.remove(confirmDelete.id);
+      toast.success(`Request from "${confirmDelete.contributor_name}" deleted`);
+      setConfirmDelete(null);
       fetchAll();
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -136,6 +151,10 @@ export default function PaymentRequests() {
                             <FiX size={15} />
                           </button>
                         </>
+                      ) : r.status === 'rejected' ? (
+                        <button className="icon-btn icon-btn-red" title="Delete" onClick={() => setConfirmDelete(r)}>
+                          <FiTrash2 size={15} />
+                        </button>
                       ) : '—'}
                     </td>
                   </tr>
@@ -178,6 +197,13 @@ export default function PaymentRequests() {
                     </button>
                   </div>
                 )}
+                {r.status === 'rejected' && (
+                  <div className="pr-card-actions">
+                    <button className="pr-action-btn pr-action-reject" onClick={() => setConfirmDelete(r)}>
+                      <FiTrash2 size={14} /> Delete
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -201,6 +227,16 @@ export default function PaymentRequests() {
         title="Reject Payment Request"
         message={`Reject this payment request from "${confirmReject?.contributor_name}"? They will be notified to contact you.`}
         confirmText="Reject"
+        confirmVariant="danger"
+        loading={actionLoading}
+      />
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={handleDelete}
+        title="Delete Payment Request"
+        message={`Permanently delete this rejected request from "${confirmDelete?.contributor_name}"? This cannot be undone.`}
+        confirmText="Delete"
         confirmVariant="danger"
         loading={actionLoading}
       />

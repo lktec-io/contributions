@@ -25,15 +25,13 @@ const ROLE_KEYS = {
     'enable_sms',
     'sms_provider',
     'notification_preference',
-    'payment_mpesa',
-    'payment_mixx',
-    'payment_bank',
+    'payment_methods_mobile',
+    'payment_methods_bank',
   ],
   client_user: [
     'notification_preference',
-    'payment_mpesa',
-    'payment_mixx',
-    'payment_bank',
+    'payment_methods_mobile',
+    'payment_methods_bank',
   ],
 };
 

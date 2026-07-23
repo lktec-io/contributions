@@ -573,3 +573,115 @@
   .st-toggle-sub   { font-size: 11px; }
   .st-toggle-row   { gap: 12px; }
 }
+
+/* ── Payment methods list editor ──────────────────── */
+.st-pm-section + .st-pm-section {
+  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.st-pm-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.st-pm-empty {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.st-pm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.st-pm-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 12px;
+}
+
+.st-pm-row-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.st-pm-row-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.st-pm-row-order { max-width: 90px; }
+
+.st-pm-row-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.st-pm-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.st-pm-remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--border-radius);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--accent-red);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.st-pm-remove-btn:hover {
+  background: rgba(255, 76, 76, 0.12);
+  border-color: var(--accent-red);
+}
+
+.st-pm-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px dashed var(--border-color);
+  color: var(--accent-green);
+  border-radius: var(--border-radius);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.st-pm-add-btn:hover {
+  background: rgba(0, 184, 148, 0.08);
+  border-color: var(--accent-green);
+}
+
+@media (max-width: 640px) {
+  .st-pm-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .st-pm-row-actions {
+    justify-content: space-between;
+  }
+}

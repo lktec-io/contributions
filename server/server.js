@@ -202,13 +202,15 @@ async function ensureSchema() {
   }
 }
 
-// ── One-time data migration: backfill public_token for existing rows ─
-// Processes only contributions where public_token IS NULL (idempotent).
-async function backfillPublicTokens() {
-  const crypto = require('crypto');
+// ── One-time data migration: normalize public_token for existing rows ─
+// Catches rows with no token yet (never backfilled) AND rows still holding
+// a long-format token (e.g. the original UUID format) — everyone ends up
+// with a short (<=10 char) token. Idempotent: re-running finds nothing to do.
+async function normalizePublicTokens() {
+  const { generatePublicToken } = require('./models/Contribution');
   try {
     const [rows] = await pool.query(
-      'SELECT id FROM contributions WHERE public_token IS NULL'
+      'SELECT id FROM contributions WHERE public_token IS NULL OR LENGTH(public_token) > 10'
     );
     if (!rows.length) return;
 
@@ -220,24 +222,24 @@ async function backfillPublicTokens() {
         try {
           await pool.query(
             'UPDATE contributions SET public_token = ? WHERE id = ?',
-            [crypto.randomUUID(), c.id]
+            [generatePublicToken(), c.id]
           );
           migrated++;
           break;
         } catch (rowErr) {
           if (rowErr.errno === 1062 && attempts < 3) continue; // token collision, retry
-          console.error(`[migration] Failed to backfill public_token for contribution ${c.id}:`, rowErr.message);
+          console.error(`[migration] Failed to normalize public_token for contribution ${c.id}:`, rowErr.message);
           break;
         }
       }
     }
 
     if (migrated > 0) {
-      console.log(`[migration] Backfilled public_token for ${migrated} contribution(s)`);
+      console.log(`[migration] Normalized public_token for ${migrated} contribution(s)`);
     }
   } catch (err) {
     if (err.errno !== 1146 && err.errno !== 1054) {
-      console.error('[migration] backfillPublicTokens error:', err.message);
+      console.error('[migration] normalizePublicTokens error:', err.message);
     }
   }
 }
@@ -426,9 +428,9 @@ async function start() {
   }
 
   try {
-    await backfillPublicTokens();
+    await normalizePublicTokens();
   } catch (err) {
-    console.error('[migration] public_token backfill failed (non-fatal):', err.message);
+    console.error('[migration] public_token normalization failed (non-fatal):', err.message);
   }
 
   startCron();

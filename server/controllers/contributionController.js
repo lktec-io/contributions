@@ -1,6 +1,5 @@
 'use strict';
 
-const crypto        = require('crypto');
 const pool          = require('../config/db');
 const Contribution  = require('../models/Contribution');
 const Contributor   = require('../models/Contributor');
@@ -256,7 +255,7 @@ async function createBulk(req, res, next) {
           try {
             const [result] = await conn.query(
               'INSERT INTO contributions (event_id, contributor_name, phone, email, amount, public_token) VALUES (?, ?, ?, ?, ?, ?)',
-              [event.id, contributor_name, phone || null, email || null, parseFloat(amount), crypto.randomUUID()]
+              [event.id, contributor_name, phone || null, email || null, parseFloat(amount), Contribution.generatePublicToken()]
             );
             insertedIds.push(result.insertId);
             break;

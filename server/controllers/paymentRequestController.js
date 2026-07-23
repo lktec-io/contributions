@@ -95,4 +95,33 @@ async function reject(req, res, next) {
   }
 }
 
-module.exports = { list, approve, reject };
+// ── DELETE /api/payment-requests/:id ────────────────────────────────
+// Approved payment history is never deletable — this only removes the
+// payment_requests row itself (never touches payment_history/contributions).
+async function remove(req, res, next) {
+  try {
+    const request = await PaymentRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Payment request not found', errors: [] });
+    }
+    if (request.status === 'approved') {
+      return res.status(400).json({ success: false, message: 'Approved payment requests cannot be deleted', errors: [] });
+    }
+
+    const contribution = await Contribution.findById(request.contribution_id);
+    if (!contribution) {
+      return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
+    }
+    if (!(await canAccessContribution(req, contribution))) {
+      return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+    }
+
+    await PaymentRequest.remove(request.id);
+
+    return res.json({ success: true, message: 'Payment request deleted' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, approve, reject, remove };

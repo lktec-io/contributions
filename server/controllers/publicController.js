@@ -83,12 +83,16 @@ async function submitPaymentRequest(req, res, next) {
       message: message || null,
     });
 
+    const amountLabel = parsedAmount
+      ? `TZS ${parsedAmount.toLocaleString('en', { maximumFractionDigits: 0 })}`
+      : 'an unspecified amount';
+
     const targets = new Set([contribution.organization_id, contribution.event_created_by]);
     for (const userId of targets) {
       await Notification.create({
         user_id: userId,
-        title: 'Payment Confirmation Received',
-        message: `${contribution.contributor_name} says they've paid for "${contribution.event_name}". Please verify.`,
+        title: 'New Payment Request',
+        message: `${contribution.contributor_name.toUpperCase()} — ${contribution.event_name}\nSubmitted ${amountLabel} — Pending Approval`,
         type: 'payment_verification_requested',
       });
     }

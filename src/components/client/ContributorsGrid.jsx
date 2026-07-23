@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { FiEdit2, FiCreditCard, FiTrash2, FiUser, FiPhone, FiMail, FiSend } from 'react-icons/fi';
+import { FiEdit2, FiCreditCard, FiTrash2, FiUser, FiPhone, FiMail, FiSend, FiCopy } from 'react-icons/fi';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { smsService } from '../../services/smsService';
+import { copyToClipboard } from '../../utils/clipboard';
 import { ContributorsGridSkeleton } from '../common/SkeletonLoader';
 import EmptyState from '../common/EmptyState';
 import SuccessToast from '../common/SuccessToast';
@@ -11,6 +12,7 @@ export default function ContributorsGrid({ contributions, loading, hasFilters, o
   const [smsSending,  setSmsSending]  = useState(new Set());
   const [smsSentIds,  setSmsSentIds]  = useState(new Set()); // session-level sent set (DB is authoritative on reload)
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showCopied,  setShowCopied]  = useState(false);
 
   const handleSendReminder = async (c) => {
     if (!c.phone) return;
@@ -24,6 +26,15 @@ export default function ContributorsGrid({ contributions, loading, hasFilters, o
       // silent
     } finally {
       setSmsSending(prev => { const next = new Set(prev); next.delete(c.id); return next; });
+    }
+  };
+
+  const handleCopyLink = async (c) => {
+    if (!c.public_token) return;
+    const ok = await copyToClipboard(`${window.location.origin}/pay/${c.public_token}`);
+    if (ok) {
+      setShowCopied(true);
+      setTimeout(() => setShowCopied(false), 2000);
     }
   };
 
@@ -42,6 +53,7 @@ export default function ContributorsGrid({ contributions, loading, hasFilters, o
   return (
     <>
     <SuccessToast message="SMS sent successfully" show={showSuccess} />
+    <SuccessToast message="Link copied successfully" show={showCopied} />
     <div className="contributors-grid">
       {contributions.map(c => {
         const outstanding = parseFloat(c.amount) - parseFloat(c.paid_amount);
@@ -104,6 +116,14 @@ export default function ContributorsGrid({ contributions, loading, hasFilters, o
                   disabled={!c.phone || isSending || isSent || c.status === 'paid'}
                 >
                   <FiSend size={15} className={isSending ? 'spin' : ''} />
+                </button>
+                <button
+                  className="icon-btn"
+                  onClick={() => handleCopyLink(c)}
+                  title={c.public_token ? 'Copy public contribution link' : 'No public link yet'}
+                  disabled={!c.public_token}
+                >
+                  <FiCopy size={15} />
                 </button>
                 <button className="icon-btn icon-btn-red" onClick={() => onDelete(c)} title="Delete">
                   <FiTrash2 size={16} />

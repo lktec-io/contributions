@@ -24,7 +24,7 @@
 
 .public-card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 6px;
@@ -36,6 +36,14 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-secondary);
+}
+
+.public-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .public-contributor-name {
@@ -124,29 +132,78 @@
 .public-methods-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
-.public-method-item {
+.public-method-card {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.public-method-network {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--accent-green);
+  background: rgba(0, 184, 148, 0.12);
+  border-radius: 20px;
+  padding: 3px 10px;
+  margin-bottom: 2px;
+}
+
+.public-method-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  background-color: var(--bg-input);
-  border-radius: var(--border-radius);
-  padding: 8px 12px;
   font-size: 13px;
 }
 
-.public-method-label {
+.public-method-key {
   color: var(--text-secondary);
-  font-weight: 500;
 }
 
-.public-method-value {
+.public-method-val {
   font-weight: 600;
   text-align: right;
   word-break: break-word;
+}
+
+.public-method-val-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.public-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  min-height: unset;
+  padding: 0;
+  border-radius: 7px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+
+.public-copy-btn:hover {
+  color: var(--accent-green);
+  border-color: var(--accent-green);
+  background: rgba(0, 184, 148, 0.08);
 }
 
 .public-banner {
@@ -157,12 +214,6 @@
   border-radius: var(--border-radius);
   font-size: 13px;
   margin-bottom: 16px;
-}
-
-.public-banner-pending {
-  background-color: rgba(255, 165, 0, 0.12);
-  color: var(--accent-orange);
-  border: 1px solid rgba(255, 165, 0, 0.3);
 }
 
 .public-banner-rejected {
@@ -176,6 +227,20 @@
   justify-content: center;
   padding: 12px 16px;
   font-size: 15px;
+}
+
+.public-pay-btn-submitted:disabled {
+  background-color: rgba(0, 184, 148, 0.16);
+  color: var(--accent-green);
+  border: 1px solid rgba(0, 184, 148, 0.35);
+  opacity: 1;
+  cursor: default;
+}
+
+.public-pay-btn-submitted:hover {
+  background-color: rgba(0, 184, 148, 0.16);
+  transform: none;
+  box-shadow: none;
 }
 
 .public-error-card {
@@ -198,4 +263,52 @@
 
 .public-error-card p {
   color: var(--text-secondary);
+}
+
+/* ── Mobile pass ─────────────────────────────────── */
+@media (max-width: 480px) {
+  .public-page {
+    padding: 20px 12px;
+  }
+
+  .public-card {
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .public-contributor-name {
+    font-size: 19px;
+    margin-bottom: 16px;
+  }
+
+  .public-amount-tile {
+    padding: 8px 6px;
+  }
+
+  .public-amount-value {
+    font-size: 12px;
+  }
+
+  .public-method-card {
+    padding: 10px;
+  }
+
+  .public-method-row {
+    font-size: 12.5px;
+  }
+
+  .public-badge-group {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 360px) {
+  .public-card-header {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .public-badge-group {
+    justify-content: flex-start;
+  }
 }

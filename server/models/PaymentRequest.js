@@ -90,6 +90,13 @@ const PaymentRequest = {
       [reviewedBy, id]
     );
   },
+
+  // ── remove ──────────────────────────────────────────────────
+  // Caller must ensure the request isn't 'approved' before calling this —
+  // approved payment history must never be deletable.
+  async remove(id) {
+    await pool.query('DELETE FROM payment_requests WHERE id = ?', [id]);
+  },
 };
 
 module.exports = PaymentRequest;

@@ -4,6 +4,7 @@ import {
   FiUser, FiSettings, FiBell, FiShield, FiGlobe,
   FiMessageSquare, FiEye, FiEyeOff, FiArrowLeft,
   FiSave, FiCheck, FiImage, FiAlertCircle, FiCreditCard,
+  FiPlus, FiTrash2,
 } from 'react-icons/fi';
 import { AuthContext } from '../context/AuthContext';
 import { ToastContext } from '../context/ToastContext';
@@ -114,6 +115,54 @@ const SMS_LABELS = {
   africastalking: "Africa's Talking",
 };
 
+// ── Payment methods list editor ────────────────────────────────────
+const newRowId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const parsePaymentList = (raw) => {
+  try {
+    const parsed = JSON.parse(raw || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+function PaymentMethodRow({ fields, values, onChange, onRemove }) {
+  return (
+    <div className="st-pm-row">
+      <div className="st-pm-row-grid">
+        {fields.map(f => (
+          <div key={f.name} className="st-pm-row-field">
+            <label className="st-pm-row-label">{f.label}</label>
+            <input
+              className="st-input"
+              list={f.list}
+              value={values[f.name] ?? ''}
+              onChange={e => onChange(f.name, e.target.value)}
+              placeholder={f.placeholder}
+            />
+          </div>
+        ))}
+        <div className="st-pm-row-field st-pm-row-order">
+          <label className="st-pm-row-label">Order</label>
+          <input
+            type="number"
+            className="st-input"
+            value={values.order ?? 0}
+            onChange={e => onChange('order', Number(e.target.value) || 0)}
+          />
+        </div>
+      </div>
+      <div className="st-pm-row-actions">
+        <Toggle value={values.enabled !== false} onChange={v => onChange('enabled', v)} />
+        <button type="button" className="st-pm-remove-btn" onClick={onRemove} aria-label="Remove">
+          <FiTrash2 size={15} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ════════════════════════════════════════════════════════════════
 // Settings page
 // ════════════════════════════════════════════════════════════════
@@ -164,9 +213,8 @@ export default function Settings() {
   const [doneNotif,   setDoneNotif]   = useState(false);
 
   // admin / client_user: payment methods shown on the public contribution portal
-  const [paymentMethods, setPaymentMethods] = useState({
-    payment_mpesa: '', payment_mixx: '', payment_bank: '',
-  });
+  const [mobileMethods, setMobileMethods] = useState([]);
+  const [bankMethods,   setBankMethods]   = useState([]);
   const [savingPayment, setSavingPayment] = useState(false);
   const [donePayment,   setDonePayment]   = useState(false);
 
@@ -199,11 +247,23 @@ export default function Settings() {
           sms_provider:         d.sms_provider         ?? 'beem',
         });
         setNotifPref(d.notification_preference ?? 'true');
-        setPaymentMethods({
-          payment_mpesa: d.payment_mpesa ?? '',
-          payment_mixx:  d.payment_mixx  ?? '',
-          payment_bank:  d.payment_bank  ?? '',
-        });
+        setMobileMethods(parsePaymentList(d.payment_methods_mobile).map(m => ({
+          id: newRowId(),
+          network: m.network ?? '',
+          account_name: m.account_name ?? '',
+          phone: m.phone ?? '',
+          order: m.order ?? 0,
+          enabled: m.enabled !== false,
+        })));
+        setBankMethods(parsePaymentList(d.payment_methods_bank).map(b => ({
+          id: newRowId(),
+          bank_name: b.bank_name ?? '',
+          account_name: b.account_name ?? '',
+          account_number: b.account_number ?? '',
+          branch: b.branch ?? '',
+          order: b.order ?? 0,
+          enabled: b.enabled !== false,
+        })));
       } catch (err) {
         toast.error(getErrorMessage(err));
       } finally {
@@ -271,13 +331,30 @@ export default function Settings() {
     e.preventDefault();
     setSavingPayment(true);
     try {
-      await settingsService.update(paymentMethods);
+      await settingsService.update({
+        payment_methods_mobile: JSON.stringify(mobileMethods.map(({ network, account_name, phone, order, enabled }) => ({ network, account_name, phone, order, enabled }))),
+        payment_methods_bank:   JSON.stringify(bankMethods.map(({ bank_name, account_name, account_number, branch, order, enabled }) => ({ bank_name, account_name, account_number, branch, order, enabled }))),
+      });
       toast.success('Payment methods saved');
       flash(setDonePayment);
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally { setSavingPayment(false); }
   }
+
+  const addMobileMethod = () => setMobileMethods(prev => [
+    ...prev, { id: newRowId(), network: '', account_name: '', phone: '', order: prev.length, enabled: true },
+  ]);
+  const removeMobileMethod = (id) => setMobileMethods(prev => prev.filter(m => m.id !== id));
+  const updateMobileMethod = (id, field, value) =>
+    setMobileMethods(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
+
+  const addBankMethod = () => setBankMethods(prev => [
+    ...prev, { id: newRowId(), bank_name: '', account_name: '', account_number: '', branch: '', order: prev.length, enabled: true },
+  ]);
+  const removeBankMethod = (id) => setBankMethods(prev => prev.filter(b => b.id !== id));
+  const updateBankMethod = (id, field, value) =>
+    setBankMethods(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
 
   async function saveNotif(e) {
     e.preventDefault();
@@ -535,33 +612,67 @@ export default function Settings() {
         return (
           <SectionCard
             title="Payment Methods"
-            subtitle="Shown as read-only details on your contributors' public contribution pages. Leave blank to hide."
+            subtitle="Shown as structured, read-only cards on your contributors' public contribution pages. Disabled entries are hidden."
           >
+            <datalist id="st-network-presets">
+              <option value="M-Pesa" /><option value="Mixx" /><option value="Airtel Money" /><option value="HaloPesa" />
+            </datalist>
+            <datalist id="st-bank-presets">
+              <option value="CRDB" /><option value="NMB" /><option value="NBC" /><option value="Equity" /><option value="ABSA" />
+            </datalist>
+
             <form onSubmit={savePaymentMethods} className="st-form">
-              <Field label="M-Pesa" hint="e.g. 0712 345 678 - John Doe">
-                <input
-                  className="st-input"
-                  value={paymentMethods.payment_mpesa}
-                  onChange={e => setPaymentMethods(p => ({ ...p, payment_mpesa: e.target.value }))}
-                  placeholder="0712 345 678 - John Doe"
-                />
-              </Field>
-              <Field label="Mixx" hint="e.g. 0782 345 678 - John Doe">
-                <input
-                  className="st-input"
-                  value={paymentMethods.payment_mixx}
-                  onChange={e => setPaymentMethods(p => ({ ...p, payment_mixx: e.target.value }))}
-                  placeholder="0782 345 678 - John Doe"
-                />
-              </Field>
-              <Field label="Bank" hint="e.g. CRDB - 0150 234 567 890 - John Doe">
-                <input
-                  className="st-input"
-                  value={paymentMethods.payment_bank}
-                  onChange={e => setPaymentMethods(p => ({ ...p, payment_bank: e.target.value }))}
-                  placeholder="CRDB - 0150 234 567 890 - John Doe"
-                />
-              </Field>
+              <div className="st-pm-section">
+                <h3 className="st-pm-section-title">Mobile Money</h3>
+                {mobileMethods.length === 0 && (
+                  <p className="st-pm-empty">No mobile money accounts added yet.</p>
+                )}
+                <div className="st-pm-list">
+                  {mobileMethods.map(m => (
+                    <PaymentMethodRow
+                      key={m.id}
+                      values={m}
+                      onChange={(field, value) => updateMobileMethod(m.id, field, value)}
+                      onRemove={() => removeMobileMethod(m.id)}
+                      fields={[
+                        { name: 'network', label: 'Network', list: 'st-network-presets', placeholder: 'M-Pesa' },
+                        { name: 'account_name', label: 'Account Name', placeholder: 'LEONARD KUSEKWA' },
+                        { name: 'phone', label: 'Phone Number', placeholder: '0712 345 678' },
+                      ]}
+                    />
+                  ))}
+                </div>
+                <button type="button" className="st-pm-add-btn" onClick={addMobileMethod}>
+                  <FiPlus size={14} /> Add Mobile Money
+                </button>
+              </div>
+
+              <div className="st-pm-section">
+                <h3 className="st-pm-section-title">Bank</h3>
+                {bankMethods.length === 0 && (
+                  <p className="st-pm-empty">No bank accounts added yet.</p>
+                )}
+                <div className="st-pm-list">
+                  {bankMethods.map(b => (
+                    <PaymentMethodRow
+                      key={b.id}
+                      values={b}
+                      onChange={(field, value) => updateBankMethod(b.id, field, value)}
+                      onRemove={() => removeBankMethod(b.id)}
+                      fields={[
+                        { name: 'bank_name', label: 'Bank Name', list: 'st-bank-presets', placeholder: 'CRDB' },
+                        { name: 'account_name', label: 'Account Name', placeholder: 'LEONARD KUSEKWA' },
+                        { name: 'account_number', label: 'Account Number', placeholder: '0150 234 567 890' },
+                        { name: 'branch', label: 'Branch (optional)', placeholder: 'Mlimani City' },
+                      ]}
+                    />
+                  ))}
+                </div>
+                <button type="button" className="st-pm-add-btn" onClick={addBankMethod}>
+                  <FiPlus size={14} /> Add Bank Account
+                </button>
+              </div>
+
               <div className="st-form-footer">
                 <SaveBtn loading={savingPayment} done={donePayment} />
               </div>

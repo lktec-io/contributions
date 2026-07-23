@@ -1,21 +1,32 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { useParams } from 'react-router-dom';
-import { FiCheckCircle, FiClock, FiXCircle } from 'react-icons/fi';
+import { FiCheckCircle, FiXCircle, FiCopy } from 'react-icons/fi';
+import { ToastContext } from '../context/ToastContext';
 import { publicService } from '../services/publicService';
-import { formatCurrency, formatDateTime, getStatusBadgeClass } from '../utils/formatters';
+import { formatCurrency, formatDateTime } from '../utils/formatters';
+import { copyToClipboard } from '../utils/clipboard';
 import Modal from '../components/common/Modal';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import SuccessToast from '../components/common/SuccessToast';
 import './PublicContribution.css';
+
+const REQUEST_STATUS_BADGE = {
+  pending:  { className: 'status-badge badge-pledge',   label: 'Pending' },
+  approved: { className: 'status-badge badge-paid',     label: 'Approved' },
+  rejected: { className: 'status-badge badge-rejected', label: 'Rejected' },
+};
 
 export default function PublicContribution() {
   const { token } = useParams();
+  const { toast } = useContext(ToastContext);
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [showCopied, setShowCopied] = useState(false);
+  const [showSubmitted, setShowSubmitted] = useState(false);
   const [form, setForm] = useState({ submitted_amount: '', reference_number: '', message: '' });
 
   const load = useCallback(async () => {
@@ -32,17 +43,26 @@ export default function PublicContribution() {
 
   useEffect(() => { load(); }, [load]);
 
+  const handleCopy = async (value) => {
+    const ok = await copyToClipboard(value);
+    if (ok) {
+      setShowCopied(true);
+      setTimeout(() => setShowCopied(false), 2000);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitError('');
     setSubmitting(true);
     try {
       await publicService.submitPaymentRequest(token, form);
-      setSubmitted(true);
       setModalOpen(false);
+      setForm({ submitted_amount: '', reference_number: '', message: '' });
+      setShowSubmitted(true);
+      setTimeout(() => setShowSubmitted(false), 3000);
       await load();
     } catch (err) {
-      setSubmitError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -73,18 +93,30 @@ export default function PublicContribution() {
     progress_percent, status, updated_at, payment_methods, latest_request,
   } = data;
 
-  const hasPaymentMethods = payment_methods && Object.keys(payment_methods).length > 0;
-  const isPending = latest_request?.status === 'pending';
-  const isRejected = latest_request?.status === 'rejected' && !submitted;
+  const mobileMethods = payment_methods?.mobile || [];
+  const bankMethods    = payment_methods?.bank   || [];
+  const hasPaymentMethods = mobileMethods.length > 0 || bankMethods.length > 0;
 
-  const methodLabels = { payment_mpesa: 'M-Pesa', payment_mixx: 'Mixx', payment_bank: 'Bank' };
+  const requestBadge = latest_request ? REQUEST_STATUS_BADGE[latest_request.status] : null;
+  const isPending  = latest_request?.status === 'pending';
+  const isRejected = latest_request?.status === 'rejected';
 
   return (
     <div className="public-page">
+      <SuccessToast message="Copied" show={showCopied} />
+      <SuccessToast
+        show={showSubmitted}
+        title="Payment request sent successfully."
+        message="The organizer will verify your payment shortly."
+      />
+
       <div className="public-card">
         <div className="public-card-header">
           <span className="public-event-name">{event_name}</span>
-          <span className={getStatusBadgeClass(status)}>{status}</span>
+          <div className="public-badge-group">
+            <span className={`status-badge ${status}`}>{status}</span>
+            {requestBadge && <span className={requestBadge.className}>{requestBadge.label}</span>}
+          </div>
         </div>
 
         <h1 className="public-contributor-name">{contributor_name}</h1>
@@ -116,21 +148,50 @@ export default function PublicContribution() {
         {hasPaymentMethods && (
           <div className="public-methods">
             <h2 className="public-methods-title">Payment Methods</h2>
-            <ul className="public-methods-list">
-              {Object.entries(payment_methods).map(([key, value]) => (
-                <li key={key} className="public-method-item">
-                  <span className="public-method-label">{methodLabels[key] || key}</span>
-                  <span className="public-method-value">{value}</span>
-                </li>
+            <div className="public-methods-list">
+              {mobileMethods.map((m, i) => (
+                <div key={`mobile-${i}`} className="public-method-card">
+                  <span className="public-method-network">{m.network}</span>
+                  <div className="public-method-row">
+                    <span className="public-method-key">Name</span>
+                    <span className="public-method-val">{m.account_name}</span>
+                  </div>
+                  <div className="public-method-row">
+                    <span className="public-method-key">Number</span>
+                    <span className="public-method-val public-method-val-copy">
+                      {m.phone}
+                      <button type="button" className="public-copy-btn" onClick={() => handleCopy(m.phone)} aria-label="Copy phone number">
+                        <FiCopy size={14} />
+                      </button>
+                    </span>
+                  </div>
+                </div>
               ))}
-            </ul>
-          </div>
-        )}
-
-        {(isPending || submitted) && (
-          <div className="public-banner public-banner-pending">
-            <FiClock size={16} />
-            <span>Your payment confirmation is pending verification by the organizer.</span>
+              {bankMethods.map((b, i) => (
+                <div key={`bank-${i}`} className="public-method-card">
+                  <span className="public-method-network">{b.bank_name}</span>
+                  <div className="public-method-row">
+                    <span className="public-method-key">Account Name</span>
+                    <span className="public-method-val">{b.account_name}</span>
+                  </div>
+                  <div className="public-method-row">
+                    <span className="public-method-key">Account Number</span>
+                    <span className="public-method-val public-method-val-copy">
+                      {b.account_number}
+                      <button type="button" className="public-copy-btn" onClick={() => handleCopy(b.account_number)} aria-label="Copy account number">
+                        <FiCopy size={14} />
+                      </button>
+                    </span>
+                  </div>
+                  {b.branch && (
+                    <div className="public-method-row">
+                      <span className="public-method-key">Branch</span>
+                      <span className="public-method-val">{b.branch}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -141,11 +202,18 @@ export default function PublicContribution() {
           </div>
         )}
 
-        {status !== 'paid' && !isPending && !submitted && (
-          <button className="btn public-pay-btn" onClick={() => setModalOpen(true)}>
-            <FiCheckCircle size={16} />
-            Nimelipa, Mjulishe Mratibu
-          </button>
+        {status !== 'paid' && (
+          isPending ? (
+            <button className="btn public-pay-btn public-pay-btn-submitted" disabled>
+              <FiCheckCircle size={16} />
+              Request Submitted
+            </button>
+          ) : (
+            <button className="btn public-pay-btn" onClick={() => setModalOpen(true)}>
+              <FiCheckCircle size={16} />
+              Nimelipa, Mjulishe Mratibu
+            </button>
+          )
         )}
       </div>
 
@@ -179,9 +247,8 @@ export default function PublicContribution() {
               onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
             />
           </div>
-          {submitError && <p className="form-error">{submitError}</p>}
           <div className="form-actions">
-            <button type="button" className="btn-secondary" onClick={() => setModalOpen(false)}>Cancel</button>
+            <button type="button" className="btn-secondary" onClick={() => setModalOpen(false)} disabled={submitting}>Cancel</button>
             <button type="submit" className="btn" disabled={submitting}>
               {submitting ? 'Submitting...' : 'Confirm'}
             </button>

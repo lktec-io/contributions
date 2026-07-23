@@ -493,6 +493,12 @@ textarea:focus-visible {
   border: 1px solid rgba(0, 184, 148, 0.3);
 }
 
+.status-badge.badge-rejected {
+  background-color: rgba(255, 76, 76, 0.15);
+  color: var(--accent-red);
+  border: 1px solid rgba(255, 76, 76, 0.3);
+}
+
 /* Also support bare class names for grid cards */
 .status-badge.pledge  { background-color: rgba(255, 165, 0, 0.15); color: var(--accent-orange); border: 1px solid rgba(255, 165, 0, 0.3); }
 .status-badge.partial { background-color: rgba(59, 130, 246, 0.15); color: var(--accent-blue); border: 1px solid rgba(59, 130, 246, 0.3); }
