@@ -636,7 +636,7 @@ export default function Settings() {
                       onRemove={() => removeMobileMethod(m.id)}
                       fields={[
                         { name: 'network', label: 'Network', list: 'st-network-presets', placeholder: 'M-Pesa' },
-                        { name: 'account_name', label: 'Account Name', placeholder: 'LEONARD KUSEKWA' },
+                        { name: 'account_name', label: 'Account Name', placeholder: 'Clix Digital' },
                         { name: 'phone', label: 'Phone Number', placeholder: '0712 345 678' },
                       ]}
                     />
@@ -661,7 +661,7 @@ export default function Settings() {
                       onRemove={() => removeBankMethod(b.id)}
                       fields={[
                         { name: 'bank_name', label: 'Bank Name', list: 'st-bank-presets', placeholder: 'CRDB' },
-                        { name: 'account_name', label: 'Account Name', placeholder: 'LEONARD KUSEKWA' },
+                        { name: 'account_name', label: 'Account Name', placeholder: 'Clix Digital' },
                         { name: 'account_number', label: 'Account Number', placeholder: '0150 234 567 890' },
                         { name: 'branch', label: 'Branch (optional)', placeholder: 'Mlimani City' },
                       ]}
