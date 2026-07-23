@@ -5,9 +5,11 @@ import { ToastContext } from '../context/ToastContext';
 import { paymentRequestService } from '../services/paymentRequestService';
 import { formatCurrency, formatDateTime, getStatusBadgeClass } from '../utils/formatters';
 import { getErrorMessage } from '../utils/helpers';
+import { playSuccessSound, playWarningSound } from '../utils/sound';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyState from '../components/common/EmptyState';
+import SuccessToast from '../components/common/SuccessToast';
 import './PaymentRequests.css';
 
 export default function PaymentRequests() {
@@ -22,6 +24,15 @@ export default function PaymentRequests() {
   const [confirmReject, setConfirmReject]   = useState(null);
   const [confirmDelete, setConfirmDelete]   = useState(null);
   const [actionLoading, setActionLoading]   = useState(false);
+
+  const [resultPopup, setResultPopup]         = useState({ variant: 'success', title: '', message: '' });
+  const [showResultPopup, setShowResultPopup] = useState(false);
+
+  const flashResultPopup = (variant, title, message) => {
+    setResultPopup({ variant, title, message });
+    setShowResultPopup(true);
+    setTimeout(() => setShowResultPopup(false), 3000);
+  };
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -42,7 +53,12 @@ export default function PaymentRequests() {
     setActionLoading(true);
     try {
       await paymentRequestService.approve(confirmApprove.id);
-      toast.success(`Payment for "${confirmApprove.contributor_name}" recorded`);
+      playSuccessSound();
+      flashResultPopup(
+        'success',
+        'Payment Approved Successfully',
+        `${confirmApprove.contributor_name} — ${confirmApprove.event_name}\n${formatCurrency(confirmApprove.submitted_amount)} Approved`
+      );
       setConfirmApprove(null);
       fetchAll();
     } catch (err) {
@@ -56,7 +72,12 @@ export default function PaymentRequests() {
     setActionLoading(true);
     try {
       await paymentRequestService.reject(confirmReject.id);
-      toast.success(`Request from "${confirmReject.contributor_name}" rejected`);
+      playWarningSound();
+      flashResultPopup(
+        'warning',
+        'Payment Request Rejected',
+        `${confirmReject.contributor_name} — ${confirmReject.event_name}`
+      );
       setConfirmReject(null);
       fetchAll();
     } catch (err) {
@@ -84,6 +105,14 @@ export default function PaymentRequests() {
 
   return (
     <div className="payment-requests">
+      <SuccessToast
+        show={showResultPopup}
+        variant={resultPopup.variant}
+        title={resultPopup.title}
+        message={resultPopup.message}
+        icon={resultPopup.variant === 'warning' ? FiAlertTriangle : undefined}
+      />
+
       <div className="pr-header">
         <button className="pr-back-btn" onClick={() => navigate('/dashboard')} aria-label="Back to dashboard">
           <FiArrowLeft size={16} />

@@ -5,6 +5,7 @@ import { ToastContext } from '../context/ToastContext';
 import { publicService } from '../services/publicService';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 import { copyToClipboard } from '../utils/clipboard';
+import { playSuccessSound } from '../utils/sound';
 import Modal from '../components/common/Modal';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import SuccessToast from '../components/common/SuccessToast';
@@ -58,6 +59,7 @@ export default function PublicContribution() {
       await publicService.submitPaymentRequest(token, form);
       setModalOpen(false);
       setForm({ submitted_amount: '', reference_number: '', message: '' });
+      playSuccessSound();
       setShowSubmitted(true);
       setTimeout(() => setShowSubmitted(false), 3000);
       await load();

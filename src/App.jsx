@@ -18,6 +18,7 @@ import NotFound from './pages/NotFound';
 import AdminDashboard from './components/admin/AdminDashboard';
 import ClientDashboard from './components/client/ClientDashboard';
 import ToastContainer from './components/common/Toast';
+import PaymentRequestAlertHost from './components/common/PaymentRequestAlertHost';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import './App.css';
 
@@ -113,6 +114,7 @@ export default function App() {
           <BrowserRouter>
             <AppRoutes />
             <ToastContainer />
+            <PaymentRequestAlertHost />
           </BrowserRouter>
         </ToastProvider>
       </AuthProvider>

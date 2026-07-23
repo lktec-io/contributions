@@ -1,9 +1,12 @@
 import { FiCheckCircle } from 'react-icons/fi';
 import './SuccessToast.css';
 
-export default function SuccessToast({ message, title, show, icon: Icon = FiCheckCircle }) {
+export default function SuccessToast({ message, title, show, icon: Icon = FiCheckCircle, variant = 'success' }) {
   return (
-    <div className={`success-toast ${title ? 'success-toast-full' : ''} ${show ? 'show' : ''}`} aria-live="polite">
+    <div
+      className={`success-toast success-toast-${variant} ${title ? 'success-toast-full' : ''} ${show ? 'show' : ''}`}
+      aria-live="polite"
+    >
       <Icon size={title ? 26 : 17} className="success-toast-icon" />
       <div className="success-toast-text">
         {title && <span className="success-toast-title">{title}</span>}
