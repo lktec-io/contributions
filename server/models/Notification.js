@@ -1,12 +1,20 @@
 const pool = require('../config/db');
 
 const Notification = {
+  // Never throws — a notification failure must never block the action that
+  // triggered it (recording a payment, submitting a payment request, etc.).
+  // Logs and returns null on failure instead.
   async create({ user_id, title, message, type = 'system' }) {
-    const [result] = await pool.query(
-      'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
-      [user_id, title, message, type]
-    );
-    return result.insertId;
+    try {
+      const [result] = await pool.query(
+        'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+        [user_id, title, message, type]
+      );
+      return result.insertId;
+    } catch (err) {
+      console.error('[notification] Failed to create notification:', err.message);
+      return null;
+    }
   },
 
   async findByUser(user_id, limit = 20) {

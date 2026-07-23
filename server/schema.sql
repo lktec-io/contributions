@@ -57,7 +57,7 @@ CREATE TABLE notifications (
   user_id INT NOT NULL,
   title VARCHAR(255) NOT NULL,
   message TEXT NOT NULL,
-  type ENUM('event_assigned', 'contribution_added', 'payment_recorded', 'system') DEFAULT 'system',
+  type VARCHAR(100) DEFAULT 'system', -- e.g. 'event_assigned', 'contribution_added', 'payment_recorded', 'payment_verification_requested', 'payment_verification_rejected', 'system'
   is_read BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

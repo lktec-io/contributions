@@ -200,6 +200,23 @@ async function ensureSchema() {
   } catch (err) {
     console.error('[migration] payment_requests table error:', err.message);
   }
+
+  // Widen notifications.type from a fixed ENUM to VARCHAR(100).
+  // The app keeps introducing new notification types (payment_verification_requested,
+  // payment_verification_rejected, ...) and the ENUM was truncating inserts for any
+  // value it didn't already list ("Data truncated for column 'type'"). MODIFY COLUMN
+  // is safe to re-run — re-issuing the same column definition is a no-op — and
+  // converts each existing ENUM value to its equivalent string with no data loss.
+  // Column position, default ('system'), nullability, the (user_id, is_read) index,
+  // and the user_id foreign key are all untouched since none of them reference `type`.
+  try {
+    await pool.query(
+      "ALTER TABLE notifications MODIFY COLUMN type VARCHAR(100) DEFAULT 'system'"
+    );
+    console.log('[migration] notifications.type widened to VARCHAR(100)');
+  } catch (err) {
+    console.error('[migration] notifications.type widen error:', err.message);
+  }
 }
 
 // ── One-time data migration: normalize public_token for existing rows ─
