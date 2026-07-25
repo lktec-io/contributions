@@ -1,4 +1,5 @@
 import api from './api';
+import { downloadBlob, filenameFromDisposition } from '../utils/downloadBlob';
 
 export const paymentRequestService = {
   getAll: (status) =>
@@ -12,4 +13,10 @@ export const paymentRequestService = {
 
   remove: (id) =>
     api.delete(`/payment-requests/${id}`),
+
+  downloadReceipt: async (id) => {
+    const res = await api.get(`/payment-requests/${id}/receipt`, { responseType: 'blob' });
+    const filename = filenameFromDisposition(res.headers['content-disposition'], `receipt_${id}.pdf`);
+    downloadBlob(res.data, filename);
+  },
 };

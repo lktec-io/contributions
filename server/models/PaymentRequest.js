@@ -27,7 +27,7 @@ const PaymentRequest = {
   // Drives the "pending verification" / "rejected" banner on the public page.
   async findLatestByContribution(contributionId) {
     const [rows] = await pool.query(
-      `SELECT id, status, submitted_amount, submitted_at, reviewed_at
+      `SELECT id, status, submitted_amount, submitted_at, reviewed_at, reviewed_by
        FROM payment_requests
        WHERE contribution_id = ?
        ORDER BY submitted_at DESC

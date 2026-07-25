@@ -4,6 +4,8 @@ const Contribution   = require('../models/Contribution');
 const PaymentRequest = require('../models/PaymentRequest');
 const Notification   = require('../models/Notification');
 const Setting        = require('../models/Setting');
+const User           = require('../models/User');
+const { buildReceiptPdf } = require('../utils/receiptPdf');
 
 const INVALID_LINK_MESSAGE = 'This contribution link is invalid or has expired.';
 
@@ -103,4 +105,32 @@ async function submitPaymentRequest(req, res, next) {
   }
 }
 
-module.exports = { getContribution, submitPaymentRequest };
+// ── GET /api/public/contributions/:token/receipt ────────────────────
+// No auth. Only ever serves a receipt for an approved request on this
+// contribution — pending/rejected/missing all get the same generic error.
+async function downloadReceipt(req, res, next) {
+  try {
+    const contribution = await Contribution.findByToken(req.params.token);
+    if (!contribution) {
+      return res.status(404).json({ success: false, message: INVALID_LINK_MESSAGE, errors: [] });
+    }
+
+    const latestRequest = await PaymentRequest.findLatestByContribution(contribution.id);
+    if (!latestRequest || latestRequest.status !== 'approved') {
+      return res.status(400).json({ success: false, message: 'No approved payment found for this contribution yet.', errors: [] });
+    }
+
+    const approver = latestRequest.reviewed_by ? await User.findById(latestRequest.reviewed_by) : null;
+
+    await buildReceiptPdf({
+      contribution,
+      paymentRequest: latestRequest,
+      approverName: approver?.name,
+      res,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getContribution, submitPaymentRequest, downloadReceipt };

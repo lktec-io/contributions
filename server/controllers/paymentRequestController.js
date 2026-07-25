@@ -3,8 +3,10 @@
 const PaymentRequest = require('../models/PaymentRequest');
 const Contribution   = require('../models/Contribution');
 const Notification   = require('../models/Notification');
+const User           = require('../models/User');
 const { recordPayment } = require('./paymentController');
 const { getIsolationFilter, canAccessContribution } = require('../utils/tenantHelpers');
+const { buildReceiptPdf } = require('../utils/receiptPdf');
 
 // ── GET /api/payment-requests ───────────────────────────────────────
 async function list(req, res, next) {
@@ -124,4 +126,36 @@ async function remove(req, res, next) {
   }
 }
 
-module.exports = { list, approve, reject, remove };
+// ── GET /api/payment-requests/:id/receipt ───────────────────────────
+async function downloadReceipt(req, res, next) {
+  try {
+    const request = await PaymentRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Payment request not found', errors: [] });
+    }
+    if (request.status !== 'approved') {
+      return res.status(400).json({ success: false, message: 'Receipt is only available for approved requests', errors: [] });
+    }
+
+    const contribution = await Contribution.findById(request.contribution_id);
+    if (!contribution) {
+      return res.status(404).json({ success: false, message: 'Contribution not found', errors: [] });
+    }
+    if (!(await canAccessContribution(req, contribution))) {
+      return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
+    }
+
+    const approver = request.reviewed_by ? await User.findById(request.reviewed_by) : null;
+
+    await buildReceiptPdf({
+      contribution,
+      paymentRequest: request,
+      approverName: approver?.name,
+      res,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, approve, reject, remove, downloadReceipt };

@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiRefreshCw, FiCheck, FiX, FiAlertTriangle, FiCheckCircle, FiTrash2 } from 'react-icons/fi';
+import { FiArrowLeft, FiRefreshCw, FiCheck, FiX, FiAlertTriangle, FiCheckCircle, FiTrash2, FiDownload } from 'react-icons/fi';
 import { ToastContext } from '../context/ToastContext';
 import { paymentRequestService } from '../services/paymentRequestService';
 import { formatCurrency, formatDateTime, getStatusBadgeClass } from '../utils/formatters';
@@ -24,6 +24,7 @@ export default function PaymentRequests() {
   const [confirmReject, setConfirmReject]   = useState(null);
   const [confirmDelete, setConfirmDelete]   = useState(null);
   const [actionLoading, setActionLoading]   = useState(false);
+  const [downloadingId, setDownloadingId]   = useState(null);
 
   const [resultPopup, setResultPopup]         = useState({ variant: 'success', title: '', message: '' });
   const [showResultPopup, setShowResultPopup] = useState(false);
@@ -98,6 +99,17 @@ export default function PaymentRequests() {
       toast.error(getErrorMessage(err));
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleDownloadReceipt = async (r) => {
+    setDownloadingId(r.id);
+    try {
+      await paymentRequestService.downloadReceipt(r.id);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -184,7 +196,16 @@ export default function PaymentRequests() {
                         <button className="icon-btn icon-btn-red" title="Delete" onClick={() => setConfirmDelete(r)}>
                           <FiTrash2 size={15} />
                         </button>
-                      ) : '—'}
+                      ) : (
+                        <button
+                          className="icon-btn icon-btn-green"
+                          title="Download Receipt"
+                          onClick={() => handleDownloadReceipt(r)}
+                          disabled={downloadingId === r.id}
+                        >
+                          <FiDownload size={15} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -230,6 +251,17 @@ export default function PaymentRequests() {
                   <div className="pr-card-actions">
                     <button className="pr-action-btn pr-action-reject" onClick={() => setConfirmDelete(r)}>
                       <FiTrash2 size={14} /> Delete
+                    </button>
+                  </div>
+                )}
+                {r.status === 'approved' && (
+                  <div className="pr-card-actions">
+                    <button
+                      className="pr-action-btn pr-action-approve"
+                      onClick={() => handleDownloadReceipt(r)}
+                      disabled={downloadingId === r.id}
+                    >
+                      <FiDownload size={14} /> Download Receipt
                     </button>
                   </div>
                 )}

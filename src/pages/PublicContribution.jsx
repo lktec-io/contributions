@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useContext } from 'react';
 import { useParams } from 'react-router-dom';
-import { FiCheckCircle, FiXCircle, FiCopy } from 'react-icons/fi';
+import { FiCheckCircle, FiXCircle, FiCopy, FiDownload } from 'react-icons/fi';
 import { ToastContext } from '../context/ToastContext';
 import { publicService } from '../services/publicService';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
@@ -28,6 +28,7 @@ export default function PublicContribution() {
   const [submitting, setSubmitting] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
   const [showSubmitted, setShowSubmitted] = useState(false);
+  const [downloadingReceipt, setDownloadingReceipt] = useState(false);
   const [form, setForm] = useState({ submitted_amount: '', reference_number: '', message: '' });
 
   const load = useCallback(async () => {
@@ -49,6 +50,17 @@ export default function PublicContribution() {
     if (ok) {
       setShowCopied(true);
       setTimeout(() => setShowCopied(false), 2000);
+    }
+  };
+
+  const handleDownloadReceipt = async () => {
+    setDownloadingReceipt(true);
+    try {
+      await publicService.downloadReceipt(token);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not download the receipt. Please try again.');
+    } finally {
+      setDownloadingReceipt(false);
     }
   };
 
@@ -102,6 +114,7 @@ export default function PublicContribution() {
   const requestBadge = latest_request ? REQUEST_STATUS_BADGE[latest_request.status] : null;
   const isPending  = latest_request?.status === 'pending';
   const isRejected = latest_request?.status === 'rejected';
+  const isApproved = latest_request?.status === 'approved';
 
   return (
     <div className="public-page">
@@ -202,6 +215,17 @@ export default function PublicContribution() {
             <FiXCircle size={16} />
             <span>Payment was rejected. Please contact the organizer.</span>
           </div>
+        )}
+
+        {isApproved && (
+          <button
+            className="btn-secondary public-receipt-btn"
+            onClick={handleDownloadReceipt}
+            disabled={downloadingReceipt}
+          >
+            <FiDownload size={16} />
+            {downloadingReceipt ? 'Preparing...' : 'Download Receipt'}
+          </button>
         )}
 
         {status !== 'paid' && (

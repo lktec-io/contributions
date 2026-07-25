@@ -229,6 +229,14 @@
   font-size: 15px;
 }
 
+.public-receipt-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 12px 16px;
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
 .public-pay-btn-submitted:disabled {
   background-color: rgba(0, 184, 148, 0.16);
   color: var(--accent-green);

@@ -3,7 +3,9 @@ const XLSX       = require('xlsx');   // still used by CSV
 const PDFDocument = require('pdfkit');
 const Contribution = require('../models/Contribution');
 const Event = require('../models/Event');
+const User = require('../models/User');
 const { formatDate } = require('../utils/helpers');
+const { BRAND, COMPANY_NAME, generateQrBuffer, getPortalBaseUrl, formatTime } = require('../utils/reportBranding');
 
 function sanitizeFilename(str) {
   return str.replace(/[^a-z0-9]/gi, '_').toLowerCase();
@@ -72,24 +74,52 @@ async function exportXLSX(req, res, next) {
       return res.status(400).json({ success: false, message: 'No contributions to export', errors: [] });
     }
 
+    const generatedBy = await User.findById(req.user.userId);
+    const now = new Date();
+
     const wb = new ExcelJS.Workbook();
-    wb.creator  = 'Finance Hub';
-    wb.modified = new Date();
+    wb.creator  = COMPANY_NAME;
+    wb.modified = now;
 
     const ws = wb.addWorksheet('Contributions', {
-      pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true },
-      views: [{ state: 'frozen', ySplit: 2 }],
+      pageSetup: {
+        paperSize: 9,
+        orientation: 'landscape',
+        fitToPage: true,
+        margins: { left: 0.5, right: 0.5, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 },
+      },
+      views: [{ state: 'frozen', ySplit: 3 }],
     });
+    ws.pageSetup.printTitlesRow = '3:3';
 
     // ── Title row ──────────────────────────────────────────
     ws.mergeCells('A1:I1');
     const titleCell = ws.getCell('A1');
-    titleCell.value          = `Finance Hub — Contributions Report: ${eventName === 'all' ? 'All Events' : eventName} (${contributions.length} records)`;
+    titleCell.value          = `${COMPANY_NAME} — Contributions Report: ${eventName === 'all' ? 'All Events' : eventName} (${contributions.length} records)`;
     titleCell.font           = { bold: true, size: 13, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
     titleCell.fill           = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D1B2A' } };
     titleCell.alignment      = { horizontal: 'center', vertical: 'middle' };
     titleCell.border         = { bottom: { style: 'medium', color: { argb: 'FF00B894' } } };
-    ws.getRow(1).height      = 32;
+    ws.getRow(1).height      = 30;
+
+    // ── Subtitle row — generated date/time/by ──────────────
+    ws.mergeCells('A2:I2');
+    const subtitleCell = ws.getCell('A2');
+    subtitleCell.value     = `Generated: ${formatDate(now)} ${formatTime(now)}   |   By: ${generatedBy?.name || 'System'}`;
+    subtitleCell.font      = { italic: true, size: 9, color: { argb: 'FFD4DCE8' }, name: 'Calibri' };
+    subtitleCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D1B2A' } };
+    subtitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(2).height    = 18;
+
+    // QR verification badge, anchored top-right (image position is
+    // independent of cell merges, so this doesn't disturb the merged text)
+    try {
+      const qrBuffer = await generateQrBuffer(getPortalBaseUrl());
+      const qrImageId = wb.addImage({ buffer: qrBuffer, extension: 'png' });
+      ws.addImage(qrImageId, { tl: { col: 8.05, row: 0.05 }, ext: { width: 42, height: 42 } });
+    } catch (qrErr) {
+      console.error('[export] QR embed failed (non-fatal):', qrErr.message);
+    }
 
     // ── Header row ──────────────────────────────────────────
     const HEADERS = [
@@ -106,7 +136,7 @@ async function exportXLSX(req, res, next) {
 
     ws.columns = HEADERS.map(h => ({ key: h.key, width: h.width }));
 
-    const headerRow = ws.getRow(2);
+    const headerRow = ws.getRow(3);
     HEADERS.forEach((h, i) => {
       const cell       = headerRow.getCell(i + 1);
       cell.value       = h.header;
@@ -121,6 +151,7 @@ async function exportXLSX(req, res, next) {
       };
     });
     headerRow.height = 22;
+    ws.autoFilter = 'A3:I3';
 
     // ── Data rows ───────────────────────────────────────────
     const statusColors = { paid: 'FF00B894', partial: 'FFFFA500', pledge: 'FF3B82F6' };
@@ -157,16 +188,16 @@ async function exportXLSX(req, res, next) {
         // Money columns: 5=pledge, 6=paid, 7=outstanding
         if (colNum === 5) {
           cell.font      = { ...baseFont, color: { argb: 'FFFFA500' }, bold: true };
-          cell.numFmt    = '#,##0.00';
+          cell.numFmt    = '"TZS "#,##0.00';
           cell.alignment = { horizontal: 'right', vertical: 'middle' };
         } else if (colNum === 6) {
           cell.font      = { ...baseFont, color: { argb: 'FF00B894' }, bold: true };
-          cell.numFmt    = '#,##0.00';
+          cell.numFmt    = '"TZS "#,##0.00';
           cell.alignment = { horizontal: 'right', vertical: 'middle' };
         } else if (colNum === 7) {
           const color    = outstanding > 0 ? 'FFFF4C4C' : 'FF00B894';
           cell.font      = { ...baseFont, color: { argb: color }, bold: true };
-          cell.numFmt    = '#,##0.00';
+          cell.numFmt    = '"TZS "#,##0.00';
           cell.alignment = { horizontal: 'right', vertical: 'middle' };
         } else if (colNum === 8) {
           // Status cell — colored text
@@ -213,6 +244,25 @@ async function exportXLSX(req, res, next) {
     });
     sumRow.height = 22;
 
+    // ── Completion rate line ────────────────────────────────
+    const completion = totalPledge > 0 ? (totalPaid / totalPledge) * 100 : 0;
+    const compRow = ws.addRow([]);
+    ws.mergeCells(`A${compRow.number}:G${compRow.number}`);
+    const compLabelCell = ws.getCell(`A${compRow.number}`);
+    compLabelCell.value      = 'Completion Rate';
+    compLabelCell.font       = { bold: true, size: 11, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
+    compLabelCell.alignment  = { horizontal: 'right', vertical: 'middle' };
+    compLabelCell.fill       = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0A2540' } };
+
+    ws.mergeCells(`H${compRow.number}:I${compRow.number}`);
+    const compValueCell = ws.getCell(`H${compRow.number}`);
+    compValueCell.value      = completion / 100;
+    compValueCell.numFmt     = '0.0%';
+    compValueCell.font       = { bold: true, size: 11, color: { argb: 'FF00B894' }, name: 'Calibri' };
+    compValueCell.alignment  = { horizontal: 'center', vertical: 'middle' };
+    compValueCell.fill       = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0A2540' } };
+    compRow.height = 22;
+
     // ── Stream response ─────────────────────────────────────
     const date     = formatDate(new Date());
     const filename = `contributions_${sanitizeFilename(eventName)}_${date}.xlsx`;
@@ -242,35 +292,53 @@ async function exportPDF(req, res, next) {
       return res.status(400).json({ success: false, message: 'No contributions to export', errors: [] });
     }
 
-    const date     = formatDate(new Date());
+    const generatedBy = await User.findById(req.user.userId);
+    const now      = new Date();
+    const date     = formatDate(now);
+    const time     = formatTime(now);
     const filename = `report_${sanitizeFilename(eventName)}_${date}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
-    const doc = new PDFDocument({ margin: 40, size: 'A4' });
+    const doc = new PDFDocument({ margin: 40, size: 'A4', layout: 'landscape', bufferPages: true });
     doc.pipe(res);
 
+    const qrBuffer = await generateQrBuffer(getPortalBaseUrl());
+
     const pageW    = doc.page.width;
+    const pageH    = doc.page.height;
     const marginX  = 40;
     const contentW = pageW - marginX * 2;
 
-    // ── Header banner ──────────────────────────────────────
-    doc.rect(0, 0, pageW, 90).fill('#0D1B2A');
+    // ── Cover header banner ─────────────────────────────────
+    const headerH = 108;
+    doc.rect(0, 0, pageW, headerH).fill(BRAND.navy);
+    doc.rect(0, headerH - 2, pageW, 2).fill(BRAND.green);
 
-    // Green accent line at bottom of banner
-    doc.rect(0, 88, pageW, 2).fill('#00B894');
+    // FH badge (vector — no logo image file exists in the repo)
+    const badgeSize = 34;
+    const badgeX    = marginX;
+    const badgeY    = 22;
+    doc.roundedRect(badgeX, badgeY, badgeSize, badgeSize, 8).fill(BRAND.green);
+    doc.fillColor('#FFFFFF').fontSize(13).font('Helvetica-Bold')
+      .text('FH', badgeX, badgeY + badgeSize / 2 - 7, { width: badgeSize, align: 'center' });
 
-    doc.fillColor('#00B894')
-      .fontSize(20).font('Helvetica-Bold')
-      .text('Finance Hub', marginX, 22, { continued: true })
-      .fillColor('#FFFFFF')
-      .text(' — Contributions Report', { continued: false });
+    const titleX = badgeX + badgeSize + 12;
+    doc.fillColor(BRAND.green).fontSize(18).font('Helvetica-Bold')
+      .text(COMPANY_NAME, titleX, 22);
+    doc.fillColor('#FFFFFF').fontSize(13).font('Helvetica-Bold')
+      .text('Contribution Report', titleX, 42);
 
-    doc.fillColor('rgba(255,255,255,0.65)').fontSize(10).font('Helvetica')
-      .text(`Event: ${eventName}   |   Generated: ${date}   |   Total records: ${contributions.length}`, marginX, 52);
+    doc.fillColor('rgba(255,255,255,0.65)').fontSize(9).font('Helvetica')
+      .text(`Event: ${eventName}`, titleX, 64)
+      .text(`Generated: ${date} ${time}   |   By: ${generatedBy?.name || 'System'}   |   Total records: ${contributions.length}`, titleX, 78);
 
-    doc.y = 110;
+    // QR verification badge, top-right
+    const qrSize = 60;
+    doc.image(qrBuffer, pageW - marginX - qrSize, headerH / 2 - qrSize / 2, { width: qrSize, height: qrSize });
+
+    doc.y = headerH + 20;
 
     // ── Summary boxes ──────────────────────────────────────
     let totalPledged = 0;
@@ -280,19 +348,21 @@ async function exportPDF(req, res, next) {
       totalPaid    += parseFloat(c.paid_amount);
     });
     const outstanding = totalPledged - totalPaid;
+    const completion  = totalPledged > 0 ? (totalPaid / totalPledged) * 100 : 0;
 
-    const boxW = (contentW - 30) / 4;
+    const boxW = (contentW - 40) / 5;
     const summaryItems = [
-      { label: 'Total Pledged',  value: `TZS ${totalPledged.toLocaleString('en', { minimumFractionDigits: 2 })}`,   color: '#FFA500' },
-      { label: 'Total Paid',     value: `TZS ${totalPaid.toLocaleString('en', { minimumFractionDigits: 2 })}`,      color: '#00B894' },
-      { label: 'Outstanding',    value: `TZS ${outstanding.toLocaleString('en', { minimumFractionDigits: 2 })}`,    color: '#FF4C4C' },
-      { label: 'Contributors',   value: String(contributions.length),                                               color: '#3B82F6' },
+      { label: 'Total Pledged',  value: `TZS ${totalPledged.toLocaleString('en', { minimumFractionDigits: 2 })}`,   color: BRAND.orange },
+      { label: 'Total Paid',     value: `TZS ${totalPaid.toLocaleString('en', { minimumFractionDigits: 2 })}`,      color: BRAND.green },
+      { label: 'Outstanding',    value: `TZS ${outstanding.toLocaleString('en', { minimumFractionDigits: 2 })}`,    color: BRAND.red },
+      { label: 'Contributors',   value: String(contributions.length),                                               color: BRAND.blue },
+      { label: 'Completion',     value: `${completion.toFixed(1)}%`,                                                 color: BRAND.green },
     ];
 
     summaryItems.forEach((item, i) => {
       const bx = marginX + i * (boxW + 10);
       const by = doc.y;
-      doc.roundedRect(bx, by, boxW, 52, 6).fill('#162232');
+      doc.roundedRect(bx, by, boxW, 52, 6).fill(BRAND.card);
       doc.rect(bx, by, 3, 52).fill(item.color);
       doc.fillColor('rgba(255,255,255,0.55)').fontSize(8).font('Helvetica')
         .text(item.label.toUpperCase(), bx + 12, by + 10, { width: boxW - 16 });
@@ -304,22 +374,23 @@ async function exportPDF(req, res, next) {
 
     // ── Table setup ────────────────────────────────────────
     const cols = [
-      { label: 'Name',    x: marginX,       w: 100 },
-      { label: 'Phone',   x: marginX + 100, w: 76  },
-      { label: 'Event',   x: marginX + 176, w: 90  },
-      { label: 'Pledged', x: marginX + 266, w: 65  },
-      { label: 'Paid',    x: marginX + 331, w: 60  },
-      { label: 'Balance', x: marginX + 391, w: 60  },
-      { label: 'Status',  x: marginX + 451, w: 50  },
+      { label: 'Name',    x: marginX,       w: 150 },
+      { label: 'Phone',   x: marginX + 150, w: 105 },
+      { label: 'Event',   x: marginX + 255, w: 150 },
+      { label: 'Pledged', x: marginX + 405, w: 90  },
+      { label: 'Paid',    x: marginX + 495, w: 85  },
+      { label: 'Balance', x: marginX + 580, w: 85  },
+      { label: 'Status',  x: marginX + 665, w: 60  },
     ];
-    const rowH = 22;
+    const rowH        = 22;
+    const bottomLimit  = pageH - 60;
 
     const drawTableHeader = () => {
       const hy = doc.y;
-      doc.rect(marginX, hy, contentW, rowH).fill('#1B2838');
-      doc.rect(marginX, hy + rowH - 1, contentW, 1).fill('#00B894');
+      doc.rect(marginX, hy, contentW, rowH).fill(BRAND.navyLight);
+      doc.rect(marginX, hy + rowH - 1, contentW, 1).fill(BRAND.green);
 
-      doc.fillColor('#8892A0').fontSize(8).font('Helvetica-Bold');
+      doc.fillColor(BRAND.textMuted).fontSize(8).font('Helvetica-Bold');
       cols.forEach(col => {
         doc.text(col.label.toUpperCase(), col.x + 4, hy + 7, { width: col.w - 6 });
       });
@@ -331,14 +402,14 @@ async function exportPDF(req, res, next) {
     // ── Rows ───────────────────────────────────────────────
     doc.fontSize(8).font('Helvetica');
     contributions.forEach((c, idx) => {
-      if (doc.y > 760) {
+      if (doc.y > bottomLimit) {
         doc.addPage();
         doc.y = 40;
         drawTableHeader();
       }
 
       const ry      = doc.y;
-      const bgColor = idx % 2 === 0 ? '#0F1B28' : '#162232';
+      const bgColor = idx % 2 === 0 ? '#0F1B28' : BRAND.card;
       doc.rect(marginX, ry, contentW, rowH).fill(bgColor);
 
       const pledged = parseFloat(c.amount);
@@ -348,13 +419,13 @@ async function exportPDF(req, res, next) {
       const fmtAmt = (n) => n.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       const cellData = [
-        { text: (c.contributor_name || '').substring(0, 18), color: '#FFFFFF' },
-        { text: c.phone || '—',                              color: '#8892A0' },
-        { text: (c.event_name || '—').substring(0, 14),      color: '#8892A0' },
-        { text: fmtAmt(pledged),                              color: '#FFA500' },
-        { text: fmtAmt(paid),                                 color: '#00B894' },
-        { text: fmtAmt(balance),                              color: balance > 0 ? '#FF4C4C' : '#00B894' },
-        { text: c.status,                                     color: c.status === 'paid' ? '#00B894' : c.status === 'partial' ? '#3B82F6' : '#FFA500' },
+        { text: (c.contributor_name || '').substring(0, 28), color: '#FFFFFF' },
+        { text: c.phone || '—',                              color: BRAND.textMuted },
+        { text: (c.event_name || '—').substring(0, 24),      color: BRAND.textMuted },
+        { text: fmtAmt(pledged),                              color: BRAND.orange },
+        { text: fmtAmt(paid),                                 color: BRAND.green },
+        { text: fmtAmt(balance),                              color: balance > 0 ? BRAND.red : BRAND.green },
+        { text: c.status,                                     color: c.status === 'paid' ? BRAND.green : c.status === 'partial' ? BRAND.blue : BRAND.orange },
       ];
 
       cellData.forEach((cell, ci) => {
@@ -365,12 +436,17 @@ async function exportPDF(req, res, next) {
       doc.y = ry + rowH;
     });
 
-    // ── Footer ─────────────────────────────────────────────
-    doc.moveDown(1.5);
-    doc.rect(marginX, doc.y, contentW, 1).fill('#1B2838');
-    doc.moveDown(0.6);
-    doc.fillColor('#5A6577').fontSize(8).font('Helvetica')
-      .text('Generated by Finance Hub  •  Confidential', { align: 'center' });
+    // ── Footer + page numbers on every page ─────────────────
+    const totalPages = doc.bufferedPageRange().count;
+    for (let i = 0; i < totalPages; i++) {
+      doc.switchToPage(i);
+      const fy = pageH - 34;
+      doc.rect(marginX, fy, contentW, 1).fill(BRAND.navyLight);
+      doc.fillColor(BRAND.textDim).fontSize(8).font('Helvetica')
+        .text(`Generated by ${COMPANY_NAME}  •  Confidential`, marginX, fy + 8, { width: contentW / 2 });
+      doc.fillColor(BRAND.textDim).fontSize(8).font('Helvetica')
+        .text(`Page ${i + 1} of ${totalPages}`, marginX + contentW / 2, fy + 8, { width: contentW / 2, align: 'right' });
+    }
 
     doc.end();
   } catch (err) {
