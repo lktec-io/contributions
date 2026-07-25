@@ -1,7 +1,7 @@
 'use strict';
 
 const PDFDocument = require('pdfkit');
-const { BRAND, COMPANY_NAME, generateQrBuffer, getPortalBaseUrl } = require('./reportBranding');
+const { BRAND, COMPANY_NAME, generateQrBuffer, getPortalBaseUrl, drawShadowCard } = require('./reportBranding');
 const { formatDate } = require('./helpers');
 
 // Deterministic, derived from the payment_requests row — no new column/table
@@ -16,11 +16,13 @@ function formatMoney(n) {
   return `TZS ${(parseFloat(n) || 0).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+const STATUS_LABELS = { paid: 'Paid in Full', partial: 'Partially Paid', pledge: 'Pledged' };
+
 // Single shared builder used by both the admin-side and public-side receipt
 // download endpoints — one layout implementation, no duplication.
 async function buildReceiptPdf({ contribution, paymentRequest, approverName, res }) {
-  const rcptNo    = receiptNumber(paymentRequest);
-  const filename  = `receipt_${rcptNo}.pdf`;
+  const rcptNo   = receiptNumber(paymentRequest);
+  const filename = `receipt_${rcptNo}.pdf`;
 
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -33,82 +35,120 @@ async function buildReceiptPdf({ contribution, paymentRequest, approverName, res
   const marginX  = 48;
   const contentW = pageW - marginX * 2;
 
+  // Page background
+  doc.rect(0, 0, pageW, pageH).fill(BRAND.bg);
+
   // ── Header banner ────────────────────────────────────────
-  doc.rect(0, 0, pageW, 120).fill(BRAND.navy);
-  doc.rect(0, 118, pageW, 2).fill(BRAND.green);
+  const headerH = 120;
+  doc.rect(0, 0, pageW, headerH).fill(BRAND.navy);
+  doc.rect(0, headerH - 3, pageW, 3).fill(BRAND.green);
 
   const badgeSize = 40;
-  doc.roundedRect(marginX, 30, badgeSize, badgeSize, 10).fill(BRAND.green);
-  doc.fillColor('#FFFFFF').fontSize(15).font('Helvetica-Bold')
-    .text('FH', marginX, 30 + badgeSize / 2 - 8, { width: badgeSize, align: 'center' });
+  doc.roundedRect(marginX, 26, badgeSize, badgeSize, 11).fill(BRAND.green);
+  doc.fillColor(BRAND.white).fontSize(15).font('Helvetica-Bold')
+    .text('FH', marginX, 26 + badgeSize / 2 - 8, { width: badgeSize, align: 'center' });
 
-  doc.fillColor(BRAND.green).fontSize(20).font('Helvetica-Bold')
-    .text(COMPANY_NAME, marginX + badgeSize + 14, 34);
-  doc.fillColor('#FFFFFF').fontSize(11).font('Helvetica')
-    .text('Official Payment Receipt', marginX + badgeSize + 14, 58);
+  const titleX = marginX + badgeSize + 14;
+  doc.fillColor(BRAND.white).fontSize(19).font('Helvetica-Bold')
+    .text(COMPANY_NAME, titleX, 30);
+  doc.fillColor(BRAND.accentGreen).fontSize(11).font('Helvetica')
+    .text('Official Payment Receipt', titleX, 53);
 
-  doc.fillColor('rgba(255,255,255,0.7)').fontSize(10).font('Helvetica-Bold')
-    .text(`Receipt No: ${rcptNo}`, pageW - marginX - 220, 44, { width: 220, align: 'right' });
+  doc.fillColor('rgba(255,255,255,0.7)').fontSize(9.5).font('Helvetica-Bold')
+    .text(`Receipt No: ${rcptNo}`, titleX, 74);
 
-  let y = 150;
+  // Status pill, top-right, with a soft shadow so it reads as a real badge
+  const statusLabel = 'APPROVED';
+  const pillW = 104, pillH = 30;
+  const pillX = pageW - marginX - pillW, pillY = 30;
+  doc.save();
+  doc.fillOpacity(0.35);
+  doc.roundedRect(pillX + 1.5, pillY + 2.5, pillW, pillH, 15).fill('#052e14');
+  doc.restore();
+  doc.roundedRect(pillX, pillY, pillW, pillH, 15).fill(BRAND.success);
+  doc.fillColor(BRAND.white).fontSize(11).font('Helvetica-Bold')
+    .text(statusLabel, pillX, pillY + 9, { width: pillW, align: 'center' });
 
-  // ── Status pill ──────────────────────────────────────────
+  let y = headerH + 22;
+
+  // ── Payment information card ─────────────────────────────
   const target    = parseFloat(contribution.amount) || 0;
   const paid      = parseFloat(contribution.paid_amount) || 0;
   const remaining = Math.max(target - paid, 0);
-  const statusLabel = contribution.status === 'paid' ? 'PAID' : 'APPROVED';
 
-  doc.roundedRect(marginX, y, 110, 28, 14).fill(BRAND.green);
-  doc.fillColor('#FFFFFF').fontSize(11).font('Helvetica-Bold')
-    .text(statusLabel, marginX, y + 8, { width: 110, align: 'center' });
-  y += 50;
-
-  // ── Details card ─────────────────────────────────────────
-  const cardPad = 20;
-  const rows = [
+  const infoRows = [
     ['Contributor',       contribution.contributor_name],
     ['Event',             contribution.event_name],
     ['Target Amount',     formatMoney(target)],
     ['Amount Paid',       formatMoney(paid)],
     ['Remaining Balance', formatMoney(remaining)],
-    ['Payment Date',      formatDate(paymentRequest.reviewed_at || new Date())],
+    ['Payment Date',      formatDate(paymentRequest.submitted_at || new Date())],
+    ['Approval Date',     formatDate(paymentRequest.reviewed_at || new Date())],
     ['Approved By',       approverName || 'System'],
+    ['Payment Status',    STATUS_LABELS[contribution.status] || contribution.status],
   ];
 
-  const cardH = rows.length * 28 + cardPad * 2;
-  doc.roundedRect(marginX, y, contentW, cardH, 10).fill(BRAND.card);
+  const cardPad  = 18;
+  const headingH = 24;
+  const rowH     = 26;
+  const infoCardH = cardPad * 2 + headingH + infoRows.length * rowH;
 
-  let ry = y + cardPad;
-  rows.forEach(([label, value]) => {
-    doc.fillColor(BRAND.textMuted).fontSize(10).font('Helvetica')
-      .text(label, marginX + cardPad, ry, { width: contentW / 2 - cardPad });
-    doc.fillColor('#FFFFFF').fontSize(11).font('Helvetica-Bold')
-      .text(String(value ?? '—'), marginX + contentW / 2, ry, { width: contentW / 2 - cardPad, align: 'right' });
-    ry += 28;
+  drawShadowCard(doc, marginX, y, contentW, infoCardH, 12, BRAND.white);
+  doc.fillColor(BRAND.navy).fontSize(11).font('Helvetica-Bold')
+    .text('Payment Information', marginX + cardPad, y + cardPad - 2, { width: contentW - cardPad * 2 });
+
+  let ry = y + cardPad + headingH;
+  infoRows.forEach(([label, value], i) => {
+    if (i > 0) {
+      doc.moveTo(marginX + cardPad, ry).lineTo(marginX + contentW - cardPad, ry)
+        .lineWidth(0.5).strokeColor(BRAND.border).stroke();
+    }
+    doc.fillColor(BRAND.muted).fontSize(9.5).font('Helvetica')
+      .text(label, marginX + cardPad, ry + 8, { width: contentW / 2 - cardPad });
+    doc.fillColor(BRAND.navy).fontSize(10.5).font('Helvetica-Bold')
+      .text(String(value ?? '—'), marginX + contentW / 2, ry + 8, { width: contentW / 2 - cardPad, align: 'right' });
+    ry += rowH;
   });
-  y += cardH + 30;
 
-  // ── QR verification ──────────────────────────────────────
+  y += infoCardH + 22;
+
+  // ── Verification card — QR gets its own dedicated card, not a
+  //    bare afterthought at the bottom ─────────────────────────
+  const qrSize = 104;
+  const verifyCardH = cardPad + headingH + 16 + qrSize + 16 + 16 + 14 + cardPad;
+
+  drawShadowCard(doc, marginX, y, contentW, verifyCardH, 12, BRAND.white);
+  doc.fillColor(BRAND.navy).fontSize(11).font('Helvetica-Bold')
+    .text('Payment Verification', marginX + cardPad, y + cardPad - 2, { width: contentW - cardPad * 2, align: 'center' });
+
   const qrBuffer = await generateQrBuffer(`${getPortalBaseUrl()}/pay/${contribution.public_token}`);
-  const qrSize = 110;
-  doc.image(qrBuffer, pageW / 2 - qrSize / 2, y, { width: qrSize, height: qrSize });
-  y += qrSize + 14;
-  doc.fillColor(BRAND.textMuted).fontSize(9).font('Helvetica')
-    .text('Scan to view your live contribution page', marginX, y, { width: contentW, align: 'center' });
-  y += 34;
+  const qrX = pageW / 2 - qrSize / 2;
+  const qrY = y + cardPad + headingH + 16;
+  doc.roundedRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 10).fill(BRAND.bg);
+  doc.image(qrBuffer, qrX, qrY, { width: qrSize, height: qrSize });
+
+  doc.fillColor(BRAND.navy).fontSize(11).font('Helvetica-Bold')
+    .text('Scan to Verify', marginX, qrY + qrSize + 16, { width: contentW, align: 'center' });
+  doc.fillColor(BRAND.muted).fontSize(9).font('Helvetica')
+    .text('Verified by Finance Hub', marginX, qrY + qrSize + 32, { width: contentW, align: 'center' });
+
+  y += verifyCardH + 26;
 
   // ── Thank you section ────────────────────────────────────
   doc.fillColor(BRAND.green).fontSize(13).font('Helvetica-Bold')
     .text('Thank you for supporting this event.', marginX, y, { width: contentW, align: 'center' });
-  y += 20;
-  doc.fillColor(BRAND.textMuted).fontSize(10).font('Helvetica')
-    .text('Your contribution is highly appreciated.', marginX, y, { width: contentW, align: 'center' });
+  y += 18;
+  doc.fillColor(BRAND.muted).fontSize(9.5).font('Helvetica')
+    .text('Your contribution helps us achieve our shared goal.', marginX, y, { width: contentW, align: 'center' });
+  y += 14;
+  doc.fillColor(BRAND.muted).fontSize(9.5).font('Helvetica')
+    .text('We sincerely appreciate your generosity.', marginX, y, { width: contentW, align: 'center' });
 
   // ── Footer ────────────────────────────────────────────────
-  const footerY = pageH - 60;
-  doc.rect(marginX, footerY, contentW, 1).fill(BRAND.navyLight);
-  doc.fillColor(BRAND.textDim).fontSize(8).font('Helvetica')
-    .text(`${COMPANY_NAME}  •  Confidential  •  Generated ${formatDate(new Date())}`, marginX, footerY + 10, { width: contentW, align: 'center' });
+  const footerY = pageH - 46;
+  doc.moveTo(marginX, footerY).lineTo(pageW - marginX, footerY).lineWidth(0.75).strokeColor(BRAND.border).stroke();
+  doc.fillColor(BRAND.muted).fontSize(8).font('Helvetica')
+    .text(`${COMPANY_NAME}  •  Confidential Report  •  Generated Automatically`, marginX, footerY + 12, { width: contentW, align: 'center' });
 
   doc.end();
 }
