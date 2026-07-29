@@ -439,6 +439,7 @@ export default function Settings() {
   }
 
   function handleLogoSelect(file) {
+    console.log('[crop-debug] file selected', file?.name, file?.size, file?.type);
     if (!LOGO_ALLOWED_TYPES.includes(file.type)) {
       toast.error('Only PNG, JPG, JPEG, or WEBP images are allowed');
       return;
@@ -448,7 +449,9 @@ export default function Settings() {
       return;
     }
     setCropFileName(file.name || 'logo.png');
-    setCropSrc(URL.createObjectURL(file));
+    const objectUrl = URL.createObjectURL(file);
+    console.log('[crop-debug] object URL created', objectUrl);
+    setCropSrc(objectUrl);
   }
 
   function closeCropModal() {
@@ -456,15 +459,17 @@ export default function Settings() {
     setCropSrc(null);
   }
 
-  async function handleCropConfirm(croppedAreaPixels) {
+  async function handleCropConfirm(image, croppedAreaPixels) {
     setUploadingLogo(true);
     try {
-      const croppedFile = await getCroppedImageFile(cropSrc, croppedAreaPixels, cropFileName);
+      const croppedFile = await getCroppedImageFile(image, croppedAreaPixels, cropFileName);
+      console.log('[crop-debug] cropped file created', croppedFile.size, croppedFile.type);
       const res = await settingsService.uploadLogo(croppedFile);
       setBranding({ logoUrl: res.data.data.logo_url });
       toast.success('Logo uploaded');
       closeCropModal();
     } catch (err) {
+      console.error('[crop-debug] crop/upload failed', err);
       toast.error(getErrorMessage(err));
     } finally { setUploadingLogo(false); }
   }

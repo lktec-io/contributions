@@ -13,6 +13,37 @@
   background: #0a1420;
 }
 
+.icm-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+  padding: 20px;
+}
+
+.icm-status-error {
+  color: var(--accent-red);
+}
+
+.icm-spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--accent-green);
+  animation: icm-spin 0.7s linear infinite;
+}
+
+@keyframes icm-spin {
+  to { transform: rotate(360deg); }
+}
+
 .icm-controls {
   display: flex;
   align-items: center;
