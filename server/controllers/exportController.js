@@ -5,7 +5,7 @@ const Contribution = require('../models/Contribution');
 const Event = require('../models/Event');
 const User = require('../models/User');
 const { formatDate } = require('../utils/helpers');
-const { BRAND, COMPANY_NAME, generateQrBuffer, getPortalBaseUrl, formatTime, argb, drawShadowCard } = require('../utils/reportBranding');
+const { BRAND, COMPANY_NAME, generateQrBuffer, getPortalBaseUrl, formatTime, argb, drawShadowCard, resolveBranding, fetchImageBuffer } = require('../utils/reportBranding');
 
 function sanitizeFilename(str) {
   return str.replace(/[^a-z0-9]/gi, '_').toLowerCase();
@@ -65,8 +65,9 @@ async function exportXLSX(req, res, next) {
     const contributions = await getContributionsForExport(req);
     const eventId = req.query.eventId;
     let eventName = 'all';
+    let event = null;
     if (eventId) {
-      const event = await Event.findById(eventId);
+      event = await Event.findById(eventId);
       if (event) eventName = event.name;
     }
 
@@ -77,8 +78,13 @@ async function exportXLSX(req, res, next) {
     const generatedBy = await User.findById(req.user.userId);
     const now = new Date();
 
+    // Branding — same one-account resolution as exportPDF, no org inheritance.
+    const brandingUserId = event ? event.organization_id : req.user.userId;
+    const branding        = await resolveBranding(brandingUserId);
+    const brandLogoBuffer = await fetchImageBuffer(branding.logoUrl);
+
     const wb = new ExcelJS.Workbook();
-    wb.creator  = COMPANY_NAME;
+    wb.creator  = branding.organizationName;
     wb.modified = now;
 
     const ws = wb.addWorksheet('Contributions', {
@@ -95,7 +101,7 @@ async function exportXLSX(req, res, next) {
     // ── Title row ──────────────────────────────────────────
     ws.mergeCells('A1:I1');
     const titleCell = ws.getCell('A1');
-    titleCell.value          = `${COMPANY_NAME} — Contributions Report: ${eventName === 'all' ? 'All Events' : eventName} (${contributions.length} records)`;
+    titleCell.value          = `${branding.organizationName} — Contributions Report: ${eventName === 'all' ? 'All Events' : eventName} (${contributions.length} records)`;
     titleCell.font           = { bold: true, size: 13, color: { argb: argb(BRAND.white) }, name: 'Calibri' };
     titleCell.fill           = { type: 'pattern', pattern: 'solid', fgColor: { argb: argb(BRAND.navy) } };
     titleCell.alignment      = { horizontal: 'center', vertical: 'middle' };
@@ -119,6 +125,20 @@ async function exportXLSX(req, res, next) {
       ws.addImage(qrImageId, { tl: { col: 8.05, row: 0.05 }, ext: { width: 42, height: 42 } });
     } catch (qrErr) {
       console.error('[export] QR embed failed (non-fatal):', qrErr.message);
+    }
+
+    // Account logo, anchored top-left, only when branding was actually
+    // uploaded — no vector fallback needed here, the title text alone is
+    // the existing (unchanged) default appearance.
+    if (brandLogoBuffer) {
+      try {
+        // Uploads are always stored as PNG (see uploadBrandingLogo) so this
+        // is safe to hardcode — ExcelJS's addImage doesn't support WEBP.
+        const logoImageId = wb.addImage({ buffer: brandLogoBuffer, extension: 'png' });
+        ws.addImage(logoImageId, { tl: { col: 0.05, row: 0.05 }, ext: { width: 40, height: 40 } });
+      } catch (logoErr) {
+        console.error('[export] Logo embed failed (non-fatal):', logoErr.message);
+      }
     }
 
     // ── Header row ──────────────────────────────────────────
@@ -294,9 +314,11 @@ async function exportPDF(req, res, next) {
 
     const generatedBy = await User.findById(req.user.userId);
 
-    // Organization Name — only shown when it resolves to a single, real
-    // organization (a specific event's owner, or the client_user's own
-    // account); omitted rather than guessed when the report spans many.
+    // Organization Name (account name) — only shown when it resolves to a
+    // single, real organization (a specific event's owner, or the
+    // client_user's own account); omitted rather than guessed when the
+    // report spans many. Distinct from the "branding" org name below,
+    // which is the custom label an account sets for itself.
     let organizationName = null;
     if (event) {
       const org = await User.findById(event.organization_id);
@@ -304,6 +326,13 @@ async function exportPDF(req, res, next) {
     } else if (req.user.role === 'client_user') {
       organizationName = generatedBy?.name || null;
     }
+
+    // Branding — one flat per-account value, no org inheritance. Same
+    // account resolution as organizationName above: the event's owner if
+    // a specific event is in scope, otherwise the requester themselves.
+    const brandingUserId = event ? event.organization_id : req.user.userId;
+    const branding        = await resolveBranding(brandingUserId);
+    const brandLogoBuffer = await fetchImageBuffer(branding.logoUrl);
 
     const now      = new Date();
     const date     = formatDate(now);
@@ -333,17 +362,24 @@ async function exportPDF(req, res, next) {
     doc.rect(0, 0, pageW, headerH).fill(BRAND.navy);
     doc.rect(0, headerH - 3, pageW, 3).fill(BRAND.green);
 
-    // FH badge (vector — no logo image file exists in the repo)
+    // Account logo if branding was uploaded, else the default vector badge
     const badgeSize = 36;
     const badgeX    = marginX;
     const badgeY    = 24;
-    doc.roundedRect(badgeX, badgeY, badgeSize, badgeSize, 9).fill(BRAND.green);
-    doc.fillColor(BRAND.white).fontSize(14).font('Helvetica-Bold')
-      .text('FH', badgeX, badgeY + badgeSize / 2 - 7, { width: badgeSize, align: 'center' });
+    if (brandLogoBuffer) {
+      doc.save();
+      doc.roundedRect(badgeX, badgeY, badgeSize, badgeSize, 9).clip();
+      doc.image(brandLogoBuffer, badgeX, badgeY, { fit: [badgeSize, badgeSize], align: 'center', valign: 'center' });
+      doc.restore();
+    } else {
+      doc.roundedRect(badgeX, badgeY, badgeSize, badgeSize, 9).fill(BRAND.green);
+      doc.fillColor(BRAND.white).fontSize(14).font('Helvetica-Bold')
+        .text('FH', badgeX, badgeY + badgeSize / 2 - 7, { width: badgeSize, align: 'center' });
+    }
 
     const titleX = badgeX + badgeSize + 14;
     doc.fillColor(BRAND.white).fontSize(19).font('Helvetica-Bold')
-      .text(COMPANY_NAME, titleX, 22);
+      .text(branding.organizationName, titleX, 22);
     doc.fillColor(BRAND.accentGreen).fontSize(12).font('Helvetica-Bold')
       .text('Contribution Report', titleX, 44);
 

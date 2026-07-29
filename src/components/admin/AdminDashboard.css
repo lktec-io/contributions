@@ -102,6 +102,23 @@
   flex-wrap: wrap;
 }
 
+.welcome-banner-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.welcome-banner-logo {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 5px;
+  flex-shrink: 0;
+}
+
 /* ── Banner button group ─────────────────────── */
 .welcome-banner-btns {
   display: flex;

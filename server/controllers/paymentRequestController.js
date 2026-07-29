@@ -7,6 +7,7 @@ const User           = require('../models/User');
 const { recordPayment } = require('./paymentController');
 const { getIsolationFilter, canAccessContribution } = require('../utils/tenantHelpers');
 const { buildReceiptPdf } = require('../utils/receiptPdf');
+const { resolveBranding, fetchImageBuffer } = require('../utils/reportBranding');
 
 // ── GET /api/payment-requests ───────────────────────────────────────
 async function list(req, res, next) {
@@ -146,11 +147,15 @@ async function downloadReceipt(req, res, next) {
     }
 
     const approver = request.reviewed_by ? await User.findById(request.reviewed_by) : null;
+    const branding = await resolveBranding(contribution.organization_id);
+    const logoBuffer = await fetchImageBuffer(branding.logoUrl);
 
     await buildReceiptPdf({
       contribution,
       paymentRequest: request,
       approverName: approver?.name,
+      logoBuffer,
+      organizationName: branding.organizationName,
       res,
     });
   } catch (err) {

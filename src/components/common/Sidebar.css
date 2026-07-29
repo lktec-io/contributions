@@ -101,6 +101,12 @@
     0 0 0 1px rgba(0, 184, 148, 0.3);
 }
 
+.sidebar-logo-mark-img {
+  object-fit: contain;
+  padding: 4px;
+  background: var(--bg-input);
+}
+
 .sidebar-logo-text {
   font-size: 15px;
   font-weight: 700;

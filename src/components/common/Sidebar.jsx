@@ -4,6 +4,7 @@ import {
   FiGrid, FiUsers, FiCalendar, FiList, FiHome, FiShield, FiSettings, FiArchive, FiCheckCircle,
 } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
+import { BrandingContext } from '../../context/BrandingContext';
 import './Sidebar.css';
 
 // Maps sidebar tab IDs to their URL paths
@@ -37,6 +38,7 @@ const CLIENT_ITEMS = [
 
 export default function Sidebar({ isOpen, onClose }) {
   const { user }    = useContext(AuthContext);
+  const { logoUrl, organizationName } = useContext(BrandingContext);
   const navigate    = useNavigate();
   const location    = useLocation();
   const pathname    = location.pathname;
@@ -65,8 +67,12 @@ export default function Sidebar({ isOpen, onClose }) {
       )}
       <aside className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}>
         <div className="sidebar-logo">
-          <span className="sidebar-logo-mark">FH</span>
-          <span className="sidebar-logo-text">Finance Hub</span>
+          {logoUrl ? (
+            <img src={logoUrl} alt="" className="sidebar-logo-mark sidebar-logo-mark-img" />
+          ) : (
+            <span className="sidebar-logo-mark">FH</span>
+          )}
+          <span className="sidebar-logo-text">{organizationName}</span>
         </div>
 
         <nav className="sidebar-nav">

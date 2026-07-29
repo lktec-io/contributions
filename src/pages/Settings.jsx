@@ -1,13 +1,14 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FiUser, FiSettings, FiBell, FiShield, FiGlobe,
   FiMessageSquare, FiEye, FiEyeOff, FiArrowLeft,
   FiSave, FiCheck, FiImage, FiAlertCircle, FiCreditCard,
-  FiPlus, FiTrash2,
+  FiPlus, FiTrash2, FiUpload, FiX,
 } from 'react-icons/fi';
 import { AuthContext } from '../context/AuthContext';
 import { ToastContext } from '../context/ToastContext';
+import { BrandingContext } from '../context/BrandingContext';
 import { settingsService } from '../services/settingsService';
 import { getErrorMessage } from '../utils/helpers';
 import Sidebar from '../components/common/Sidebar';
@@ -109,6 +110,61 @@ function LogoPreview({ url }) {
   );
 }
 
+// ── Branding logo upload ────────────────────────────────────────────
+const LOGO_ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+const LOGO_MAX_BYTES = 2 * 1024 * 1024;
+
+function BrandingLogoField({ logoUrl, uploading, removing, onSelectFile, onRemove }) {
+  const inputRef = useRef(null);
+
+  return (
+    <div className="st-brand-logo-field">
+      <div className="st-brand-logo-preview">
+        {logoUrl ? (
+          <img src={logoUrl} alt="Organization logo" className="st-brand-logo-img" />
+        ) : (
+          <div className="st-brand-logo-placeholder">
+            <span>FH</span>
+          </div>
+        )}
+      </div>
+
+      <div className="st-brand-logo-actions">
+        <input
+          ref={inputRef}
+          type="file"
+          accept={LOGO_ALLOWED_TYPES.join(',')}
+          className="st-brand-logo-input"
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (file) onSelectFile(file);
+            e.target.value = '';
+          }}
+        />
+        <button
+          type="button"
+          className="btn btn-secondary st-brand-upload-btn"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading || removing}
+        >
+          <FiUpload size={14} /> {uploading ? 'Uploading...' : logoUrl ? 'Replace Logo' : 'Upload Logo'}
+        </button>
+        {logoUrl && (
+          <button
+            type="button"
+            className="btn btn-secondary st-brand-remove-btn"
+            onClick={onRemove}
+            disabled={uploading || removing}
+          >
+            <FiX size={14} /> {removing ? 'Removing...' : 'Remove Logo'}
+          </button>
+        )}
+      </div>
+      <p className="st-hint">PNG, JPG, or WEBP. Max 2MB. Automatically resized to fit.</p>
+    </div>
+  );
+}
+
 // ── SMS provider badge ────────────────────────────────────────────
 const SMS_LABELS = {
   beem:           'Beem Africa',
@@ -169,6 +225,7 @@ function PaymentMethodRow({ fields, values, onChange, onRemove }) {
 export default function Settings() {
   const { user }  = useContext(AuthContext);
   const { toast } = useContext(ToastContext);
+  const { logoUrl, setBranding } = useContext(BrandingContext);
   const navigate  = useNavigate();
   const role      = user?.role;
 
@@ -218,6 +275,13 @@ export default function Settings() {
   const [savingPayment, setSavingPayment] = useState(false);
   const [donePayment,   setDonePayment]   = useState(false);
 
+  // all roles: organization branding (logo + name)
+  const [orgNameInput,   setOrgNameInput]   = useState('');
+  const [savingBranding, setSavingBranding] = useState(false);
+  const [doneBranding,   setDoneBranding]   = useState(false);
+  const [uploadingLogo,  setUploadingLogo]  = useState(false);
+  const [removingLogo,   setRemovingLogo]   = useState(false);
+
   // all roles: password change
   const [pw,     setPw]     = useState({ current_password: '', new_password: '', confirm: '' });
   const [showPw, setShowPw] = useState({ current: false, new: false, confirm: false });
@@ -247,6 +311,7 @@ export default function Settings() {
           sms_provider:         d.sms_provider         ?? 'beem',
         });
         setNotifPref(d.notification_preference ?? 'true');
+        setOrgNameInput(d.branding_org_name ?? '');
         setMobileMethods(parsePaymentList(d.payment_methods_mobile).map(m => ({
           id: newRowId(),
           network: m.network ?? '',
@@ -356,6 +421,49 @@ export default function Settings() {
   const updateBankMethod = (id, field, value) =>
     setBankMethods(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
 
+  async function saveBrandingName(e) {
+    e.preventDefault();
+    setSavingBranding(true);
+    try {
+      await settingsService.update({ branding_org_name: orgNameInput });
+      setBranding({ organizationName: orgNameInput || 'Finance Hub' });
+      toast.success('Organization name saved');
+      flash(setDoneBranding);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally { setSavingBranding(false); }
+  }
+
+  async function handleLogoSelect(file) {
+    if (!LOGO_ALLOWED_TYPES.includes(file.type)) {
+      toast.error('Only PNG, JPG, JPEG, or WEBP images are allowed');
+      return;
+    }
+    if (file.size > LOGO_MAX_BYTES) {
+      toast.error('Logo must be 2MB or smaller');
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const res = await settingsService.uploadLogo(file);
+      setBranding({ logoUrl: res.data.data.logo_url });
+      toast.success('Logo uploaded');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally { setUploadingLogo(false); }
+  }
+
+  async function handleLogoRemove() {
+    setRemovingLogo(true);
+    try {
+      await settingsService.removeLogo();
+      setBranding({ logoUrl: null });
+      toast.success('Logo removed');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally { setRemovingLogo(false); }
+  }
+
   async function saveNotif(e) {
     e.preventDefault();
     setSavingNotif(true);
@@ -390,6 +498,7 @@ export default function Settings() {
   // ── Nav items (role-based) ────────────────────────────────────
   const navItems = [
     { id: 'profile',       label: 'Profile',       Icon: FiUser          },
+    { id: 'branding',      label: 'Branding',      Icon: FiImage         },
     ...(role === 'super_admin' ? [
       { id: 'system',      label: 'System',         Icon: FiSettings      },
       { id: 'sms',         label: 'SMS',            Icon: FiMessageSquare },
@@ -448,6 +557,42 @@ export default function Settings() {
                 <SaveBtn loading={savingProfile} done={doneProfile} />
               </div>
             </form>
+          </SectionCard>
+        );
+
+      // ── Organization Branding (all roles) ────────────────────
+      case 'branding':
+        return (
+          <SectionCard
+            title="Organization Branding"
+            subtitle="Your own logo and organization name — shown throughout the app and on generated reports and receipts. Only visible on your account."
+          >
+            <div className="st-form">
+              <Field label="Organization Logo">
+                <BrandingLogoField
+                  logoUrl={logoUrl}
+                  uploading={uploadingLogo}
+                  removing={removingLogo}
+                  onSelectFile={handleLogoSelect}
+                  onRemove={handleLogoRemove}
+                />
+              </Field>
+
+              <form onSubmit={saveBrandingName}>
+                <Field label="Organization Name" hint="Shown in place of &ldquo;Finance Hub&rdquo; wherever your branding appears.">
+                  <input
+                    className="st-input"
+                    value={orgNameInput}
+                    onChange={e => setOrgNameInput(e.target.value.slice(0, 100))}
+                    placeholder="Finance Hub"
+                    maxLength={100}
+                  />
+                </Field>
+                <div className="st-form-footer">
+                  <SaveBtn loading={savingBranding} done={doneBranding} />
+                </div>
+              </form>
+            </div>
           </SectionCard>
         );
 

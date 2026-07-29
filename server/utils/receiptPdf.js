@@ -20,7 +20,10 @@ const STATUS_LABELS = { paid: 'Paid in Full', partial: 'Partially Paid', pledge:
 
 // Single shared builder used by both the admin-side and public-side receipt
 // download endpoints — one layout implementation, no duplication.
-async function buildReceiptPdf({ contribution, paymentRequest, approverName, res }) {
+// `logoBuffer`/`organizationName` are optional — callers resolve branding
+// via reportBranding.resolveBranding()/fetchImageBuffer() and pass the
+// result in; omitting them keeps the original default Finance Hub look.
+async function buildReceiptPdf({ contribution, paymentRequest, approverName, logoBuffer = null, organizationName = COMPANY_NAME, res }) {
   const rcptNo   = receiptNumber(paymentRequest);
   const filename = `receipt_${rcptNo}.pdf`;
 
@@ -44,13 +47,20 @@ async function buildReceiptPdf({ contribution, paymentRequest, approverName, res
   doc.rect(0, headerH - 3, pageW, 3).fill(BRAND.green);
 
   const badgeSize = 40;
-  doc.roundedRect(marginX, 26, badgeSize, badgeSize, 11).fill(BRAND.green);
-  doc.fillColor(BRAND.white).fontSize(15).font('Helvetica-Bold')
-    .text('FH', marginX, 26 + badgeSize / 2 - 8, { width: badgeSize, align: 'center' });
+  if (logoBuffer) {
+    doc.save();
+    doc.roundedRect(marginX, 26, badgeSize, badgeSize, 11).clip();
+    doc.image(logoBuffer, marginX, 26, { fit: [badgeSize, badgeSize], align: 'center', valign: 'center' });
+    doc.restore();
+  } else {
+    doc.roundedRect(marginX, 26, badgeSize, badgeSize, 11).fill(BRAND.green);
+    doc.fillColor(BRAND.white).fontSize(15).font('Helvetica-Bold')
+      .text('FH', marginX, 26 + badgeSize / 2 - 8, { width: badgeSize, align: 'center' });
+  }
 
   const titleX = marginX + badgeSize + 14;
   doc.fillColor(BRAND.white).fontSize(19).font('Helvetica-Bold')
-    .text(COMPANY_NAME, titleX, 30);
+    .text(organizationName, titleX, 30);
   doc.fillColor(BRAND.accentGreen).fontSize(11).font('Helvetica')
     .text('Official Payment Receipt', titleX, 53);
 
@@ -130,7 +140,7 @@ async function buildReceiptPdf({ contribution, paymentRequest, approverName, res
   doc.fillColor(BRAND.navy).fontSize(11).font('Helvetica-Bold')
     .text('Scan to Verify', marginX, qrY + qrSize + 16, { width: contentW, align: 'center' });
   doc.fillColor(BRAND.muted).fontSize(9).font('Helvetica')
-    .text('Verified by Finance Hub', marginX, qrY + qrSize + 32, { width: contentW, align: 'center' });
+    .text(`Verified by ${organizationName}`, marginX, qrY + qrSize + 32, { width: contentW, align: 'center' });
 
   y += verifyCardH + 26;
 
@@ -148,7 +158,7 @@ async function buildReceiptPdf({ contribution, paymentRequest, approverName, res
   const footerY = pageH - 46;
   doc.moveTo(marginX, footerY).lineTo(pageW - marginX, footerY).lineWidth(0.75).strokeColor(BRAND.border).stroke();
   doc.fillColor(BRAND.muted).fontSize(8).font('Helvetica')
-    .text(`${COMPANY_NAME}  •  Confidential Report  •  Generated Automatically`, marginX, footerY + 12, { width: contentW, align: 'center' });
+    .text(`${organizationName}  •  Confidential Report  •  Generated Automatically`, marginX, footerY + 12, { width: contentW, align: 'center' });
 
   doc.end();
 }

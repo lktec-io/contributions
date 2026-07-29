@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
+import { BrandingProvider } from './context/BrandingContext';
 import { setAuthContext } from './services/api';
 import ProtectedRoute from './routes/ProtectedRoute';
 import ThemeWaveOverlay from './components/common/ThemeWaveOverlay';
@@ -110,13 +111,15 @@ export default function App() {
     <ThemeProvider>
       <ThemeWaveOverlay />
       <AuthProvider>
-        <ToastProvider>
-          <BrowserRouter>
-            <AppRoutes />
-            <ToastContainer />
-            <PaymentRequestAlertHost />
-          </BrowserRouter>
-        </ToastProvider>
+        <BrandingProvider>
+          <ToastProvider>
+            <BrowserRouter>
+              <AppRoutes />
+              <ToastContainer />
+              <PaymentRequestAlertHost />
+            </BrowserRouter>
+          </ToastProvider>
+        </BrandingProvider>
       </AuthProvider>
     </ThemeProvider>
   );

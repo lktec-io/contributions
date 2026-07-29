@@ -4,12 +4,17 @@ const bcrypt  = require('bcrypt');
 const pool    = require('../config/db');
 const Setting = require('../models/Setting');
 const User    = require('../models/User');
+const { cloudinary, isConfigured } = require('../config/cloudinary');
 
 /*
   Which keys each role is allowed to save.
-  `notification_preference` is treated specially — it is always written
-  to the user's own personal scope regardless of role.
+  Keys listed in ALWAYS_PERSONAL_KEYS are treated specially — they are
+  always written to (and read from) the user's own personal scope
+  regardless of role, so branding is one flat per-account value for
+  super_admin/admin/client_user alike, with no org/global inheritance.
 */
+const ALWAYS_PERSONAL_KEYS = ['notification_preference', 'branding_logo_url', 'branding_org_name'];
+
 const ROLE_KEYS = {
   super_admin: [
     'system_name',
@@ -18,6 +23,8 @@ const ROLE_KEYS = {
     'sms_provider',
     'enable_notifications',
     'notification_preference',
+    'branding_logo_url',
+    'branding_org_name',
   ],
   admin: [
     'organization_name',
@@ -27,13 +34,19 @@ const ROLE_KEYS = {
     'notification_preference',
     'payment_methods_mobile',
     'payment_methods_bank',
+    'branding_logo_url',
+    'branding_org_name',
   ],
   client_user: [
     'notification_preference',
     'payment_methods_mobile',
     'payment_methods_bank',
+    'branding_logo_url',
+    'branding_org_name',
   ],
 };
+
+const MAX_ORG_NAME_LENGTH = 100;
 
 // ── GET /api/settings ─────────────────────────────────────────────
 async function getSettings(req, res, next) {
@@ -55,10 +68,12 @@ async function getSettings(req, res, next) {
       Object.assign(merged, personal);
     }
 
-    // Always layer personal notification_preference on top for every role
-    if (personal.notification_preference !== undefined) {
-      merged.notification_preference = personal.notification_preference;
-    }
+    // Always layer these personal-scope values on top for every role —
+    // notification_preference already worked this way; branding just
+    // reuses the identical pattern instead of introducing new scope logic.
+    ALWAYS_PERSONAL_KEYS.forEach((key) => {
+      if (personal[key] !== undefined) merged[key] = personal[key];
+    });
 
     // Inject live profile data so the frontend always shows current values
     const userRecord = await User.findById(userId);
@@ -85,8 +100,17 @@ async function updateSettings(req, res, next) {
 
     const allowed = ROLE_KEYS[role] ?? [];
 
-    // ── Role-scoped settings (everything except notification_preference) ──
-    const scopeKeys = allowed.filter(k => k !== 'notification_preference');
+    if ('branding_org_name' in incoming && typeof incoming.branding_org_name === 'string'
+      && incoming.branding_org_name.length > MAX_ORG_NAME_LENGTH) {
+      return res.status(400).json({
+        success: false,
+        message: `Organization name must be ${MAX_ORG_NAME_LENGTH} characters or fewer`,
+        errors: [{ field: 'branding_org_name', message: 'Too long' }],
+      });
+    }
+
+    // ── Role-scoped settings (everything except the always-personal keys) ──
+    const scopeKeys = allowed.filter(k => !ALWAYS_PERSONAL_KEYS.includes(k));
     const scopeData = Object.fromEntries(
       Object.entries(incoming).filter(([k]) => scopeKeys.includes(k))
     );
@@ -104,12 +128,11 @@ async function updateSettings(req, res, next) {
       }
     }
 
-    // ── notification_preference is ALWAYS personal scope ──────────────────
-    if (
-      'notification_preference' in incoming &&
-      allowed.includes('notification_preference')
-    ) {
-      await Setting.upsert(userId, 0, 'notification_preference', incoming.notification_preference);
+    // ── Always-personal-scope keys (notification_preference, branding) ──────
+    for (const key of ALWAYS_PERSONAL_KEYS) {
+      if (key in incoming && allowed.includes(key)) {
+        await Setting.upsert(userId, 0, key, incoming[key]);
+      }
     }
 
     // ── Profile (name / email) ─────────────────────────────────────────────
@@ -158,4 +181,50 @@ async function updatePassword(req, res, next) {
   }
 }
 
-module.exports = { getSettings, updateSettings, updatePassword };
+// ── POST /api/settings/branding/logo ───────────────────────────────
+// Uploads to Cloudinary and immediately persists the resulting URL to the
+// caller's own personal branding setting — logo changes save on upload,
+// unlike the other settings fields which wait for "Save Changes".
+async function uploadBrandingLogo(req, res, next) {
+  try {
+    if (!isConfigured()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Logo upload is not configured yet. Please contact an administrator.',
+        errors: [],
+      });
+    }
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No image file was provided', errors: [] });
+    }
+
+    const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+    const result = await cloudinary.uploader.upload(dataUri, {
+      folder: 'finance-hub/branding',
+      // Forced to PNG deterministically (not fetch_format:'auto') — pdfkit
+      // and ExcelJS's image embedding only support PNG/JPEG, not WEBP, so
+      // the stored asset must always be one we can actually render into
+      // reports/receipts regardless of what format was uploaded.
+      format: 'png',
+      transformation: [{ width: 512, height: 512, crop: 'limit', quality: 'auto' }],
+    });
+
+    await Setting.upsert(req.user.userId, 0, 'branding_logo_url', result.secure_url);
+
+    return res.json({ success: true, data: { logo_url: result.secure_url } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── DELETE /api/settings/branding/logo ──────────────────────────────
+async function removeBrandingLogo(req, res, next) {
+  try {
+    await Setting.upsert(req.user.userId, 0, 'branding_logo_url', '');
+    return res.json({ success: true, message: 'Logo removed' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getSettings, updateSettings, updatePassword, uploadBrandingLogo, removeBrandingLogo };

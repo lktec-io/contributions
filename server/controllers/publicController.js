@@ -6,6 +6,7 @@ const Notification   = require('../models/Notification');
 const Setting        = require('../models/Setting');
 const User           = require('../models/User');
 const { buildReceiptPdf } = require('../utils/receiptPdf');
+const { resolveBranding, fetchImageBuffer } = require('../utils/reportBranding');
 
 const INVALID_LINK_MESSAGE = 'This contribution link is invalid or has expired.';
 
@@ -24,9 +25,10 @@ async function getContribution(req, res, next) {
     const balance      = Math.max(targetAmount - paidAmount, 0);
     const progress      = targetAmount > 0 ? Math.min(100, Math.round((paidAmount / targetAmount) * 100)) : 0;
 
-    const [paymentMethods, latestRequest] = await Promise.all([
+    const [paymentMethods, latestRequest, branding] = await Promise.all([
       Setting.getPaymentMethods(contribution),
       PaymentRequest.findLatestByContribution(contribution.id),
+      resolveBranding(contribution.organization_id),
     ]);
 
     return res.json({
@@ -41,6 +43,8 @@ async function getContribution(req, res, next) {
         status: contribution.status,
         updated_at: contribution.updated_at,
         payment_methods: paymentMethods,
+        organization_name: branding.organizationName,
+        logo_url: branding.logoUrl,
         latest_request: latestRequest
           ? { status: latestRequest.status, submitted_at: latestRequest.submitted_at }
           : null,
@@ -121,11 +125,15 @@ async function downloadReceipt(req, res, next) {
     }
 
     const approver = latestRequest.reviewed_by ? await User.findById(latestRequest.reviewed_by) : null;
+    const branding = await resolveBranding(contribution.organization_id);
+    const logoBuffer = await fetchImageBuffer(branding.logoUrl);
 
     await buildReceiptPdf({
       contribution,
       paymentRequest: latestRequest,
       approverName: approver?.name,
+      logoBuffer,
+      organizationName: branding.organizationName,
       res,
     });
   } catch (err) {

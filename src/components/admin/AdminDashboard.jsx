@@ -6,6 +6,7 @@ import {
 } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import { ToastContext } from '../../context/ToastContext';
+import { BrandingContext } from '../../context/BrandingContext';
 import api from '../../services/api';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { getErrorMessage } from '../../utils/helpers';
@@ -43,6 +44,7 @@ function tabFromPath(pathname) {
 export default function AdminDashboard() {
   const { user } = useContext(AuthContext);
   const { toast } = useContext(ToastContext);
+  const { logoUrl } = useContext(BrandingContext);
   const navigate   = useNavigate();
   const location   = useLocation();
   const activeTab  = tabFromPath(location.pathname);
@@ -119,9 +121,12 @@ export default function AdminDashboard() {
       <>
         <div className="welcome-banner">
           <div className="welcome-banner-inner">
-            <div className="welcome-text">
-              <h1>Welcome Back, {getGreeting()} <span>{user?.name}</span>!</h1>
-              <p>{today}</p>
+            <div className="welcome-banner-identity">
+              {logoUrl && <img src={logoUrl} alt="" className="welcome-banner-logo" />}
+              <div className="welcome-text">
+                <h1>Welcome Back, {getGreeting()} <span>{user?.name}</span>!</h1>
+                <p>{today}</p>
+              </div>
             </div>
             <div className="welcome-banner-btns">
               <button

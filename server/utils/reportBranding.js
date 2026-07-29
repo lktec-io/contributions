@@ -1,6 +1,8 @@
 'use strict';
 
 const QRCode = require('qrcode');
+const axios  = require('axios');
+const Setting = require('../models/Setting');
 
 // Fixed brand palette for all generated documents (PDF reports, Excel
 // reports, receipts, public receipts) — deliberately distinct from the
@@ -49,6 +51,38 @@ function drawShadowCard(doc, x, y, w, h, radius, fillColor) {
   doc.roundedRect(x, y, w, h, radius).lineWidth(0.75).strokeColor(BRAND.border).stroke();
 }
 
+// Resolves one account's branding for document generation. Always returns
+// usable values — falls back to the default Finance Hub identity when the
+// account never set its own, so every call site can use the result
+// unconditionally without its own null-checks.
+async function resolveBranding(userId) {
+  try {
+    const personal = await Setting.getPersonal(userId);
+    return {
+      logoUrl: personal.branding_logo_url || null,
+      organizationName: personal.branding_org_name || COMPANY_NAME,
+    };
+  } catch (err) {
+    console.error('[branding] resolveBranding failed (non-fatal):', err.message);
+    return { logoUrl: null, organizationName: COMPANY_NAME };
+  }
+}
+
+// Fetches a remote image (e.g. a Cloudinary logo URL) as a Buffer for
+// embedding in pdfkit/ExcelJS. Never throws — a slow/broken/missing logo
+// must never break report or receipt generation; callers just fall back
+// to the default vector badge when this returns null.
+async function fetchImageBuffer(url) {
+  if (!url) return null;
+  try {
+    const res = await axios.get(url, { responseType: 'arraybuffer', timeout: 8000 });
+    return Buffer.from(res.data);
+  } catch (err) {
+    console.error('[branding] fetchImageBuffer failed (non-fatal):', err.message);
+    return null;
+  }
+}
+
 function getPortalBaseUrl() {
   return process.env.FRONTEND_URL || 'http://localhost:5173';
 }
@@ -61,4 +95,7 @@ function formatTime(date) {
   return `${hours}:${minutes}`;
 }
 
-module.exports = { BRAND, COMPANY_NAME, generateQrBuffer, getPortalBaseUrl, formatTime, argb, drawShadowCard };
+module.exports = {
+  BRAND, COMPANY_NAME, generateQrBuffer, getPortalBaseUrl, formatTime, argb, drawShadowCard,
+  resolveBranding, fetchImageBuffer,
+};

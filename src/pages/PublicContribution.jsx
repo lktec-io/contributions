@@ -105,6 +105,7 @@ export default function PublicContribution() {
   const {
     event_name, contributor_name, target_amount, paid_amount, balance,
     progress_percent, status, updated_at, payment_methods, latest_request,
+    organization_name, logo_url,
   } = data;
 
   const mobileMethods = payment_methods?.mobile || [];
@@ -126,6 +127,13 @@ export default function PublicContribution() {
       />
 
       <div className="public-card">
+        {(logo_url || organization_name) && (
+          <div className="public-branding">
+            {logo_url && <img src={logo_url} alt="" className="public-branding-logo" />}
+            <span className="public-branding-name">{organization_name}</span>
+          </div>
+        )}
+
         <div className="public-card-header">
           <span className="public-event-name">{event_name}</span>
           <div className="public-badge-group">
