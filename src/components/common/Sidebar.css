@@ -84,9 +84,9 @@
 }
 
 .sidebar-logo-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   background: linear-gradient(135deg, #00B894 0%, #00A07D 100%);
   color: #fff;
   font-size: 13px;

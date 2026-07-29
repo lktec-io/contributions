@@ -34,9 +34,9 @@
 }
 
 .public-branding-logo {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
   object-fit: contain;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
@@ -338,8 +338,8 @@
   }
 
   .public-branding-logo {
-    width: 44px;
-    height: 44px;
+    width: 52px;
+    height: 52px;
   }
 
   .public-branding-name {

@@ -277,10 +277,10 @@
 }
 
 .st-brand-logo-preview {
-  width: 96px;
-  height: 96px;
+  width: 112px;
+  height: 112px;
   flex-shrink: 0;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid var(--border-color);
   background: var(--bg-input);
   display: flex;

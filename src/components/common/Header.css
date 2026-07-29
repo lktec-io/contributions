@@ -172,6 +172,13 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.user-avatar-img {
+  object-fit: contain;
+  background: var(--bg-input);
+  padding: 3px;
+  flex-shrink: 0;
   box-shadow: 0 0 0 2px rgba(0, 184, 148, 0.25);
 }
 

@@ -219,9 +219,9 @@
 }
 
 .login-logo-mark {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
   background: linear-gradient(140deg, #2ecc71 0%, #1a9e55 55%, #148043 100%);
   display: flex;
   align-items: center;
@@ -238,8 +238,8 @@
 }
 
 .login-logo-mark svg {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   color: #fff;
   display: block;
 }
@@ -607,12 +607,12 @@
   }
 
   .login-logo-mark {
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
   }
 
-  .login-logo-mark svg { width: 26px; height: 26px; }
+  .login-logo-mark svg { width: 30px; height: 30px; }
   .login-app-name      { font-size: 22px; }
   .login-logo          { margin-bottom: 28px; }
 

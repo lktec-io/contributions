@@ -11,9 +11,11 @@ import { ToastContext } from '../context/ToastContext';
 import { BrandingContext } from '../context/BrandingContext';
 import { settingsService } from '../services/settingsService';
 import { getErrorMessage } from '../utils/helpers';
+import { getCroppedImageFile } from '../utils/cropImage';
 import Sidebar from '../components/common/Sidebar';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
+import ImageCropModal from '../components/common/ImageCropModal';
 import './Settings.css';
 
 // ── Primitives ───────────────────────────────────────────────────
@@ -281,6 +283,8 @@ export default function Settings() {
   const [doneBranding,   setDoneBranding]   = useState(false);
   const [uploadingLogo,  setUploadingLogo]  = useState(false);
   const [removingLogo,   setRemovingLogo]   = useState(false);
+  const [cropSrc,        setCropSrc]        = useState(null);
+  const [cropFileName,   setCropFileName]   = useState('logo.png');
 
   // all roles: password change
   const [pw,     setPw]     = useState({ current_password: '', new_password: '', confirm: '' });
@@ -434,7 +438,7 @@ export default function Settings() {
     } finally { setSavingBranding(false); }
   }
 
-  async function handleLogoSelect(file) {
+  function handleLogoSelect(file) {
     if (!LOGO_ALLOWED_TYPES.includes(file.type)) {
       toast.error('Only PNG, JPG, JPEG, or WEBP images are allowed');
       return;
@@ -443,11 +447,23 @@ export default function Settings() {
       toast.error('Logo must be 2MB or smaller');
       return;
     }
+    setCropFileName(file.name || 'logo.png');
+    setCropSrc(URL.createObjectURL(file));
+  }
+
+  function closeCropModal() {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+  }
+
+  async function handleCropConfirm(croppedAreaPixels) {
     setUploadingLogo(true);
     try {
-      const res = await settingsService.uploadLogo(file);
+      const croppedFile = await getCroppedImageFile(cropSrc, croppedAreaPixels, cropFileName);
+      const res = await settingsService.uploadLogo(croppedFile);
       setBranding({ logoUrl: res.data.data.logo_url });
       toast.success('Logo uploaded');
+      closeCropModal();
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally { setUploadingLogo(false); }
@@ -940,6 +956,14 @@ export default function Settings() {
 
         <Footer />
       </div>
+
+      <ImageCropModal
+        isOpen={!!cropSrc}
+        imageSrc={cropSrc}
+        onCancel={closeCropModal}
+        onConfirm={handleCropConfirm}
+        confirming={uploadingLogo}
+      />
     </div>
   );
 }

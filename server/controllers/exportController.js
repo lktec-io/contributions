@@ -135,7 +135,7 @@ async function exportXLSX(req, res, next) {
         // Uploads are always stored as PNG (see uploadBrandingLogo) so this
         // is safe to hardcode — ExcelJS's addImage doesn't support WEBP.
         const logoImageId = wb.addImage({ buffer: brandLogoBuffer, extension: 'png' });
-        ws.addImage(logoImageId, { tl: { col: 0.05, row: 0.05 }, ext: { width: 40, height: 40 } });
+        ws.addImage(logoImageId, { tl: { col: 0.05, row: 0.05 }, ext: { width: 50, height: 50 } });
       } catch (logoErr) {
         console.error('[export] Logo embed failed (non-fatal):', logoErr.message);
       }
@@ -363,18 +363,18 @@ async function exportPDF(req, res, next) {
     doc.rect(0, headerH - 3, pageW, 3).fill(BRAND.green);
 
     // Account logo if branding was uploaded, else the default vector badge
-    const badgeSize = 36;
+    const badgeSize = 46;
     const badgeX    = marginX;
     const badgeY    = 24;
     if (brandLogoBuffer) {
       doc.save();
-      doc.roundedRect(badgeX, badgeY, badgeSize, badgeSize, 9).clip();
+      doc.roundedRect(badgeX, badgeY, badgeSize, badgeSize, 11).clip();
       doc.image(brandLogoBuffer, badgeX, badgeY, { fit: [badgeSize, badgeSize], align: 'center', valign: 'center' });
       doc.restore();
     } else {
-      doc.roundedRect(badgeX, badgeY, badgeSize, badgeSize, 9).fill(BRAND.green);
-      doc.fillColor(BRAND.white).fontSize(14).font('Helvetica-Bold')
-        .text('FH', badgeX, badgeY + badgeSize / 2 - 7, { width: badgeSize, align: 'center' });
+      doc.roundedRect(badgeX, badgeY, badgeSize, badgeSize, 11).fill(BRAND.green);
+      doc.fillColor(BRAND.white).fontSize(16).font('Helvetica-Bold')
+        .text('FH', badgeX, badgeY + badgeSize / 2 - 8, { width: badgeSize, align: 'center' });
     }
 
     const titleX = badgeX + badgeSize + 14;

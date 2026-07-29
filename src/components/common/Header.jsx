@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { FiSun, FiMoon, FiLogOut, FiSettings } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import { ThemeContext } from '../../context/ThemeContext';
+import { BrandingContext } from '../../context/BrandingContext';
 import NotificationBell from '../notifications/NotificationBell';
 import './Header.css';
 
 export default function Header({ onMenuToggle, menuOpen }) {
   const { user, logout }        = useContext(AuthContext);
   const { theme, toggleTheme }  = useContext(ThemeContext);
+  const { logoUrl }             = useContext(BrandingContext);
   const navigate                = useNavigate();
   const [iconSpin,       setIconSpin]       = useState(false);
   const [hamburgerPulse, setHamburgerPulse] = useState(false);
@@ -62,7 +64,11 @@ export default function Header({ onMenuToggle, menuOpen }) {
         </button>
 
         <div className="header-user">
-          <span className="user-avatar">{user?.name?.[0]?.toUpperCase() || 'U'}</span>
+          {logoUrl ? (
+            <img src={logoUrl} alt="" className="user-avatar user-avatar-img" />
+          ) : (
+            <span className="user-avatar">{user?.name?.[0]?.toUpperCase() || 'U'}</span>
+          )}
           <span className="user-name">{user?.name}</span>
         </div>
 

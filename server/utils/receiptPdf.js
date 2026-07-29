@@ -46,16 +46,16 @@ async function buildReceiptPdf({ contribution, paymentRequest, approverName, log
   doc.rect(0, 0, pageW, headerH).fill(BRAND.navy);
   doc.rect(0, headerH - 3, pageW, 3).fill(BRAND.green);
 
-  const badgeSize = 40;
+  const badgeSize = 50;
   if (logoBuffer) {
     doc.save();
-    doc.roundedRect(marginX, 26, badgeSize, badgeSize, 11).clip();
+    doc.roundedRect(marginX, 26, badgeSize, badgeSize, 12).clip();
     doc.image(logoBuffer, marginX, 26, { fit: [badgeSize, badgeSize], align: 'center', valign: 'center' });
     doc.restore();
   } else {
-    doc.roundedRect(marginX, 26, badgeSize, badgeSize, 11).fill(BRAND.green);
-    doc.fillColor(BRAND.white).fontSize(15).font('Helvetica-Bold')
-      .text('FH', marginX, 26 + badgeSize / 2 - 8, { width: badgeSize, align: 'center' });
+    doc.roundedRect(marginX, 26, badgeSize, badgeSize, 12).fill(BRAND.green);
+    doc.fillColor(BRAND.white).fontSize(17).font('Helvetica-Bold')
+      .text('FH', marginX, 26 + badgeSize / 2 - 9, { width: badgeSize, align: 'center' });
   }
 
   const titleX = marginX + badgeSize + 14;
