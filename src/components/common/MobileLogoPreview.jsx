@@ -20,17 +20,22 @@ export default function MobileLogoPreview({ isOpen, file, allowedTypes, onCancel
       return;
     }
 
-    let cancelled = false;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (!cancelled) setPreviewUrl(reader.result);
-    };
-    reader.onerror = () => {
-      console.error(`${LOG} mobile preview read failed`);
-    };
-    reader.readAsDataURL(file);
+    // URL.createObjectURL is synchronous (just registers a reference —
+    // no file reading or base64 encoding), so the preview is available
+    // on the very next paint. FileReader.readAsDataURL has to read and
+    // base64-encode the entire file (up to 2MB) before onload fires,
+    // which was slow enough on some Android devices to make the preview
+    // look blank/stuck even though the underlying File was already fine
+    // (the actual upload sends the raw File via FormData, no encoding
+    // involved, which is why upload always worked while the preview
+    // didn't).
+    const url = URL.createObjectURL(file);
+    console.log(`${LOG} mobile preview object URL created`, url);
+    setPreviewUrl(url);
 
-    return () => { cancelled = true; };
+    return () => {
+      URL.revokeObjectURL(url);
+    };
   }, [isOpen, file]);
 
   return (
