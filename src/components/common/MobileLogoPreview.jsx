@@ -14,36 +14,48 @@ export default function MobileLogoPreview({ isOpen, file, allowedTypes, onCancel
   const [previewUrl, setPreviewUrl] = useState(null);
   const inputRef = useRef(null);
 
+  // Preview comes directly from the local File — URL.createObjectURL is
+  // synchronous (just registers a reference, no file reading or base64
+  // encoding) so it's ready before the next paint. Keyed on `file` alone
+  // (not `isOpen`) since `isOpen` is always derived from the same file
+  // in the parent and adds nothing to the dependency check.
   useEffect(() => {
-    if (!isOpen || !file) {
+    if (!file) {
       setPreviewUrl(null);
       return;
     }
 
-    // URL.createObjectURL is synchronous (just registers a reference —
-    // no file reading or base64 encoding), so the preview is available
-    // on the very next paint. FileReader.readAsDataURL has to read and
-    // base64-encode the entire file (up to 2MB) before onload fires,
-    // which was slow enough on some Android devices to make the preview
-    // look blank/stuck even though the underlying File was already fine
-    // (the actual upload sends the raw File via FormData, no encoding
-    // involved, which is why upload always worked while the preview
-    // didn't).
     const url = URL.createObjectURL(file);
-    console.log(`${LOG} mobile preview object URL created`, url);
+    console.log(`${LOG} mobile preview object URL created`, url, file.name, file.size);
     setPreviewUrl(url);
 
     return () => {
+      console.log(`${LOG} mobile preview object URL revoked`, url);
       URL.revokeObjectURL(url);
     };
-  }, [isOpen, file]);
+  }, [file]);
 
   return (
     <Modal isOpen={isOpen} onClose={onCancel} title="Logo Preview" size="small">
       <div className="mlp-body">
         <div className="mlp-preview-wrap">
           {previewUrl ? (
-            <img src={previewUrl} alt="Selected logo" className="mlp-preview-img" />
+            <img
+              key={previewUrl}
+              src={previewUrl}
+              alt="Selected logo"
+              className="mlp-preview-img"
+              style={{
+                display: 'block',
+                visibility: 'visible',
+                opacity: 1,
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+              }}
+              onLoad={() => console.log(`${LOG} mobile preview <img> loaded OK`, previewUrl)}
+              onError={(e) => console.error(`${LOG} mobile preview <img> FAILED to load`, previewUrl, e)}
+            />
           ) : (
             <FiImage size={28} className="mlp-preview-placeholder" />
           )}
