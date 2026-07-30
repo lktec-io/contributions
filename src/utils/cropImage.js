@@ -1,4 +1,8 @@
-// Image normalization pipeline for the branding logo cropper.
+// Image normalization + canvas export helpers for the branding logo
+// cropper. Cropper.js (via react-cropper) owns all of the actual
+// drag/zoom/pinch/crop-box UI and math — this module only prepares the
+// source image before Cropper.js ever sees it, and converts the final
+// cropped canvas Cropper.js hands back into an uploadable File.
 //
 //   File
 //    -> FileReader.readAsDataURL()
@@ -7,13 +11,10 @@
 //       orientation and capping oversized camera photos
 //    -> exported as a normalized PNG data URL
 //
-// Cropper, the live preview, and the final upload crop all read ONLY
-// from that normalized canvas/data URL afterwards — the original file's
-// bytes are decoded exactly once and never touched again. No blob: URL
-// is ever created or handed to Cropper; object URLs proved unreliable on
-// some Android Chrome / Samsung Internet builds.
-const OUTPUT_SIZE = 512;
-const NORMALIZED_MAX_DIM = 2048; // working resolution cap for huge camera photos
+// No blob: URL is ever created — object URLs proved unreliable on some
+// Android Chrome / Samsung Internet builds. Cropper.js's `src` only ever
+// receives this normalized data URL.
+const NORMALIZED_MAX_DIM = 3072; // working resolution cap for huge camera photos
 const LOG = '[crop-debug]';
 
 function readFileAsDataUrl(file) {
@@ -113,12 +114,13 @@ function applyExifTransform(ctx, orientation, drawW, drawH) {
 
 // Decodes the original file exactly once, corrects EXIF orientation,
 // downsamples oversized camera photos to a safe working resolution, and
-// produces a single normalized image. Drawing through a fresh 2D canvas
-// context also naturally strips embedded ICC color profiles (canvas
-// output is always sRGB) and finishes decoding progressive JPEGs — both
-// already fully handled by the browser's decoder by the time `onload`
-// fires, so no special-case code is needed for either. Transparency is
-// preserved: the canvas is never pre-filled with an opaque background.
+// produces a single normalized PNG data URL — the only thing Cropper.js
+// ever loads. Drawing through a fresh 2D canvas context also naturally
+// strips embedded ICC color profiles (canvas output is always sRGB) and
+// finishes decoding progressive JPEGs — both already fully handled by
+// the browser's decoder by the time `onload` fires, so no special-case
+// code is needed for either. Transparency is preserved: the canvas is
+// never pre-filled with an opaque background.
 export async function normalizeImage(file) {
   console.log(`${LOG} normalizing`, file.name, file.size, file.type);
 
@@ -156,11 +158,10 @@ export async function normalizeImage(file) {
   const normalizedSrc = canvas.toDataURL('image/png');
   console.log(`${LOG} normalized to`, outW, 'x', outH);
 
-  return { src: normalizedSrc, canvas, width: outW, height: outH };
+  return { src: normalizedSrc, width: outW, height: outH };
 }
 
-// ── Final crop + preview — draw from the already-normalized canvas,
-// never touch the original file/bytes again. ──
+// ── Cropper.js output -> uploadable File ───────────────────────────
 function dataUrlToBlob(dataUrl) {
   const [header, base64] = dataUrl.split(',');
   const mimeMatch = /data:(.*?);base64/.exec(header || '');
@@ -171,63 +172,32 @@ function dataUrlToBlob(dataUrl) {
   return new Blob([bytes], { type: mime });
 }
 
-async function canvasToBlob(canvas, mime, quality) {
-  let blob = null;
+// `canvas` is whatever Cropper.js's own getCroppedCanvas() returns — we
+// do no drawing of our own here, only a reliable canvas -> Blob -> File
+// conversion. toBlob() can silently resolve null on some mobile
+// browsers, so it falls back to toDataURL() + a manual Blob conversion.
+export async function canvasToFile(canvas, fileName, mime = 'image/png', quality = 0.92) {
   try {
-    blob = await new Promise(resolve => canvas.toBlob(resolve, mime, quality));
-  } catch {
-    blob = null;
-  }
-  if (blob) return blob;
-  // toBlob() resolved null on some mobile browsers — fall back to the
-  // more widely supported toDataURL() and convert it ourselves.
-  return dataUrlToBlob(canvas.toDataURL(mime, quality));
-}
-
-function drawFromNormalized(normalizedCanvas, croppedAreaPixels, outSize) {
-  const canvas = document.createElement('canvas');
-  canvas.width = outSize;
-  canvas.height = outSize;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    throw new Error('This device could not create a 2D canvas context.');
-  }
-  ctx.drawImage(
-    normalizedCanvas,
-    croppedAreaPixels.x,
-    croppedAreaPixels.y,
-    croppedAreaPixels.width,
-    croppedAreaPixels.height,
-    0,
-    0,
-    outSize,
-    outSize,
-  );
-  return canvas;
-}
-
-// `normalized` must come from normalizeImage() above.
-export async function getCroppedImageFile(normalized, croppedAreaPixels, fileName) {
-  try {
-    const canvas = drawFromNormalized(normalized.canvas, croppedAreaPixels, OUTPUT_SIZE);
-    const blob = await canvasToBlob(canvas, 'image/png', 0.92);
-    if (!blob) throw new Error('Could not process the cropped image on this device.');
+    if (!canvas) {
+      throw new Error('No cropped canvas was produced.');
+    }
+    let blob = null;
+    try {
+      blob = await new Promise(resolve => canvas.toBlob(resolve, mime, quality));
+    } catch {
+      blob = null;
+    }
+    if (!blob) {
+      blob = dataUrlToBlob(canvas.toDataURL(mime, quality));
+    }
+    if (!blob) {
+      throw new Error('Could not process the cropped image on this device.');
+    }
     console.log(`${LOG} cropped file ready`, fileName, blob.size, 'bytes');
-    return new File([blob], fileName, { type: 'image/png' });
+    return new File([blob], fileName, { type: mime });
   } catch (err) {
     throw err instanceof Error && err.message
       ? err
       : new Error('Could not crop the image. Please try again.');
-  }
-}
-
-export async function getCroppedPreviewDataUrl(normalized, croppedAreaPixels, size = 96) {
-  try {
-    const canvas = drawFromNormalized(normalized.canvas, croppedAreaPixels, size);
-    return canvas.toDataURL('image/png');
-  } catch (err) {
-    throw err instanceof Error && err.message
-      ? err
-      : new Error('Could not generate the crop preview.');
   }
 }

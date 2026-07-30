@@ -11,7 +11,7 @@ import { ToastContext } from '../context/ToastContext';
 import { BrandingContext } from '../context/BrandingContext';
 import { settingsService } from '../services/settingsService';
 import { getErrorMessage } from '../utils/helpers';
-import { getCroppedImageFile } from '../utils/cropImage';
+import { canvasToFile } from '../utils/cropImage';
 import Sidebar from '../components/common/Sidebar';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
@@ -456,10 +456,10 @@ export default function Settings() {
     setCropFile(null);
   }
 
-  async function handleCropConfirm(image, croppedAreaPixels) {
+  async function handleCropConfirm(canvas) {
     setUploadingLogo(true);
     try {
-      const croppedFile = await getCroppedImageFile(image, croppedAreaPixels, cropFileName);
+      const croppedFile = await canvasToFile(canvas, cropFileName);
       console.log('[crop-debug] cropped file created', croppedFile.size, croppedFile.type);
       console.log('[crop-debug] upload started');
       const res = await settingsService.uploadLogo(croppedFile);

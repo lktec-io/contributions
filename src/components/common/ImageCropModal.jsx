@@ -1,28 +1,33 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import Cropper from 'react-easy-crop';
+import Cropper from 'react-cropper';
+import 'cropperjs/dist/cropper.css';
 import { FiZoomIn, FiZoomOut, FiCheck, FiAlertCircle } from 'react-icons/fi';
 import Modal from './Modal';
-import { normalizeImage, getCroppedPreviewDataUrl } from '../../utils/cropImage';
+import { normalizeImage } from '../../utils/cropImage';
 import './ImageCropModal.css';
 
 const LOG = '[crop-debug]';
+const OUTPUT_SIZE = 1024;
+const ZOOM_MIN = 1;
+const ZOOM_MAX = 3;
 
 // status: idle | loading | ready | error
-// `file` is the raw File the user picked. It is normalized exactly once
-// (see normalizeImage in cropImage.js) into a plain PNG data URL — that
-// normalized data URL is the ONLY thing ever handed to Cropper, and the
-// same normalized canvas is reused for every live-preview redraw and the
-// final upload crop. The original file's bytes are never re-decoded and
-// no blob: URL is ever created.
+// `file` is the raw File the user picked. It's normalized exactly once
+// (see normalizeImage in cropImage.js — EXIF-corrects, strips color
+// profiles, caps oversized photos) into a plain PNG data URL, which is
+// the ONLY thing ever handed to Cropper.js as `src` — no blob: URL is
+// ever created. Cropper.js (a mature, widely-used library) owns all of
+// the actual drag/pinch/wheel-zoom/crop-box interaction and the live
+// preview; this component just wires it up and extracts the final
+// cropped canvas on confirm.
 export default function ImageCropModal({ isOpen, file, onCancel, onConfirm, confirming }) {
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
   const [status, setStatus] = useState('idle');
   const [loadError, setLoadError] = useState('');
   const [normalizedSrc, setNormalizedSrc] = useState(null);
-  const normalizedRef = useRef(null);
+  const [zoom, setZoom] = useState(ZOOM_MIN);
+  const [previewEl, setPreviewEl] = useState(null);
+  const cropperRef = useRef(null);
+  const baseZoomRatioRef = useRef(1);
 
   useEffect(() => {
     if (!isOpen || !file) {
@@ -31,19 +36,15 @@ export default function ImageCropModal({ isOpen, file, onCancel, onConfirm, conf
     }
 
     let cancelled = false;
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
-    setCroppedAreaPixels(null);
-    setPreviewUrl(null);
     setNormalizedSrc(null);
+    setZoom(ZOOM_MIN);
+    setLoadError('');
     setStatus('loading');
-    normalizedRef.current = null;
 
     normalizeImage(file)
       .then(result => {
         if (cancelled) return;
-        console.log(`${LOG} normalization complete, mounting cropper`, result.width, 'x', result.height);
-        normalizedRef.current = result;
+        console.log(`${LOG} normalization complete, mounting Cropper.js`, result.width, 'x', result.height);
         setNormalizedSrc(result.src);
         setStatus('ready');
       })
@@ -57,20 +58,48 @@ export default function ImageCropModal({ isOpen, file, onCancel, onConfirm, conf
     return () => { cancelled = true; };
   }, [isOpen, file]);
 
-  const onCropComplete = useCallback((_croppedArea, pixels) => {
-    setCroppedAreaPixels(pixels);
-    if (normalizedRef.current) {
-      getCroppedPreviewDataUrl(normalizedRef.current, pixels, 96)
-        .then(setPreviewUrl)
-        .catch(err => console.error(`${LOG} preview draw failed`, err));
-    }
+  // Cropper.js's own zoom ratio is relative to the image's natural pixel
+  // size, not to "fit the view" — capture the auto-fit ratio once ready
+  // so our 1x–3x slider means the same thing it did before (1x = the
+  // initial auto-fit view).
+  const handleReady = useCallback(() => {
+    const cropper = cropperRef.current?.cropper;
+    if (!cropper) return;
+    const { ratio } = cropper.getImageData();
+    baseZoomRatioRef.current = ratio || 1;
+    setZoom(ZOOM_MIN);
+    console.log(`${LOG} Cropper.js ready, base zoom ratio`, ratio);
   }, []);
 
+  const handleZoomEvent = useCallback((e) => {
+    const base = baseZoomRatioRef.current || 1;
+    const relative = e.detail.ratio / base;
+    setZoom(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, relative)));
+  }, []);
+
+  const handleSliderChange = (e) => {
+    const value = Number(e.target.value);
+    setZoom(value);
+    cropperRef.current?.cropper?.zoomTo(baseZoomRatioRef.current * value);
+  };
+
   const handleConfirm = () => {
-    if (croppedAreaPixels && normalizedRef.current) {
-      console.log(`${LOG} Use Photo tapped, drawing final crop from normalized image`);
-      onConfirm(normalizedRef.current, croppedAreaPixels);
+    const cropper = cropperRef.current?.cropper;
+    if (!cropper || confirming) return;
+    console.log(`${LOG} Use Photo tapped, extracting cropped canvas`);
+    const canvas = cropper.getCroppedCanvas({
+      width: OUTPUT_SIZE,
+      height: OUTPUT_SIZE,
+      imageSmoothingEnabled: true,
+      imageSmoothingQuality: 'high',
+    });
+    if (!canvas) {
+      console.error(`${LOG} getCroppedCanvas returned null`);
+      setLoadError('Could not process the cropped image on this device.');
+      setStatus('error');
+      return;
     }
+    onConfirm(canvas);
   };
 
   return (
@@ -79,15 +108,25 @@ export default function ImageCropModal({ isOpen, file, onCancel, onConfirm, conf
         <div className="icm-cropper-wrap">
           {status === 'ready' && normalizedSrc && (
             <Cropper
-              image={normalizedSrc}
-              crop={crop}
-              zoom={zoom}
-              aspect={1}
-              cropShape="rect"
-              showGrid
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onCropComplete={onCropComplete}
+              ref={cropperRef}
+              src={normalizedSrc}
+              style={{ width: '100%', height: '100%' }}
+              aspectRatio={1}
+              viewMode={1}
+              dragMode="move"
+              cropBoxMovable={false}
+              cropBoxResizable={false}
+              toggleDragModeOnDblclick={false}
+              autoCropArea={1}
+              background={false}
+              guides
+              responsive
+              zoomOnWheel
+              zoomOnTouch
+              wheelZoomRatio={0.1}
+              ready={handleReady}
+              zoom={handleZoomEvent}
+              preview={previewEl || undefined}
             />
           )}
           {status === 'loading' && (
@@ -109,11 +148,11 @@ export default function ImageCropModal({ isOpen, file, onCancel, onConfirm, conf
             <FiZoomOut size={16} className="icm-zoom-icon" />
             <input
               type="range"
-              min={1}
-              max={3}
+              min={ZOOM_MIN}
+              max={ZOOM_MAX}
               step={0.01}
               value={zoom}
-              onChange={e => setZoom(Number(e.target.value))}
+              onChange={handleSliderChange}
               className="icm-zoom-slider"
               aria-label="Zoom"
               disabled={status !== 'ready'}
@@ -123,9 +162,7 @@ export default function ImageCropModal({ isOpen, file, onCancel, onConfirm, conf
 
           <div className="icm-preview-row">
             <span className="icm-preview-label">Preview</span>
-            <div className="icm-preview-circle">
-              {previewUrl && <img src={previewUrl} alt="Crop preview" />}
-            </div>
+            <div className="icm-preview-circle" ref={setPreviewEl} />
           </div>
         </div>
 
@@ -137,7 +174,7 @@ export default function ImageCropModal({ isOpen, file, onCancel, onConfirm, conf
             type="button"
             className="btn"
             onClick={handleConfirm}
-            disabled={status !== 'ready' || !croppedAreaPixels || confirming}
+            disabled={status !== 'ready' || confirming}
           >
             <FiCheck size={15} /> {confirming ? 'Uploading...' : 'Use Photo'}
           </button>
