@@ -206,7 +206,14 @@ async function uploadBrandingLogo(req, res, next) {
       // the stored asset must always be one we can actually render into
       // reports/receipts regardless of what format was uploaded.
       format: 'png',
-      transformation: [{ width: 512, height: 512, crop: 'limit', quality: 'auto' }],
+      // crop:'fill' + gravity:'center' produces a true center-cropped
+      // 512x512 square regardless of the source's aspect ratio — needed
+      // because the mobile upload path now sends unprocessed originals
+      // (no client-side crop step). For an already-square source (e.g.
+      // desktop's pre-cropped upload) this is just a plain downscale,
+      // identical output to before. EXIF orientation is auto-corrected
+      // by Cloudinary by default for any transformed image.
+      transformation: [{ width: 512, height: 512, crop: 'fill', gravity: 'center', quality: 'auto' }],
     });
 
     await Setting.upsert(req.user.userId, 0, 'branding_logo_url', result.secure_url);

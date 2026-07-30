@@ -12,10 +12,12 @@ import { BrandingContext } from '../context/BrandingContext';
 import { settingsService } from '../services/settingsService';
 import { getErrorMessage } from '../utils/helpers';
 import { canvasToFile } from '../utils/cropImage';
+import { useIsMobile } from '../hooks/useIsMobile';
 import Sidebar from '../components/common/Sidebar';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
 import ImageCropModal from '../components/common/ImageCropModal';
+import MobileLogoPreview from '../components/common/MobileLogoPreview';
 import './Settings.css';
 
 // ── Primitives ───────────────────────────────────────────────────
@@ -230,6 +232,7 @@ export default function Settings() {
   const { logoUrl, setBranding } = useContext(BrandingContext);
   const navigate  = useNavigate();
   const role      = user?.role;
+  const isMobile  = useIsMobile();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [section,     setSection]     = useState('profile');
@@ -285,6 +288,7 @@ export default function Settings() {
   const [removingLogo,   setRemovingLogo]   = useState(false);
   const [cropFile,       setCropFile]       = useState(null);
   const [cropFileName,   setCropFileName]   = useState('logo.png');
+  const [mobilePreviewFile, setMobilePreviewFile] = useState(null);
 
   // all roles: password change
   const [pw,     setPw]     = useState({ current_password: '', new_password: '', confirm: '' });
@@ -449,11 +453,20 @@ export default function Settings() {
       return;
     }
     setCropFileName(file.name || 'logo.png');
-    setCropFile(file);
+    if (isMobile) {
+      console.log('[crop-debug] mobile viewport — skipping crop, opening preview-only modal');
+      setMobilePreviewFile(file);
+    } else {
+      setCropFile(file);
+    }
   }
 
   function closeCropModal() {
     setCropFile(null);
+  }
+
+  function closeMobilePreview() {
+    setMobilePreviewFile(null);
   }
 
   async function handleCropConfirm(canvas) {
@@ -468,6 +481,21 @@ export default function Settings() {
       closeCropModal();
     } catch (err) {
       console.error('[crop-debug] crop/upload failed', err);
+      toast.error(getErrorMessage(err));
+    } finally { setUploadingLogo(false); }
+  }
+
+  async function handleMobileUpload() {
+    if (!mobilePreviewFile) return;
+    setUploadingLogo(true);
+    try {
+      console.log('[crop-debug] mobile upload started (no client-side processing)');
+      const res = await settingsService.uploadLogo(mobilePreviewFile);
+      setBranding({ logoUrl: res.data.data.logo_url });
+      toast.success('Logo uploaded');
+      closeMobilePreview();
+    } catch (err) {
+      console.error('[crop-debug] mobile upload failed', err);
       toast.error(getErrorMessage(err));
     } finally { setUploadingLogo(false); }
   }
@@ -966,6 +994,16 @@ export default function Settings() {
         onCancel={closeCropModal}
         onConfirm={handleCropConfirm}
         confirming={uploadingLogo}
+      />
+
+      <MobileLogoPreview
+        isOpen={!!mobilePreviewFile}
+        file={mobilePreviewFile}
+        allowedTypes={LOGO_ALLOWED_TYPES}
+        onCancel={closeMobilePreview}
+        onChooseAnother={handleLogoSelect}
+        onUpload={handleMobileUpload}
+        uploading={uploadingLogo}
       />
     </div>
   );
