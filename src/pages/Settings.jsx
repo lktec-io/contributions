@@ -283,7 +283,7 @@ export default function Settings() {
   const [doneBranding,   setDoneBranding]   = useState(false);
   const [uploadingLogo,  setUploadingLogo]  = useState(false);
   const [removingLogo,   setRemovingLogo]   = useState(false);
-  const [cropSrc,        setCropSrc]        = useState(null);
+  const [cropFile,       setCropFile]       = useState(null);
   const [cropFileName,   setCropFileName]   = useState('logo.png');
 
   // all roles: password change
@@ -449,14 +449,11 @@ export default function Settings() {
       return;
     }
     setCropFileName(file.name || 'logo.png');
-    const objectUrl = URL.createObjectURL(file);
-    console.log('[crop-debug] object URL created', objectUrl);
-    setCropSrc(objectUrl);
+    setCropFile(file);
   }
 
   function closeCropModal() {
-    if (cropSrc) URL.revokeObjectURL(cropSrc);
-    setCropSrc(null);
+    setCropFile(null);
   }
 
   async function handleCropConfirm(image, croppedAreaPixels) {
@@ -464,6 +461,7 @@ export default function Settings() {
     try {
       const croppedFile = await getCroppedImageFile(image, croppedAreaPixels, cropFileName);
       console.log('[crop-debug] cropped file created', croppedFile.size, croppedFile.type);
+      console.log('[crop-debug] upload started');
       const res = await settingsService.uploadLogo(croppedFile);
       setBranding({ logoUrl: res.data.data.logo_url });
       toast.success('Logo uploaded');
@@ -963,8 +961,8 @@ export default function Settings() {
       </div>
 
       <ImageCropModal
-        isOpen={!!cropSrc}
-        imageSrc={cropSrc}
+        isOpen={!!cropFile}
+        file={cropFile}
         onCancel={closeCropModal}
         onConfirm={handleCropConfirm}
         confirming={uploadingLogo}

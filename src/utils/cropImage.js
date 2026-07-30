@@ -1,41 +1,119 @@
-// Canvas helpers for turning a react-easy-crop crop selection into an
-// uploadable File. The image is decoded exactly once (loadImageElement)
-// and the resulting HTMLImageElement is reused for every subsequent draw
-// — repeatedly re-fetching/re-decoding the same blob: URL on every crop
-// interaction tick overwhelmed mobile devices and caused later loads of
-// the same blob: URL to fail outright.
+// Production-grade image preprocessing pipeline for the branding logo
+// cropper. Loading and canvas encoding each try the most modern browser
+// API first and fall back automatically — no single strategy is assumed
+// to work on every mobile engine (Android Chrome, Samsung Internet,
+// Safari iOS, Firefox Mobile, Edge Mobile all differ).
 const OUTPUT_SIZE = 512;
 
-export function loadImageElement(src) {
+const LOG = '[crop-debug]';
+
+// ── Stage 1: decode the source file into something drawImage() accepts ──
+// Returns { source, width, height, release } where `source` is either an
+// ImageBitmap or an HTMLImageElement — both are valid CanvasImageSource,
+// so nothing downstream needs to know which one it got.
+
+async function viaImageBitmap(file) {
+  if (typeof createImageBitmap !== 'function') {
+    throw new Error('createImageBitmap is not supported on this browser');
+  }
+  // No resize options here on purpose: react-easy-crop computes
+  // croppedAreaPixels against the *original* natural dimensions (it
+  // decodes the same file independently via its own <img>). If we asked
+  // createImageBitmap to downscale, our coordinate space would no longer
+  // match Cropper's and every crop would land in the wrong place.
+  const bitmap = await createImageBitmap(file);
+  if (!bitmap.width || !bitmap.height) {
+    bitmap.close();
+    throw new Error('createImageBitmap produced a zero-size bitmap');
+  }
+  return {
+    source: bitmap,
+    width: bitmap.width,
+    height: bitmap.height,
+    release: () => { try { bitmap.close(); } catch { /* already closed */ } },
+  };
+}
+
+function viaImageElement(objectUrl) {
   return new Promise((resolve, reject) => {
     const img = new Image();
 
-    // NOTE: no `img.crossOrigin` here. `src` is always a local blob: URL
-    // (created via URL.createObjectURL), never a remote URL — forcing
-    // CORS mode on a blob: URL breaks image loading on several mobile
-    // browsers (Chrome/Samsung Internet in particular).
+    // No `img.crossOrigin` — `objectUrl` is always a local blob: URL.
+    // Forcing CORS mode on a blob: URL breaks loading on several mobile
+    // browsers.
     img.onload = async () => {
-      // The 'load' event can fire before the bitmap is fully decoded on
-      // some mobile browsers. decode() guarantees it's ready to draw.
       if (typeof img.decode === 'function') {
         try {
           await img.decode();
         } catch {
           // 'load' already fired successfully — some mobile browsers
-          // reject decode() anyway (e.g. certain iOS builds). Fall
-          // through and use the image as-is.
+          // reject decode() anyway. The image is still usable.
         }
       }
       if (!img.naturalWidth || !img.naturalHeight) {
-        reject(new Error('The selected image could not be read on this device. Please try a different photo.'));
+        reject(new Error('the browser decoded a zero-size image'));
         return;
       }
-      resolve(img);
+      resolve({
+        source: img,
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+        release: () => { /* HTMLImageElement needs no explicit release */ },
+      });
     };
 
-    img.onerror = () => reject(new Error('Could not load the selected image. Please try a different photo.'));
-    img.src = src;
+    img.onerror = () => reject(new Error('the browser could not decode this image file'));
+    img.src = objectUrl;
   });
+}
+
+// Tries each loading strategy in order and only fails once every
+// strategy has been exhausted. `file` and `objectUrl` describe the same
+// image — different strategies need different input shapes.
+export async function loadImageSource(file, objectUrl) {
+  const strategies = [
+    ['createImageBitmap', () => viaImageBitmap(file)],
+    ['Image+decode/onload', () => viaImageElement(objectUrl)],
+  ];
+
+  let lastError = null;
+  for (const [name, run] of strategies) {
+    try {
+      console.log(`${LOG} trying image load strategy: ${name}`);
+      const result = await run();
+      console.log(`${LOG} strategy succeeded: ${name} (${result.width}x${result.height})`);
+      return result;
+    } catch (err) {
+      console.warn(`${LOG} strategy failed: ${name} —`, err?.message || err);
+      lastError = err;
+    }
+  }
+
+  throw new Error(
+    lastError?.message
+      ? `Could not load the selected image (${lastError.message}). Please try a different photo.`
+      : 'Could not load the selected image. Please try a different photo.',
+  );
+}
+
+// ── Stage 2: draw the crop rect onto a canvas ────────────────────────
+function drawOntoCanvas(canvas, source, croppedAreaPixels, outSize) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('this device could not create a 2D canvas context');
+  }
+  ctx.drawImage(
+    source,
+    croppedAreaPixels.x,
+    croppedAreaPixels.y,
+    croppedAreaPixels.width,
+    croppedAreaPixels.height,
+    0,
+    0,
+    outSize,
+    outSize,
+  );
+  return ctx;
 }
 
 function dataUrlToBlob(dataUrl) {
@@ -48,7 +126,28 @@ function dataUrlToBlob(dataUrl) {
   return new Blob([bytes], { type: mime });
 }
 
-async function canvasToBlob(canvas, mime, quality) {
+// ── Stage 3: encode the canvas to a Blob, preferring OffscreenCanvas ──
+// (a real Promise-based API that rejects properly on failure) and
+// falling back to the classic HTMLCanvasElement.toBlob(), which can
+// silently resolve null on some mobile browsers — in which case we fall
+// back once more to toDataURL() and convert that ourselves.
+async function viaOffscreenCanvas(source, croppedAreaPixels, outSize, mime, quality) {
+  if (typeof OffscreenCanvas === 'undefined') {
+    throw new Error('OffscreenCanvas is not supported on this browser');
+  }
+  const canvas = new OffscreenCanvas(outSize, outSize);
+  drawOntoCanvas(canvas, source, croppedAreaPixels, outSize);
+  const blob = await canvas.convertToBlob({ type: mime, quality });
+  if (!blob) throw new Error('OffscreenCanvas.convertToBlob returned no data');
+  return blob;
+}
+
+async function viaHtmlCanvas(source, croppedAreaPixels, outSize, mime, quality) {
+  const canvas = document.createElement('canvas');
+  canvas.width = outSize;
+  canvas.height = outSize;
+  drawOntoCanvas(canvas, source, croppedAreaPixels, outSize);
+
   let blob = null;
   try {
     blob = await new Promise(resolve => canvas.toBlob(resolve, mime, quality));
@@ -57,46 +156,44 @@ async function canvasToBlob(canvas, mime, quality) {
   }
   if (blob) return blob;
 
-  // toBlob() can silently resolve null on some mobile browsers. Fall back
-  // to the more widely supported toDataURL() and convert it ourselves.
+  // toBlob() resolved null — fall back to the more widely supported
+  // toDataURL() and convert it ourselves.
   const dataUrl = canvas.toDataURL(mime, quality);
   return dataUrlToBlob(dataUrl);
 }
 
-function drawCrop(image, croppedAreaPixels, outSize) {
-  const canvas = document.createElement('canvas');
-  canvas.width = outSize;
-  canvas.height = outSize;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    throw new Error('This device could not process the image. Please try a different browser.');
+async function encodeCroppedBlob(source, croppedAreaPixels, outSize, mime, quality) {
+  const strategies = [
+    ['OffscreenCanvas', () => viaOffscreenCanvas(source, croppedAreaPixels, outSize, mime, quality)],
+    ['HTMLCanvas', () => viaHtmlCanvas(source, croppedAreaPixels, outSize, mime, quality)],
+  ];
+
+  let lastError = null;
+  for (const [name, run] of strategies) {
+    try {
+      const blob = await run();
+      console.log(`${LOG} canvas encode succeeded: ${name} (${blob.size} bytes)`);
+      return blob;
+    } catch (err) {
+      console.warn(`${LOG} canvas encode failed: ${name} —`, err?.message || err);
+      lastError = err;
+    }
   }
 
-  ctx.drawImage(
-    image,
-    croppedAreaPixels.x,
-    croppedAreaPixels.y,
-    croppedAreaPixels.width,
-    croppedAreaPixels.height,
-    0,
-    0,
-    outSize,
-    outSize,
+  throw new Error(
+    lastError?.message
+      ? `Could not process the cropped image on this device (${lastError.message}).`
+      : 'Could not process the cropped image on this device.',
   );
-
-  return canvas;
 }
 
-// `image` must be an already-loaded HTMLImageElement (see loadImageElement
-// above) — these two functions do no network/decoding work of their own,
-// they only draw from a bitmap that's already ready.
-export async function getCroppedImageFile(image, croppedAreaPixels, fileName) {
+// `source` must come from loadImageSource() above (an ImageBitmap or
+// HTMLImageElement) — these two functions do no loading/decoding of
+// their own, they only draw+encode a bitmap that's already ready.
+export async function getCroppedImageFile(source, croppedAreaPixels, fileName) {
   try {
-    const canvas = drawCrop(image, croppedAreaPixels, OUTPUT_SIZE);
-    const blob = await canvasToBlob(canvas, 'image/png', 0.92);
-    if (!blob) {
-      throw new Error('Could not process the cropped image on this device. Please try a different photo.');
-    }
+    const blob = await encodeCroppedBlob(source, croppedAreaPixels, OUTPUT_SIZE, 'image/png', 0.92);
+    console.log(`${LOG} cropped file ready: ${fileName} (${blob.size} bytes)`);
     return new File([blob], fileName, { type: 'image/png' });
   } catch (err) {
     throw err instanceof Error && err.message
@@ -105,9 +202,15 @@ export async function getCroppedImageFile(image, croppedAreaPixels, fileName) {
   }
 }
 
-export async function getCroppedPreviewDataUrl(image, croppedAreaPixels, size = 96) {
+export async function getCroppedPreviewDataUrl(source, croppedAreaPixels, size = 96) {
   try {
-    const canvas = drawCrop(image, croppedAreaPixels, size);
+    // The live preview is tiny and non-critical (failures are swallowed
+    // by the caller) — a plain HTMLCanvasElement + toDataURL is simplest
+    // and needs no object-URL lifecycle of its own.
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    drawOntoCanvas(canvas, source, croppedAreaPixels, size);
     return canvas.toDataURL('image/png');
   } catch (err) {
     throw err instanceof Error && err.message
