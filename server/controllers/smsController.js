@@ -23,7 +23,7 @@ function buildMessage(name, pledged, paid, balance, eventName, link) {
   let message = (
     `[${(eventName || 'Finance Hub').toUpperCase()}]\n` +
     `Habari ${(name || '').toUpperCase()}, Tunashukuru kwa ahadi yako ya TZS ${fmtAmt(pledged)} umefanikiwa kutoa TZS ${fmtAmt(paid)} Tunakukumbusha kukamilisha mchango wako uliobakia wa TZS ${fmtAmt(balance)}\n` +
-    `Asantee sana.`
+    `Asante sana.`
   );
   if (link) {
     message += `\nAngalia taarifa zako za mchango na jinsi ya kulipia hapa:\n${link} karibu!`;
