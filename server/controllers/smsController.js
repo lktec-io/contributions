@@ -22,12 +22,11 @@ function fmtAmt(amount) {
 function buildMessage(name, pledged, paid, balance, eventName, link) {
   let message = (
     `[${(eventName || 'Finance Hub').toUpperCase()}]\n` +
-    `Habari ${(name || '').toUpperCase()}, Hatua uliyopiga ni kubwa, tayari umechangia TZS ${fmtAmt(paid)}.\n` +
-    `Lengo ni TZS ${fmtAmt(pledged)}, kiasi kilichobaki ni TZS ${fmtAmt(balance)} tu kumaliza.\n` +
-    `Tafadhali kamilisha mchango wako.`
+    `Habari ${(name || '').toUpperCase()}, Tunashukuru kwa ahadi yako ya TZS ${fmtAmt(pledged)} umefanikiwa kutoa TZS ${fmtAmt(paid)} Tunakukumbusha kukamilisha mchango wako uliobakia wa TZS ${fmtAmt(balance)}\n` +
+    `Asantee sana.`
   );
   if (link) {
-    message += `\nAngalia taarifa zako za mchango na jinsi ya kulipia hapa:\n${link} Asante sana!`;
+    message += `\nAngalia taarifa zako za mchango na jinsi ya kulipia hapa:\n${link} karibu!`;
   }
   return message;
 }
