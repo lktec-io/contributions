@@ -6,6 +6,7 @@ import { copyToClipboard } from '../../utils/clipboard';
 import { ContributorsGridSkeleton } from '../common/SkeletonLoader';
 import EmptyState from '../common/EmptyState';
 import SuccessToast from '../common/SuccessToast';
+import SmsSendingModal from '../common/SmsSendingModal';
 import './ContributorsGrid.css';
 
 export default function ContributorsGrid({ contributions, loading, hasFilters, onEdit, onRecordPayment, onDelete }) {
@@ -13,17 +14,21 @@ export default function ContributorsGrid({ contributions, loading, hasFilters, o
   const [smsSentIds,  setSmsSentIds]  = useState(new Set()); // session-level sent set (DB is authoritative on reload)
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCopied,  setShowCopied]  = useState(false);
+  const [smsModal,    setSmsModal]    = useState({ open: false, status: 'sending' }); // visual feedback only
 
   const handleSendReminder = async (c) => {
     if (!c.phone) return;
+    setSmsModal({ open: true, status: 'sending' });
     setSmsSending(prev => new Set(prev).add(c.id));
     try {
       await smsService.sendReminder(c.id);
       setSmsSentIds(prev => new Set(prev).add(c.id));
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
+      setSmsModal({ open: true, status: 'success' });
     } catch {
       // silent
+      setSmsModal({ open: true, status: 'error' });
     } finally {
       setSmsSending(prev => { const next = new Set(prev); next.delete(c.id); return next; });
     }
@@ -54,6 +59,11 @@ export default function ContributorsGrid({ contributions, loading, hasFilters, o
     <>
     <SuccessToast message="SMS sent successfully" show={showSuccess} />
     <SuccessToast message="Link copied successfully" show={showCopied} />
+    <SmsSendingModal
+      open={smsModal.open}
+      status={smsModal.status}
+      onClose={() => setSmsModal({ open: false, status: 'sending' })}
+    />
     <div className="contributors-grid">
       {contributions.map(c => {
         const outstanding = parseFloat(c.amount) - parseFloat(c.paid_amount);

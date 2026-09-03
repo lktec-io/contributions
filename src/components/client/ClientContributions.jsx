@@ -14,6 +14,7 @@ import ContributorForm from './ContributorForm';
 import PaymentForm from './PaymentForm';
 import ContributorsTable from './ContributorsTable';
 import ContributorsGrid from './ContributorsGrid';
+import SmsSendingModal from '../common/SmsSendingModal';
 import './ClientContributions.css';
 
 export default function ClientContributions() {
@@ -40,6 +41,7 @@ export default function ClientContributions() {
   // Bulk SMS dispatch state
   const [bulkSending,  setBulkSending]  = useState(false);
   const [bulkStatus,   setBulkStatus]   = useState(null); // { canSend, daysRemaining }
+  const [smsModal,     setSmsModal]     = useState({ open: false, status: 'sending', message: '' }); // visual feedback only
 
   const currentFilters = useRef({ search: '', eventId: '', status: '' });
 
@@ -103,11 +105,13 @@ export default function ClientContributions() {
   };
 
   const handleDispatch = async () => {
+    setSmsModal({ open: true, status: 'sending', message: '' });
     setBulkSending(true);
     try {
       const res = await smsService.sendBulkReminders(selectedEvent || undefined);
       const { sent, total: t } = res.data.data;
       toast.success(`SMS dispatched to ${sent} of ${t} contributor(s)`);
+      setSmsModal({ open: true, status: 'success', message: `SMS dispatched to ${sent} of ${t} contributor(s).` });
       // Refresh list so rows with sms_sent = true immediately show disabled buttons
       refreshList();
       // Refresh weekly limit status
@@ -115,6 +119,7 @@ export default function ClientContributions() {
       setBulkStatus(statusRes.data.data);
     } catch (err) {
       toast.error(getErrorMessage(err));
+      setSmsModal({ open: true, status: 'error', message: getErrorMessage(err) });
     } finally {
       setBulkSending(false);
     }
@@ -208,6 +213,14 @@ export default function ClientContributions() {
 
   return (
     <div className="client-contributions">
+      <SmsSendingModal
+        open={smsModal.open}
+        status={smsModal.status}
+        title={smsModal.status === 'success' ? 'SMS Sent Successfully' : undefined}
+        message={smsModal.message}
+        onClose={() => setSmsModal({ open: false, status: 'sending', message: '' })}
+      />
+
       <div className="page-header">
         <div>
           <h2 className="page-title">My Contributions</h2>

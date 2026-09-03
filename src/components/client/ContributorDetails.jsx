@@ -14,6 +14,7 @@ import Modal from '../common/Modal';
 import PaymentForm from './PaymentForm';
 import ContributorForm from './ContributorForm';
 import LoadingSpinner from '../common/LoadingSpinner';
+import SmsSendingModal from '../common/SmsSendingModal';
 import './ContributorDetails.css';
 
 export default function ContributorDetails({ contributorId, events, onClose, onRefreshList }) {
@@ -29,6 +30,7 @@ export default function ContributorDetails({ contributorId, events, onClose, onR
 
   const [smsSending, setSmsSending] = useState(new Set());
   const [smsSuccess, setSmsSuccess] = useState(new Set());
+  const [smsModal,   setSmsModal]   = useState({ open: false, status: 'sending', message: '' }); // visual feedback only
   const [payLoading, setPayLoading]  = useState(false);
   const [editLoading, setEditLoading] = useState(false);
 
@@ -55,6 +57,7 @@ export default function ContributorDetails({ contributorId, events, onClose, onR
       return;
     }
     const id = ev.contribution_id;
+    setSmsModal({ open: true, status: 'sending', message: '' });
     setSmsSending(prev => new Set(prev).add(id));
     try {
       await smsService.sendReminder(id);
@@ -64,8 +67,10 @@ export default function ContributorDetails({ contributorId, events, onClose, onR
         return next;
       });
       toast.success(`SMS sent for "${ev.event_name}"`);
+      setSmsModal({ open: true, status: 'success', message: `SMS sent for "${ev.event_name}".` });
     } catch (err) {
       toast.error(getErrorMessage(err));
+      setSmsModal({ open: true, status: 'error', message: getErrorMessage(err) });
     } finally {
       setSmsSending(prev => { const n = new Set(prev); n.delete(id); return n; });
     }
@@ -149,6 +154,13 @@ export default function ContributorDetails({ contributorId, events, onClose, onR
 
   return (
     <div className="contributor-details">
+      <SmsSendingModal
+        open={smsModal.open}
+        status={smsModal.status}
+        message={smsModal.message}
+        onClose={() => setSmsModal({ open: false, status: 'sending', message: '' })}
+      />
+
       {/* ── Profile header ── */}
       <div className="cd-profile">
         <div className="cd-avatar">{contributor.name?.[0]?.toUpperCase()}</div>
