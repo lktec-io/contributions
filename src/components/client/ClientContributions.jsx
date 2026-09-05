@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, useCallback, useRef } from 'react';
-import { FiPlus, FiDownload, FiGrid, FiList, FiSend } from 'react-icons/fi';
+import { FiPlus, FiDownload, FiGrid, FiList, FiSend, FiEdit3 } from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
 import { useContributions } from '../../hooks/useContributions';
 import { contributionService } from '../../services/contributionService';
@@ -43,6 +43,13 @@ export default function ClientContributions() {
   const [bulkStatus,   setBulkStatus]   = useState(null); // { canSend, daysRemaining }
   const [smsModal,     setSmsModal]     = useState({ open: false, status: 'sending', message: '' }); // visual feedback only
 
+  // Type One SMS (custom body) — separate composer, separate weekly window
+  const [showComposer,  setShowComposer]  = useState(false);
+  const [customMessage, setCustomMessage] = useState('');
+  const [customSending, setCustomSending] = useState(false);
+  const [customStatus,  setCustomStatus]  = useState(null); // { canSend, daysRemaining }
+  const [customError,   setCustomError]   = useState('');
+
   const currentFilters = useRef({ search: '', eventId: '', status: '' });
 
   useEffect(() => {
@@ -55,6 +62,12 @@ export default function ClientContributions() {
     smsService.getBulkStatus()
       .then(res => setBulkStatus(res.data.data))
       .catch(() => setBulkStatus({ canSend: true, daysRemaining: 0 }));
+  }, []);
+
+  useEffect(() => {
+    smsService.getBulkStatus('custom')
+      .then(res => setCustomStatus(res.data.data))
+      .catch(() => setCustomStatus({ canSend: true, daysRemaining: 0 }));
   }, []);
 
   useEffect(() => {
@@ -123,6 +136,45 @@ export default function ClientContributions() {
     } finally {
       setBulkSending(false);
     }
+  };
+
+  // ── Type One SMS ───────────────────────────────────────────
+  const canDispatchCustom = hasUnpaid && (customStatus?.canSend ?? true);
+
+  const customLabel = () => {
+    if (customSending) return 'Sending…';
+    if (customStatus && !customStatus.canSend) return `Next custom SMS in ${customStatus.daysRemaining} day(s)`;
+    if (!hasUnpaid && contributions.length > 0) return 'All contributors have paid';
+    return 'Type One SMS';
+  };
+
+  // Preview only. When no single event is filtered, the server inserts each
+  // contributor's own event name, so we show a neutral placeholder here.
+  const composerEvent = events.find(e => String(e.id) === String(selectedEvent));
+
+  const handleCustomDispatch = async () => {
+    if (!customMessage.trim()) {
+      setCustomError('Tafadhali andika ujumbe kwanza.');
+      return;
+    }
+    setCustomError('');
+    setSmsModal({ open: true, status: 'sending', message: '' });
+    setCustomSending(true);
+    try {
+      const res = await smsService.sendBulkReminders(selectedEvent || undefined, customMessage.trim());
+      const { sent, total: t } = res.data.data;
+      toast.success(`SMS dispatched to ${sent} of ${t} contributor(s)`);
+      setSmsModal({ open: true, status: 'success', message: `SMS dispatched to ${sent} of ${t} contributor(s).` });
+      const statusRes = await smsService.getBulkStatus('custom');
+      setCustomStatus(statusRes.data.data);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+      setSmsModal({ open: true, status: 'error', message: getErrorMessage(err) });
+    } finally {
+      setCustomSending(false);
+    }
+    // The composer stays open and customMessage is deliberately left intact so
+    // the same text can be reviewed or dispatched again.
   };
 
   const handleAddSubmit = async (data) => {
@@ -264,6 +316,15 @@ export default function ClientContributions() {
             <FiSend size={14} className={bulkSending ? 'spin' : ''} />
             {dispatchLabel()}
           </button>
+          <button
+            className="btn btn-dispatch btn-compose"
+            onClick={() => { setCustomError(''); setShowComposer(true); }}
+            disabled={!canDispatchCustom || customSending}
+            title={customLabel()}
+          >
+            <FiEdit3 size={14} className={customSending ? 'spin' : ''} />
+            {customLabel()}
+          </button>
           <button className="btn" onClick={() => setShowAddModal(true)}>
             <FiPlus size={16} /> Add Contributor
           </button>
@@ -336,6 +397,56 @@ export default function ClientContributions() {
           onCancel={() => { setShowPaymentModal(false); setSelectedContrib(null); }}
           loading={payLoading}
         />
+      </Modal>
+
+      <Modal isOpen={showComposer} onClose={() => setShowComposer(false)} title="Type One SMS" size="medium">
+        <div className="sms-composer">
+          <p className="sms-composer-hint">
+            Jina la tukio na jina la mchangiaji huongezwa kiotomatiki kwa kila mpokeaji.
+          </p>
+
+          <div className="sms-composer-preview">
+            <span className="sms-composer-auto">
+              {composerEvent ? `[${(composerEvent.name || '').toUpperCase()}]` : '[JINA LA TUKIO]'}
+            </span>
+            <span className="sms-composer-auto">Habari [JINA LA MCHANGIAJI],</span>
+          </div>
+
+          <textarea
+            className="sms-composer-textarea"
+            value={customMessage}
+            onChange={(e) => { setCustomMessage(e.target.value); if (customError) setCustomError(''); }}
+            placeholder="Andika ujumbe wako hapa..."
+            rows={6}
+            disabled={customSending}
+          />
+
+          <div className="sms-composer-meta">
+            {customError
+              ? <span className="sms-composer-error">{customError}</span>
+              : <span className="sms-composer-count">Characters: {customMessage.length}</span>}
+          </div>
+
+          <div className="sms-composer-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setShowComposer(false)}
+              disabled={customSending}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-dispatch btn-compose"
+              onClick={handleCustomDispatch}
+              disabled={customSending}
+            >
+              <FiEdit3 size={14} className={customSending ? 'spin' : ''} />
+              {customSending ? 'Sending…' : 'Type One SMS'}
+            </button>
+          </div>
+        </div>
       </Modal>
 
       <ConfirmDialog

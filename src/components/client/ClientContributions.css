@@ -149,3 +149,111 @@
     padding: 5px 9px;
   }
 }
+
+/* ── Type One SMS composer ───────────────────────────────── */
+
+.sms-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sms-composer-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.sms-composer-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--border-radius);
+}
+
+.sms-composer-auto {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+.sms-composer-textarea {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 132px;
+  padding: 11px 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sms-composer-textarea:focus {
+  outline: none;
+  border-color: var(--accent-blue, #3B82F6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.sms-composer-textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sms-composer-meta {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 12px;
+  min-height: 16px;
+}
+
+.sms-composer-count {
+  color: var(--text-muted);
+}
+
+.sms-composer-error {
+  color: #EF4444;
+  font-weight: 500;
+}
+
+.sms-composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  /* Type One SMS trigger — full width alongside the dispatch button */
+  .btn-compose {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .sms-composer-textarea {
+    font-size: 16px; /* keeps mobile Safari/Chrome from zooming on focus */
+    min-height: 150px;
+  }
+
+  .sms-composer-actions {
+    flex-direction: column-reverse;
+  }
+
+  .sms-composer-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

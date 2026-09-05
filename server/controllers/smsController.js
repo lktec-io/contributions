@@ -21,7 +21,7 @@ function fmtAmt(amount) {
 
 function buildMessage(name, pledged, paid, balance, eventName, link) {
   let message = (
-    `[${(eventName || 'Finance Hub').toUpperCase()}]\n` +
+    `${(eventName || 'Finance Hub').toUpperCase()}]\n` +
     `Habari ${(name || '').toUpperCase()}, Tunashukuru kwa ahadi yako ya TZS ${fmtAmt(pledged)} umefanikiwa kutoa TZS ${fmtAmt(paid)} Tunakukumbusha kukamilisha mchango wako uliobakia wa TZS ${fmtAmt(balance)}\n` +
     `Asante sana.`
   );
@@ -31,17 +31,29 @@ function buildMessage(name, pledged, paid, balance, eventName, link) {
   return message;
 }
 
+// "Type One SMS": event name + contributor name + the operator's own body.
+// Deliberately carries no amounts, no payment instructions and no portal link.
+function buildCustomMessage(name, eventName, body) {
+  return (
+    `[${(eventName || 'Finance Hub').toUpperCase()}]\n\n` +
+    `Habari ${(name || '').toUpperCase()},\n\n` +
+    `${body}`
+  );
+}
+
 function buildPortalLink(contribution) {
   if (!contribution.public_token) return null;
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   return `${frontendUrl}/pay/${contribution.public_token}`;
 }
 
-async function checkBulkLimit(userId) {
+// `type` scopes the weekly window. 'bulk' = normal reminders (unchanged),
+// 'custom' = Type One SMS, so neither dispatch consumes the other's allowance.
+async function checkBulkLimit(userId, type = 'bulk') {
   try {
     const [rows] = await pool.query(
       'SELECT sent_at FROM sms_logs WHERE user_id = ? AND type = ? ORDER BY sent_at DESC LIMIT 1',
-      [userId, 'bulk']
+      [userId, type]
     );
     if (!rows.length) return { canSend: true, daysRemaining: 0 };
     const diffDays = (Date.now() - new Date(rows[0].sent_at).getTime()) / 86400000;
@@ -57,7 +69,9 @@ async function checkBulkLimit(userId) {
 
 async function getBulkStatus(req, res, next) {
   try {
-    const status = await checkBulkLimit(req.user.userId);
+    // No ?type → 'bulk', so existing callers are unaffected.
+    const type   = req.query.type === 'custom' ? 'custom' : 'bulk';
+    const status = await checkBulkLimit(req.user.userId, type);
     return res.json({ success: true, data: status });
   } catch (err) {
     next(err);
@@ -141,17 +155,23 @@ async function sendReminder(req, res) {
 
 async function sendBulkReminders(req, res) {
   try {
-    const limit = await checkBulkLimit(req.user.userId);
+    const { eventId, customMessage } = req.body;
+
+    // A non-empty customMessage switches this dispatch onto the Type One SMS
+    // path. Without it every line below behaves exactly as it always has.
+    const customBody = typeof customMessage === 'string' ? customMessage.trim() : '';
+    const isCustom   = customBody.length > 0;
+
+    const limit = await checkBulkLimit(req.user.userId, isCustom ? 'custom' : 'bulk');
     if (!limit.canSend) {
       return res.status(429).json({
         success: false,
-        message: `You can send bulk SMS once per week. Try again in ${limit.daysRemaining} day(s).`,
+        message: `You can send ${isCustom ? 'a custom' : 'bulk'} SMS once per week. Try again in ${limit.daysRemaining} day(s).`,
         data:    { daysRemaining: limit.daysRemaining },
         errors:  [],
       });
     }
 
-    const { eventId } = req.body;
     const filter = getIsolationFilter(req);
     if (eventId) filter.eventId = eventId;
 
@@ -170,21 +190,31 @@ async function sendBulkReminders(req, res) {
         const phone = formatPhone(c.phone);
         if (!phone || phone.length < 12) continue;
 
-        const pledged = parseFloat(c.amount)      || 0;
-        const paid    = parseFloat(c.paid_amount) || 0;
-        const balance = pledged - paid;
-        const message = buildMessage(c.contributor_name, pledged, paid, balance, c.event_name, buildPortalLink(c));
+        let message;
+        if (isCustom) {
+          message = buildCustomMessage(c.contributor_name, c.event_name, customBody);
+        } else {
+          const pledged = parseFloat(c.amount)      || 0;
+          const paid    = parseFloat(c.paid_amount) || 0;
+          const balance = pledged - paid;
+          message = buildMessage(c.contributor_name, pledged, paid, balance, c.event_name, buildPortalLink(c));
+        }
 
         await sendBeemSms(phone, message);
 
-        // Persist sent state immediately so UI can reflect it on next load
-        try {
-          await pool.query(
-            'UPDATE contributions SET sms_sent = TRUE, sms_sent_at = NOW() WHERE id = ?',
-            [c.id]
-          );
-        } catch (dbErr) {
-          console.error('[sms] Failed to persist sms_sent flag:', dbErr.message);
+        // Persist sent state immediately so UI can reflect it on next load.
+        // Custom dispatches skip this on purpose: sms_sent marks "payment reminder
+        // sent" and disables the per-row reminder button, which an announcement
+        // must not consume.
+        if (!isCustom) {
+          try {
+            await pool.query(
+              'UPDATE contributions SET sms_sent = TRUE, sms_sent_at = NOW() WHERE id = ?',
+              [c.id]
+            );
+          } catch (dbErr) {
+            console.error('[sms] Failed to persist sms_sent flag:', dbErr.message);
+          }
         }
 
         await new Promise(r => setTimeout(r, 300));
@@ -195,9 +225,9 @@ async function sendBulkReminders(req, res) {
       }
     }
 
-    // Log the bulk dispatch so the weekly limit resets from now
+    // Log the dispatch so the weekly limit resets from now, under its own type
     try {
-      await pool.query('INSERT INTO sms_logs (user_id, type) VALUES (?, ?)', [req.user.userId, 'bulk']);
+      await pool.query('INSERT INTO sms_logs (user_id, type) VALUES (?, ?)', [req.user.userId, isCustom ? 'custom' : 'bulk']);
     } catch (err) {
       console.error('[sms] Failed to log bulk send:', err.message);
     }
