@@ -4,7 +4,7 @@ import { FiLock, FiEye, FiEyeOff, FiArrowLeft, FiCheck } from 'react-icons/fi';
 import axios from 'axios';
 import './AuthExtra.css';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://contribution.nardio.online/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://contribution.clixworks.co.tz/api';
 
 export default function ResetPassword() {
   const [searchParams]               = useSearchParams();

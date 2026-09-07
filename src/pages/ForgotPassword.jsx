@@ -4,7 +4,7 @@ import { FiMail, FiArrowLeft, FiSend } from 'react-icons/fi';
 import axios from 'axios';
 import './AuthExtra.css';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://contribution.nardio.online/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://contribution.clixworks.co.tz/api';
 
 export default function ForgotPassword() {
   const [email,     setEmail]     = useState('');

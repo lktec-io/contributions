@@ -7,7 +7,7 @@ export const setAuthContext = (ctx) => {
 };
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://contribution.nardio.online/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://contribution.clixworks.co.tz/api',
   withCredentials: true,
 });
 
@@ -55,7 +55,7 @@ api.interceptors.response.use(
       try {
         const storedRefresh = localStorage.getItem('ct_refresh') || sessionStorage.getItem('ct_refresh');
         const res = await axios.post(
-          `${import.meta.env.VITE_API_URL || 'https://contribution.nardio.online/api'}/auth/refresh`,
+          `${import.meta.env.VITE_API_URL || 'https://contribution.clixworks.co.tz/api'}/auth/refresh`,
           storedRefresh ? { refreshToken: storedRefresh } : {},
           { withCredentials: true }
         );

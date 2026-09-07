@@ -25,7 +25,7 @@ const PORT = process.env.PORT || 8001;
 
 // ── Middleware ──────────────────────────────────────────────
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'https://contribution.nardio.online',
+  origin: process.env.CORS_ORIGIN || 'https://contribution.clixworks.co.tz',
   credentials: true,
 }));
 app.use(express.json());
