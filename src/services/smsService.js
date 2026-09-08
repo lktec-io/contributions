@@ -16,4 +16,9 @@ export const smsService = {
   // eventId only: the server resolves the event name after an ownership check.
   sendMemberSms: (memberId, { message, eventId }) =>
     api.post(`/sms/member/${memberId}`, { message, eventId }),
+
+  // Send Custom SMS to all owned members. Recipients are resolved server-side
+  // from ownership; the campaign has its own 7-day window.
+  sendCustomCampaign: ({ message, eventId }) =>
+    api.post('/sms/members/campaign', { message, eventId }),
 };

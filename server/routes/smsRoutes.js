@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const { sendReminder, sendBulkReminders, getBulkStatus, sendMemberSms } = require('../controllers/smsController');
+const { sendReminder, sendBulkReminders, getBulkStatus, sendMemberSms, sendCustomCampaign } = require('../controllers/smsController');
 
 // Check if user can send bulk SMS (weekly limit)
 router.get('/bulk-status', auth, getBulkStatus);
@@ -14,5 +14,8 @@ router.post('/bulk-reminder', auth, sendBulkReminders);
 
 // Send an individual Custom SMS to one member (per-member cooldown)
 router.post('/member/:id', auth, sendMemberSms);
+
+// Send Custom SMS to all owned members (campaign-level cooldown)
+router.post('/members/campaign', auth, sendCustomCampaign);
 
 module.exports = router;

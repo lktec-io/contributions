@@ -19,6 +19,7 @@ import EmptyState from '../common/EmptyState';
 import ClientEvents from './ClientEvents';
 import ClientContributions from './ClientContributions';
 import CustomSmsMembers from './CustomSmsMembers';
+import CustomSmsDashboard from './CustomSmsDashboard';
 import { useSmsMode } from '../../hooks/useSmsMode';
 import PieChartCard from '../common/PieChartCard';
 import './ClientDashboard.css';
@@ -255,9 +256,13 @@ export default function ClientDashboard() {
     // never sees a flash of the contribution/financial UI.
     if (smsMode === null) return <StatsSkeleton />;
 
-    // Every client tab resolves to the member workspace for a Custom SMS
-    // account, so no contribution or event-amount screen is reachable by URL.
-    if (isCustomSms) return <CustomSmsMembers />;
+    // A Custom SMS account gets its own communication workspace. No
+    // contribution or event-amount screen is reachable, by tab or by URL.
+    if (isCustomSms) {
+      return activeTab === 'contributions'
+        ? <CustomSmsMembers />
+        : <CustomSmsDashboard />;
+    }
 
     switch (activeTab) {
       case 'events':        return <ClientEvents onViewContributions={() => navigate('/contributions')} />;

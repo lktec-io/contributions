@@ -100,7 +100,21 @@ async function listMembers(req, res, next) {
   try {
     if (await denyUnlessCustomSms(req, res)) return;
     const rows = await Contributor.findMembers(req.user.userId);
-    return res.json({ success: true, data: { members: decorateCooldown(rows), total: rows.length } });
+    const members = decorateCooldown(rows);
+
+    // Campaign window travels with the list so the dashboard needs no extra call.
+    const { checkCustomCampaignLimit } = require('./smsController');
+    const campaign = await checkCustomCampaignLimit(req.user.userId);
+
+    return res.json({
+      success: true,
+      data: {
+        members,
+        total: members.length,
+        campaign,
+        smsSent: members.filter(m => !m.canSend).length,
+      },
+    });
   } catch (err) {
     next(err);
   }

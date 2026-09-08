@@ -39,7 +39,8 @@ const CLIENT_ITEMS = [
 // A Custom SMS account is communication-only: one Members destination, and no
 // contribution / payment-request entries that would expose financial figures.
 const CUSTOM_SMS_ITEMS = [
-  { id: 'contributions', label: 'Members', Icon: FiUsers },
+  { id: 'dashboard',     label: 'Dashboard', Icon: FiHome },
+  { id: 'contributions', label: 'Members',   Icon: FiUsers },
 ];
 
 export default function Sidebar({ isOpen, onClose, smsMode }) {

@@ -31,15 +31,27 @@ function buildMessage(name, pledged, paid, balance, eventName, link) {
   return message;
 }
 
-// Custom SMS: event name + contributor name + the operator's own body.
-// Deliberately carries no amounts, no payment instructions and no portal link.
+// Collapses accidental whitespace without destroying intentional paragraphs:
+// CRLF -> LF, trailing spaces dropped, 3+ newlines become a single blank line.
+function normalizeMessageBody(text) {
+  return String(text || '')
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map(line => line.replace(/[ \t]+$/, ''))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// Custom SMS: greeting + event context + the operator's own body.
+// Carries no amounts, no payment instructions and no portal link, and appends
+// no brand signature — the sender ID already identifies the service.
 function buildCustomMessage(name, eventName, body) {
-  return (
-    `[${(eventName || 'Clix Notify').toUpperCase()}]\n\n` +
-    `Habari ${(name || '').toUpperCase()},\n\n` +
-    `${body}\n\n` +
-    `Asante.\nClix Notify`
-  );
+  const sections = [`Hello ${String(name || '').trim()},`];
+  const event = String(eventName || '').trim();
+  if (event) sections.push(`Event: ${event}`);
+  sections.push(normalizeMessageBody(body));
+  return sections.join('\n\n');
 }
 
 function buildPortalLink(contribution) {
@@ -57,8 +69,10 @@ async function checkBulkLimit(userId) {
     // sends carry a recipient_id and must never consume the campaign window.
     let rows;
     try {
+      // 'custom_campaign' is the Custom SMS to All window and is tracked
+      // separately, so it never consumes the Dispatch to All allowance.
       [rows] = await pool.query(
-        'SELECT sent_at FROM sms_logs WHERE user_id = ? AND recipient_id IS NULL ORDER BY sent_at DESC LIMIT 1',
+        "SELECT sent_at FROM sms_logs WHERE user_id = ? AND recipient_id IS NULL AND type <> 'custom_campaign' ORDER BY sent_at DESC LIMIT 1",
         [userId]
       );
     } catch (err) {
@@ -391,4 +405,104 @@ async function sendMemberSms(req, res) {
   }
 }
 
-module.exports = { sendReminder, sendBulkReminders, getBulkStatus, sendMemberSms };
+// ── Custom SMS to All (campaign) ────────────────────────────────
+// Campaign-level 7-day window, tracked as recipient_id IS NULL with its own
+// type. Deliberately does NOT write per-member rows, so individual member
+// cooldowns are left exactly as they were.
+
+async function checkCustomCampaignLimit(userId) {
+  try {
+    const [rows] = await pool.query(
+      "SELECT sent_at FROM sms_logs WHERE user_id = ? AND recipient_id IS NULL AND type = 'custom_campaign' ORDER BY sent_at DESC LIMIT 1",
+      [userId]
+    );
+    if (!rows.length) return { canSend: true, daysRemaining: 0 };
+    const diff = (Date.now() - new Date(rows[0].sent_at).getTime()) / 86400000;
+    if (diff < 7) return { canSend: false, daysRemaining: Math.ceil(7 - diff) };
+    return { canSend: true, daysRemaining: 0 };
+  } catch {
+    return { canSend: true, daysRemaining: 0 };
+  }
+}
+
+async function sendCustomCampaign(req, res) {
+  try {
+    const { denyUnlessCustomSms } = require('./contributorController');
+    if (await denyUnlessCustomSms(req, res)) return;
+
+    const body = typeof req.body.message === 'string' ? req.body.message.trim() : '';
+    if (!body) {
+      return res.status(400).json({
+        success: false, message: 'Tafadhali andika ujumbe kwanza.',
+        errors: [{ field: 'message', message: 'Message is required' }],
+      });
+    }
+
+    const limit = await checkCustomCampaignLimit(req.user.userId);
+    if (!limit.canSend) {
+      return res.status(429).json({
+        success: false,
+        message: `SMS campaign is currently unavailable. Next campaign can be sent in ${limit.daysRemaining} day(s).`,
+        data:    { daysRemaining: limit.daysRemaining },
+        errors:  [],
+      });
+    }
+
+    // Recipients come from ownership, never from the request body.
+    const Contributor = require('../models/Contributor');
+    const members = await Contributor.findMembers(req.user.userId);
+    if (!members.length) {
+      return res.status(400).json({ success: false, message: 'No members available.', errors: [] });
+    }
+
+    // Event name is resolved server-side through the existing isolation check.
+    let eventName = '';
+    if (req.body.eventId) {
+      const Event = require('../models/Event');
+      const event = await Event.findAccessibleById(req.body.eventId, getIsolationFilter(req));
+      if (!event) {
+        return res.status(403).json({ success: false, message: 'You do not have access to the selected event.', errors: [] });
+      }
+      eventName = event.name || '';
+    }
+
+    // Log the campaign BEFORE sending so a duplicate request that arrives while
+    // this one is still in flight is rejected by the cooldown.
+    try {
+      await pool.query(
+        "INSERT INTO sms_logs (user_id, type, recipient_id) VALUES (?, 'custom_campaign', NULL)",
+        [req.user.userId]
+      );
+    } catch (err) {
+      console.error('[sms] Failed to log custom campaign:', err.message);
+    }
+
+    let sent = 0;
+    for (const m of members) {
+      try {
+        const phone = formatPhone(m.phone);
+        if (!phone || phone.length < 12) continue;
+        // Name is read from the member record, never from the client.
+        await sendBeemSms(phone, buildCustomMessage(m.name, eventName, body));
+        await new Promise(r => setTimeout(r, 300));
+        sent++;
+      } catch (err) {
+        console.error('BEEM ERROR FULL:', err.response?.data || err.message);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `SMS sent to ${sent} of ${members.length} member(s)`,
+      data:    { sent, total: members.length, daysRemaining: 7 },
+    });
+  } catch (err) {
+    console.error('BEEM ERROR FULL:', err.response?.data || err.message);
+    return res.status(500).json({ success: false, message: 'Failed to send SMS', errors: [] });
+  }
+}
+
+module.exports = {
+  sendReminder, sendBulkReminders, getBulkStatus, sendMemberSms,
+  sendCustomCampaign, checkCustomCampaignLimit,
+};

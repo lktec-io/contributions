@@ -1,5 +1,8 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
-import { FiPlus, FiEdit2, FiSend, FiTrash2, FiUsers } from 'react-icons/fi';
+import { useSearchParams } from 'react-router-dom';
+import {
+  FiPlus, FiEdit2, FiSend, FiTrash2, FiUsers, FiUpload, FiDownload, FiFileText,
+} from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
 import { contributorService } from '../../services/contributorService';
 import { eventService } from '../../services/eventService';
@@ -42,11 +45,27 @@ export default function CustomSmsMembers() {
   const [sendingId,   setSendingId]   = useState(null);
   const [smsModal,    setSmsModal]    = useState({ open: false, status: 'sending', message: '' });
 
+  // Send to All — campaign-level, separate window from per-member sends
+  const [campaign,    setCampaign]    = useState({ canSend: true, daysRemaining: 0 });
+  const [showSendAll, setShowSendAll] = useState(false);
+  const [confirmAll,  setConfirmAll]  = useState(false);
+  const [sendingAll,  setSendingAll]  = useState(false);
+
+  // Excel import
+  const [showImport,  setShowImport]  = useState(false);
+  const [importFile,  setImportFile]  = useState(null);
+  const [importing,   setImporting]   = useState(false);
+  const [importResult, setImportResult] = useState(null);
+
+  const [downloading, setDownloading] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const fetchMembers = useCallback(async () => {
     setLoading(true);
     try {
       const res = await contributorService.getMembers();
       setMembers(res.data.data.members || []);
+      if (res.data.data.campaign) setCampaign(res.data.data.campaign);
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -164,6 +183,107 @@ export default function CustomSmsMembers() {
     }
   };
 
+  // ── Send Custom SMS to All ───────────────────────────────
+  const campaignLabel = () => {
+    if (sendingAll) return 'Sending…';
+    if (!campaign.canSend) return `Available in ${campaign.daysRemaining} day(s)`;
+    return 'Send Custom SMS to All';
+  };
+
+  const openSendAll = () => {
+    if (!members.length) { toast.error('No members available.'); return; }
+    setMsgError('');
+    if (!eventId && events.length === 1) setEventId(String(events[0].id));
+    setShowSendAll(true);
+  };
+
+  const confirmSendAll = () => {
+    if (!message.trim()) { setMsgError('Tafadhali andika ujumbe kwanza.'); return; }
+    setConfirmAll(true);
+  };
+
+  const doSendAll = async () => {
+    if (sendingAll) return;                       // duplicate-click guard
+    setConfirmAll(false);
+    setSendingAll(true);
+    setSmsModal({ open: true, status: 'sending', message: '' });
+    try {
+      const res = await smsService.sendCustomCampaign({
+        message: message.trim(),
+        eventId: eventId || undefined,
+      });
+      const { sent, total } = res.data.data;
+      toast.success(`SMS sent to ${sent} of ${total} member(s)`);
+      setSmsModal({
+        open: true, status: 'success',
+        message: `SMS sent to ${sent} of ${total} member(s). Next campaign available in 7 days.`,
+      });
+      setCampaign({ canSend: false, daysRemaining: 7 });
+      setShowSendAll(false);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+      setSmsModal({ open: true, status: 'error', message: getErrorMessage(err) });
+    } finally {
+      setSendingAll(false);
+    }
+  };
+
+  // ── Excel import ─────────────────────────────────────────
+  const doImport = async () => {
+    if (!importFile || importing) return;
+    setImporting(true);
+    try {
+      const res = await contributorService.importMembers(importFile);
+      setImportResult(res.data.data);
+      toast.success(res.data.message);
+      fetchMembers();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const closeImport = () => {
+    setShowImport(false); setImportFile(null); setImportResult(null);
+  };
+
+  // ── Reports ──────────────────────────────────────────────
+  const download = async (kind) => {
+    setDownloading(kind);
+    try {
+      const res = kind === 'pdf'
+        ? await contributorService.exportMembersPDF(eventId || undefined)
+        : await contributorService.exportMembersXLSX(eventId || undefined);
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `custom_sms_members_${new Date().toISOString().split('T')[0]}.${kind === 'pdf' ? 'pdf' : 'xlsx'}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`${kind.toUpperCase()} downloaded`);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setDownloading('');
+    }
+  };
+
+  // Dashboard quick actions deep-link here with ?action=…
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (!action || loading) return;
+    if (action === 'add')    openAdd();
+    if (action === 'import') setShowImport(true);
+    if (action === 'sendall') openSendAll();
+    if (action === 'pdf')    download('pdf');
+    if (action === 'xlsx')   download('xlsx');
+    setSearchParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, loading]);
+
   const sendLabel = (m) => {
     if (sendingId === m.id) return 'Sending…';
     if (!m.canSend) return `Available in ${m.daysRemaining} day(s)`;
@@ -187,9 +307,28 @@ export default function CustomSmsMembers() {
             Manage your members and send personalized event notifications.
           </p>
         </div>
-        <button className="btn" onClick={openAdd}>
-          <FiPlus size={16} /> Add Member
-        </button>
+        <div className="csm-header-actions">
+          <button className="csm-action" onClick={() => setShowImport(true)}>
+            <FiUpload size={13} /> Import Excel
+          </button>
+          <button className="csm-action" onClick={() => download('pdf')} disabled={!!downloading}>
+            <FiFileText size={13} /> {downloading === 'pdf' ? '…' : 'PDF'}
+          </button>
+          <button className="csm-action" onClick={() => download('xlsx')} disabled={!!downloading}>
+            <FiDownload size={13} /> {downloading === 'xlsx' ? '…' : 'Excel'}
+          </button>
+          <button
+            className="csm-action csm-action-send"
+            onClick={openSendAll}
+            disabled={!campaign.canSend || sendingAll || members.length === 0}
+            title={campaignLabel()}
+          >
+            <FiSend size={13} /> {campaignLabel()}
+          </button>
+          <button className="btn" onClick={openAdd}>
+            <FiPlus size={16} /> Add Member
+          </button>
+        </div>
       </div>
 
       <div className="csm-toolbar">
@@ -347,6 +486,116 @@ export default function CustomSmsMembers() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* ── Send Custom SMS to All ─────────────────────── */}
+      <Modal
+        isOpen={showSendAll}
+        onClose={() => setShowSendAll(false)}
+        title="Send Custom SMS to All"
+        size="medium"
+      >
+        <div className="csm-compose">
+          <div className="csm-recipient">
+            <span className="csm-recipient-label">Recipients</span>
+            <span className="csm-recipient-name">{members.length} member{members.length !== 1 ? 's' : ''}</span>
+            <span className="csm-recipient-phone">Each member receives their own personalized message.</span>
+          </div>
+
+          <div className="form-group">
+            <label>Event</label>
+            <select value={eventId} onChange={e => setEventId(e.target.value)}>
+              <option value="">— No event —</option>
+              {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Message</label>
+            <textarea
+              className="csm-textarea"
+              value={message}
+              onChange={e => { setMessage(e.target.value); if (msgError) setMsgError(''); }}
+              placeholder="Andika ujumbe wako hapa..."
+              rows={6}
+              disabled={sendingAll}
+            />
+            <div className="csm-meta">
+              {msgError
+                ? <span className="csm-error">{msgError}</span>
+                : <span className="csm-chars">Characters: {message.length}</span>}
+            </div>
+          </div>
+
+          <div className="form-actions">
+            <button type="button" className="btn btn-secondary" onClick={() => setShowSendAll(false)} disabled={sendingAll}>
+              Cancel
+            </button>
+            <button type="button" className="btn" onClick={confirmSendAll} disabled={sendingAll}>
+              <FiSend size={14} /> {sendingAll ? 'Sending…' : 'Send to All'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        isOpen={confirmAll}
+        onClose={() => setConfirmAll(false)}
+        onConfirm={doSendAll}
+        title="Send Custom SMS to All?"
+        message={`You are about to send this message to ${members.length} member${members.length !== 1 ? 's' : ''}. This will send an SMS to every member in your list.`}
+        confirmText="Confirm & Send"
+        confirmVariant="danger"
+        loading={sendingAll}
+      />
+
+      {/* ── Import members from Excel ──────────────────── */}
+      <Modal isOpen={showImport} onClose={closeImport} title="Import Members" size="small">
+        <div className="csm-import">
+          {importResult ? (
+            <>
+              <p className="csm-import-done">Import completed.</p>
+              <ul className="csm-import-stats">
+                <li><strong>{importResult.imported}</strong> imported</li>
+                <li><strong>{importResult.skipped}</strong> skipped</li>
+              </ul>
+              {importResult.reasons?.length > 0 && (
+                <ul className="csm-import-reasons">
+                  {importResult.reasons.map((r, i) => <li key={i}>{r}</li>)}
+                </ul>
+              )}
+              <div className="form-actions">
+                <button type="button" className="btn" onClick={closeImport}>Done</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="csm-import-hint">
+                Upload a spreadsheet with <strong>Name</strong> and <strong>Phone</strong> columns.
+                Supported formats: .xlsx, .xls
+              </p>
+              <label className="csm-file">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={e => setImportFile(e.target.files?.[0] || null)}
+                  disabled={importing}
+                />
+              </label>
+              {importFile && (
+                <p className="csm-file-name">File selected: <strong>{importFile.name}</strong></p>
+              )}
+              <div className="form-actions">
+                <button type="button" className="btn btn-secondary" onClick={closeImport} disabled={importing}>
+                  Cancel
+                </button>
+                <button type="button" className="btn" onClick={doImport} disabled={!importFile || importing}>
+                  <FiUpload size={14} /> {importing ? 'Importing…' : 'Import Members'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </Modal>
 
       <ConfirmDialog
