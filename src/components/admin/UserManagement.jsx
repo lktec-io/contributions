@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { FiPlus, FiUsers, FiAlertTriangle, FiEye, FiEyeOff, FiArchive } from 'react-icons/fi';
+import { FiPlus, FiUsers, FiAlertTriangle, FiEye, FiEyeOff, FiArchive, FiEdit3, FiSend, FiCheck } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import { ToastContext } from '../../context/ToastContext';
 import { userService } from '../../services/userService';
@@ -22,9 +22,20 @@ function buildEmptyForm() {
 }
 
 // Exactly one SMS mode per account. Mirrors the server-side SMS_MODES list.
+// `value` is the submitted payload and must not change.
 const SMS_MODE_OPTIONS = [
-  { value: 'custom',       label: 'Custom SMS',     hint: 'Compose and send their own message' },
-  { value: 'dispatch_all', label: 'Dispatch to All', hint: 'Send the standard reminder to all' },
+  {
+    value: 'custom',
+    label: 'Custom SMS',
+    hint:  'Send personalized event and information messages.',
+    Icon:  FiEdit3,
+  },
+  {
+    value: 'dispatch_all',
+    label: 'Dispatch to All',
+    hint:  'Send notifications to all eligible recipients.',
+    Icon:  FiSend,
+  },
 ];
 
 export default function UserManagement() {
@@ -364,27 +375,35 @@ export default function UserManagement() {
             </select>
           </div>
           <div className="form-group">
-            <label>SMS Access</label>
-            <div className="sms-access-group" role="radiogroup" aria-label="SMS Access">
-              {SMS_MODE_OPTIONS.map(opt => (
-                <label
-                  key={opt.value}
-                  className={`sms-access-option ${formData.sms_mode === opt.value ? 'is-selected' : ''}`}
-                >
-                  <input
-                    type="radio"
-                    name="sms_mode"
-                    value={opt.value}
-                    checked={formData.sms_mode === opt.value}
-                    onChange={handleChange}
-                  />
-                  <span className="sms-access-text">
-                    <span className="sms-access-label">{opt.label}</span>
-                    <span className="sms-access-hint">{opt.hint}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
+            {/* Native radios stay in the DOM (visually hidden, not display:none)
+                so keyboard and screen-reader behaviour is unchanged. */}
+            <fieldset className="sms-access">
+              <legend className="sms-access-legend">SMS Access</legend>
+              <p className="sms-access-desc">Choose one SMS delivery mode for this user.</p>
+              <div className="sms-access-grid">
+                {SMS_MODE_OPTIONS.map(opt => {
+                  const selected = formData.sms_mode === opt.value;
+                  return (
+                    <label key={opt.value} className={`sms-card ${selected ? 'is-selected' : ''}`}>
+                      <input
+                        className="sms-card-input"
+                        type="radio"
+                        name="sms_mode"
+                        value={opt.value}
+                        checked={selected}
+                        onChange={handleChange}
+                      />
+                      <span className="sms-card-top">
+                        <span className="sms-card-icon" aria-hidden="true"><opt.Icon size={15} /></span>
+                        <span className="sms-card-check" aria-hidden="true"><FiCheck size={11} /></span>
+                      </span>
+                      <span className="sms-card-title">{opt.label}</span>
+                      <span className="sms-card-desc">{opt.hint}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
           </div>
           <div className="form-actions">
             <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)} disabled={saving}>
