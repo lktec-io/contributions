@@ -150,7 +150,7 @@
   }
 }
 
-/* ── Type One SMS composer ───────────────────────────────── */
+/* ── Custom SMS composer ─────────────────────────────────── */
 
 .sms-composer {
   display: flex;
@@ -235,7 +235,7 @@
 }
 
 @media (max-width: 768px) {
-  /* Type One SMS trigger — full width alongside the dispatch button */
+  /* Custom SMS trigger — full width alongside the dispatch button */
   .btn-compose {
     width: 100%;
     justify-content: center;

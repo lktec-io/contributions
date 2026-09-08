@@ -41,7 +41,7 @@ export default function ForgotPassword() {
               <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </div>
-          <h1 className="ae-app-name">Finance Hub</h1>
+          <h1 className="ae-app-name">Clix Notify</h1>
         </div>
 
         {submitted ? (

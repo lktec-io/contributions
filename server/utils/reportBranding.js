@@ -19,7 +19,7 @@ const BRAND = {
   white:      '#FFFFFF',
 };
 
-const COMPANY_NAME = 'Finance Hub';
+const COMPANY_NAME = 'Clix Notify';
 
 // '#RRGGBB' -> 'FFRRGGBB' (ExcelJS ARGB) — single source of truth so the
 // PDF and Excel renderers can never drift onto slightly different hues.

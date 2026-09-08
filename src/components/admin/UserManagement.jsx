@@ -18,8 +18,14 @@ const ROLE_LABELS = {
 };
 
 function buildEmptyForm() {
-  return { name: '', email: '', password: '', role: 'client_user' };
+  return { name: '', email: '', password: '', role: 'client_user', sms_mode: 'dispatch_all' };
 }
+
+// Exactly one SMS mode per account. Mirrors the server-side SMS_MODES list.
+const SMS_MODE_OPTIONS = [
+  { value: 'custom',       label: 'Custom SMS',     hint: 'Compose and send their own message' },
+  { value: 'dispatch_all', label: 'Dispatch to All', hint: 'Send the standard reminder to all' },
+];
 
 export default function UserManagement() {
   const { user: currentUser } = useContext(AuthContext);
@@ -40,6 +46,7 @@ export default function UserManagement() {
   const [hiding,       setHiding]       = useState(false);
   const [togglingId,   setTogglingId]   = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [smsSavingId,  setSmsSavingId]  = useState(null);
 
   useEffect(() => { fetchUsers(); }, []);
 
@@ -84,6 +91,22 @@ export default function UserManagement() {
       toast.error(getErrorMessage(err));
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Super Admin can reassign a user's SMS mode at any time. The change takes
+  // effect for that user on their next page load, when the SMS status call runs.
+  const handleSmsModeChange = async (user, sms_mode) => {
+    if (sms_mode === (user.sms_mode || 'dispatch_all')) return;
+    setSmsSavingId(user.id);
+    try {
+      await userService.update(user.id, { sms_mode });
+      toast.success(`SMS access updated for ${user.name}`);
+      fetchUsers();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setSmsSavingId(null);
     }
   };
 
@@ -174,6 +197,7 @@ export default function UserManagement() {
                   <th>Name</th>
                   <th>Email</th>
                   <th>Role</th>
+                  <th>SMS Access</th>
                   <th>Status</th>
                   <th>Created</th>
                   <th>Actions</th>
@@ -188,6 +212,19 @@ export default function UserManagement() {
                       <span className={`role-badge role-${u.role}`}>
                         {ROLE_LABELS[u.role] || u.role}
                       </span>
+                    </td>
+                    <td>
+                      <select
+                        className="sms-access-select"
+                        value={u.sms_mode || 'dispatch_all'}
+                        onChange={e => handleSmsModeChange(u, e.target.value)}
+                        disabled={smsSavingId === u.id || u.role === 'super_admin'}
+                        aria-label={`SMS access for ${u.name}`}
+                      >
+                        {SMS_MODE_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
                     </td>
                     <td>
                       <span className={`status-pill ${u.is_active ? 'pill-active' : 'pill-inactive'}`}>
@@ -236,6 +273,20 @@ export default function UserManagement() {
                 <div className="um-card-row">
                   <span className="um-card-label">Email</span>
                   <span className="um-card-value">{u.email}</span>
+                </div>
+                <div className="um-card-row">
+                  <span className="um-card-label">SMS Access</span>
+                  <select
+                    className="sms-access-select"
+                    value={u.sms_mode || 'dispatch_all'}
+                    onChange={e => handleSmsModeChange(u, e.target.value)}
+                    disabled={smsSavingId === u.id || u.role === 'super_admin'}
+                    aria-label={`SMS access for ${u.name}`}
+                  >
+                    {SMS_MODE_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="um-card-row">
                   <span className="um-card-label">Status</span>
@@ -311,6 +362,29 @@ export default function UserManagement() {
               <option value="client_user">Client User</option>
               {isSuperAdmin && <option value="admin">Admin</option>}
             </select>
+          </div>
+          <div className="form-group">
+            <label>SMS Access</label>
+            <div className="sms-access-group" role="radiogroup" aria-label="SMS Access">
+              {SMS_MODE_OPTIONS.map(opt => (
+                <label
+                  key={opt.value}
+                  className={`sms-access-option ${formData.sms_mode === opt.value ? 'is-selected' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="sms_mode"
+                    value={opt.value}
+                    checked={formData.sms_mode === opt.value}
+                    onChange={handleChange}
+                  />
+                  <span className="sms-access-text">
+                    <span className="sms-access-label">{opt.label}</span>
+                    <span className="sms-access-hint">{opt.hint}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
           <div className="form-actions">
             <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)} disabled={saving}>

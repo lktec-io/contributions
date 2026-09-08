@@ -71,6 +71,9 @@ async function ensureSchema() {
     { col: 'users.hidden_at',         sql: 'ALTER TABLE users ADD COLUMN hidden_at DATETIME NULL' },
     { col: 'users.reset_token',       sql: 'ALTER TABLE users ADD COLUMN reset_token VARCHAR(255) NULL' },
     { col: 'users.reset_expires',     sql: 'ALTER TABLE users ADD COLUMN reset_expires DATETIME NULL' },
+    // SMS mode assignment. Defaults to 'dispatch_all' so every existing account
+    // keeps exactly the SMS capability it already had before this column existed.
+    { col: 'users.sms_mode',          sql: "ALTER TABLE users ADD COLUMN sms_mode VARCHAR(20) NOT NULL DEFAULT 'dispatch_all'" },
   ];
 
   for (const step of steps) {

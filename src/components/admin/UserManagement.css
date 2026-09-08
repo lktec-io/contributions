@@ -192,3 +192,102 @@
   /* Email shrinks — table scrolls, so this just prevents odd overflow */
   .td-email { font-size: 12px; }
 }
+
+/* ── SMS Access assignment ───────────────────── */
+
+.sms-access-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sms-access-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sms-access-option:hover {
+  border-color: var(--accent-blue, #3B82F6);
+}
+
+.sms-access-option.is-selected {
+  border-color: var(--accent-blue, #3B82F6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
+}
+
+.sms-access-option input[type="radio"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--accent-blue, #3B82F6);
+}
+
+.sms-access-option:focus-within {
+  outline: 2px solid var(--accent-blue, #3B82F6);
+  outline-offset: 2px;
+}
+
+.sms-access-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sms-access-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sms-access-hint {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* Inline reassignment control in the users table / cards */
+.sms-access-select {
+  max-width: 100%;
+  padding: 4px 8px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sms-access-select:hover:not(:disabled) {
+  border-color: var(--accent-blue, #3B82F6);
+}
+
+.sms-access-select:focus {
+  outline: none;
+  border-color: var(--accent-blue, #3B82F6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.sms-access-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .sms-access-option {
+    padding: 9px 10px;
+  }
+
+  .sms-access-select {
+    font-size: 13px;
+    padding: 6px 8px;
+  }
+}

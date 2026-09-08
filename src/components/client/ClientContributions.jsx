@@ -43,11 +43,10 @@ export default function ClientContributions() {
   const [bulkStatus,   setBulkStatus]   = useState(null); // { canSend, daysRemaining }
   const [smsModal,     setSmsModal]     = useState({ open: false, status: 'sending', message: '' }); // visual feedback only
 
-  // Type One SMS (custom body) — separate composer, separate weekly window
+  // Custom SMS composer. Shares the single 7-day campaign window in bulkStatus.
   const [showComposer,  setShowComposer]  = useState(false);
   const [customMessage, setCustomMessage] = useState('');
   const [customSending, setCustomSending] = useState(false);
-  const [customStatus,  setCustomStatus]  = useState(null); // { canSend, daysRemaining }
   const [customError,   setCustomError]   = useState('');
 
   const currentFilters = useRef({ search: '', eventId: '', status: '' });
@@ -62,12 +61,6 @@ export default function ClientContributions() {
     smsService.getBulkStatus()
       .then(res => setBulkStatus(res.data.data))
       .catch(() => setBulkStatus({ canSend: true, daysRemaining: 0 }));
-  }, []);
-
-  useEffect(() => {
-    smsService.getBulkStatus('custom')
-      .then(res => setCustomStatus(res.data.data))
-      .catch(() => setCustomStatus({ canSend: true, daysRemaining: 0 }));
   }, []);
 
   useEffect(() => {
@@ -112,7 +105,7 @@ export default function ClientContributions() {
 
   const dispatchLabel = () => {
     if (bulkSending) return 'Sending…';
-    if (bulkStatus && !bulkStatus.canSend) return `Next SMS in ${bulkStatus.daysRemaining} day(s)`;
+    if (bulkStatus && !bulkStatus.canSend) return `Available in ${bulkStatus.daysRemaining} day(s)`;
     if (!hasUnpaid && contributions.length > 0) return 'All contributors have paid';
     return 'Dispatch SMS to All';
   };
@@ -124,12 +117,18 @@ export default function ClientContributions() {
       const res = await smsService.sendBulkReminders(selectedEvent || undefined);
       const { sent, total: t } = res.data.data;
       toast.success(`SMS dispatched to ${sent} of ${t} contributor(s)`);
-      setSmsModal({ open: true, status: 'success', message: `SMS dispatched to ${sent} of ${t} contributor(s).` });
       // Refresh list so rows with sms_sent = true immediately show disabled buttons
       refreshList();
       // Refresh weekly limit status
       const statusRes = await smsService.getBulkStatus();
       setBulkStatus(statusRes.data.data);
+      const days = statusRes.data.data?.daysRemaining;
+      setSmsModal({
+        open: true,
+        status: 'success',
+        message: `SMS dispatched to ${sent} of ${t} contributor(s).`
+          + (days ? ` Next SMS available in ${days} day(s).` : ''),
+      });
     } catch (err) {
       toast.error(getErrorMessage(err));
       setSmsModal({ open: true, status: 'error', message: getErrorMessage(err) });
@@ -138,14 +137,23 @@ export default function ClientContributions() {
     }
   };
 
-  // ── Type One SMS ───────────────────────────────────────────
-  const canDispatchCustom = hasUnpaid && (customStatus?.canSend ?? true);
+  // ── SMS mode assignment ────────────────────────────────────
+  // A user sees only the mode assigned to them; super_admin administers both.
+  // Until the status call resolves, neither button renders — that way a user
+  // never briefly sees a mode they are not allowed to use.
+  const smsMode     = bulkStatus?.smsMode;
+  const isSuper     = bulkStatus?.role === 'super_admin';
+  const showDispatch = isSuper || smsMode === 'dispatch_all';
+  const showCustom   = isSuper || smsMode === 'custom';
+
+  // ── Custom SMS ─────────────────────────────────────────────
+  const canDispatchCustom = hasUnpaid && (bulkStatus?.canSend ?? true);
 
   const customLabel = () => {
     if (customSending) return 'Sending…';
-    if (customStatus && !customStatus.canSend) return `Next custom SMS in ${customStatus.daysRemaining} day(s)`;
+    if (bulkStatus && !bulkStatus.canSend) return `Available in ${bulkStatus.daysRemaining} day(s)`;
     if (!hasUnpaid && contributions.length > 0) return 'All contributors have paid';
-    return 'Type One SMS';
+    return 'Custom SMS';
   };
 
   // Preview only. When no single event is filtered, the server inserts each
@@ -164,9 +172,15 @@ export default function ClientContributions() {
       const res = await smsService.sendBulkReminders(selectedEvent || undefined, customMessage.trim());
       const { sent, total: t } = res.data.data;
       toast.success(`SMS dispatched to ${sent} of ${t} contributor(s)`);
-      setSmsModal({ open: true, status: 'success', message: `SMS dispatched to ${sent} of ${t} contributor(s).` });
-      const statusRes = await smsService.getBulkStatus('custom');
-      setCustomStatus(statusRes.data.data);
+      const statusRes = await smsService.getBulkStatus();
+      setBulkStatus(statusRes.data.data);
+      const days = statusRes.data.data?.daysRemaining;
+      setSmsModal({
+        open: true,
+        status: 'success',
+        message: `SMS dispatched to ${sent} of ${t} contributor(s).`
+          + (days ? ` Next SMS available in ${days} day(s).` : ''),
+      });
     } catch (err) {
       toast.error(getErrorMessage(err));
       setSmsModal({ open: true, status: 'error', message: getErrorMessage(err) });
@@ -307,24 +321,28 @@ export default function ClientContributions() {
               <FiDownload size={13} /> {exporting === 'pdf' ? '…' : 'PDF'}
             </button>
           </div>
-          <button
-            className="btn btn-dispatch"
-            onClick={handleDispatch}
-            disabled={!canDispatch || bulkSending}
-            title={dispatchLabel()}
-          >
-            <FiSend size={14} className={bulkSending ? 'spin' : ''} />
-            {dispatchLabel()}
-          </button>
-          <button
-            className="btn btn-dispatch btn-compose"
-            onClick={() => { setCustomError(''); setShowComposer(true); }}
-            disabled={!canDispatchCustom || customSending}
-            title={customLabel()}
-          >
-            <FiEdit3 size={14} className={customSending ? 'spin' : ''} />
-            {customLabel()}
-          </button>
+          {showDispatch && (
+            <button
+              className="btn btn-dispatch"
+              onClick={handleDispatch}
+              disabled={!canDispatch || bulkSending}
+              title={dispatchLabel()}
+            >
+              <FiSend size={14} className={bulkSending ? 'spin' : ''} />
+              {dispatchLabel()}
+            </button>
+          )}
+          {showCustom && (
+            <button
+              className="btn btn-dispatch btn-compose"
+              onClick={() => { setCustomError(''); setShowComposer(true); }}
+              disabled={!canDispatchCustom || customSending}
+              title={customLabel()}
+            >
+              <FiEdit3 size={14} className={customSending ? 'spin' : ''} />
+              {customLabel()}
+            </button>
+          )}
           <button className="btn" onClick={() => setShowAddModal(true)}>
             <FiPlus size={16} /> Add Contributor
           </button>
@@ -399,7 +417,7 @@ export default function ClientContributions() {
         />
       </Modal>
 
-      <Modal isOpen={showComposer} onClose={() => setShowComposer(false)} title="Type One SMS" size="medium">
+      <Modal isOpen={showComposer} onClose={() => setShowComposer(false)} title="Custom SMS" size="medium">
         <div className="sms-composer">
           <p className="sms-composer-hint">
             Jina la tukio na jina la mchangiaji huongezwa kiotomatiki kwa kila mpokeaji.
@@ -443,7 +461,7 @@ export default function ClientContributions() {
               disabled={customSending}
             >
               <FiEdit3 size={14} className={customSending ? 'spin' : ''} />
-              {customSending ? 'Sending…' : 'Type One SMS'}
+              {customSending ? 'Sending…' : 'Send SMS'}
             </button>
           </div>
         </div>

@@ -1,9 +1,9 @@
 import api from './api';
 
 export const smsService = {
-  // type: omit for the normal reminder window, 'custom' for Type One SMS
-  getBulkStatus: (type) =>
-    api.get('/sms/bulk-status', type ? { params: { type } } : undefined),
+  // Returns { canSend, daysRemaining, smsMode, role } — one shared 7-day window
+  getBulkStatus: () =>
+    api.get('/sms/bulk-status'),
 
   sendReminder: (contributorId) =>
     api.post(`/sms/reminder/${contributorId}`),

@@ -434,7 +434,7 @@ export default function Settings() {
     setSavingBranding(true);
     try {
       await settingsService.update({ branding_org_name: orgNameInput });
-      setBranding({ organizationName: orgNameInput || 'Finance Hub' });
+      setBranding({ organizationName: orgNameInput || 'Clix Notify' });
       toast.success('Organization name saved');
       flash(setDoneBranding);
     } catch (err) {
@@ -626,12 +626,12 @@ export default function Settings() {
               </Field>
 
               <form onSubmit={saveBrandingName}>
-                <Field label="Organization Name" hint="Shown in place of &ldquo;Finance Hub&rdquo; wherever your branding appears.">
+                <Field label="Organization Name" hint="Shown in place of &ldquo;Clix Notify&rdquo; wherever your branding appears.">
                   <input
                     className="st-input"
                     value={orgNameInput}
                     onChange={e => setOrgNameInput(e.target.value.slice(0, 100))}
-                    placeholder="Finance Hub"
+                    placeholder="Clix Notify"
                     maxLength={100}
                   />
                 </Field>
@@ -653,7 +653,7 @@ export default function Settings() {
                   className="st-input"
                   value={system.system_name}
                   onChange={e => setSystem(s => ({ ...s, system_name: e.target.value }))}
-                  placeholder="Finance Hub"
+                  placeholder="Clix Notify"
                 />
               </Field>
 

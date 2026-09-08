@@ -5,6 +5,10 @@ const User         = require('../models/User');
 const Contribution = require('../models/Contribution');
 const { canAccessUser } = require('../utils/tenantHelpers');
 
+// Exactly one SMS mode may be assigned to an account.
+const SMS_MODES = ['custom', 'dispatch_all'];
+const isValidSmsMode = (m) => SMS_MODES.includes(m);
+
 // ── GET /api/users ────────────────────────────────────────────
 async function getAll(req, res, next) {
   try {
@@ -50,7 +54,15 @@ async function getById(req, res, next) {
 // ── POST /api/users ───────────────────────────────────────────
 async function create(req, res, next) {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, sms_mode } = req.body;
+
+    if (sms_mode !== undefined && !isValidSmsMode(sms_mode)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: [{ field: 'sms_mode', message: "sms_mode must be 'custom' or 'dispatch_all'" }],
+      });
+    }
 
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -83,6 +95,7 @@ async function create(req, res, next) {
       password:   hashedPassword,
       role:       role || 'client_user',
       created_by: req.user.userId,
+      sms_mode:   sms_mode || 'dispatch_all',
     });
 
     const newUser = await User.findById(id);
@@ -103,11 +116,21 @@ async function update(req, res, next) {
       return res.status(403).json({ success: false, message: 'Access denied', errors: [] });
     }
 
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, sms_mode } = req.body;
+
+    if (sms_mode !== undefined && !isValidSmsMode(sms_mode)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: [{ field: 'sms_mode', message: "sms_mode must be 'custom' or 'dispatch_all'" }],
+      });
+    }
+
     const fields = {};
     if (name)     fields.name     = name;
     if (email)    fields.email    = email;
     if (role)     fields.role     = role;
+    if (sms_mode) fields.sms_mode = sms_mode;
     if (password) fields.password = await bcrypt.hash(password, 10);
 
     await User.update(req.params.id, fields);

@@ -5,7 +5,7 @@ import { settingsService } from '../services/settingsService';
 export const BrandingContext = createContext(null);
 
 const STORAGE_KEY = 'ct_branding';
-const DEFAULT_BRANDING = { logoUrl: null, organizationName: 'Finance Hub' };
+const DEFAULT_BRANDING = { logoUrl: null, organizationName: 'Clix Notify' };
 
 function loadCached() {
   try {

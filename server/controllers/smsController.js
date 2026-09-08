@@ -31,13 +31,14 @@ function buildMessage(name, pledged, paid, balance, eventName, link) {
   return message;
 }
 
-// "Type One SMS": event name + contributor name + the operator's own body.
+// Custom SMS: event name + contributor name + the operator's own body.
 // Deliberately carries no amounts, no payment instructions and no portal link.
 function buildCustomMessage(name, eventName, body) {
   return (
-    `[${(eventName || 'Finance Hub').toUpperCase()}]\n\n` +
+    `[${(eventName || 'Clix Notify').toUpperCase()}]\n\n` +
     `Habari ${(name || '').toUpperCase()},\n\n` +
-    `${body}`
+    `${body}\n\n` +
+    `Asante.\nClix Notify`
   );
 }
 
@@ -47,13 +48,14 @@ function buildPortalLink(contribution) {
   return `${frontendUrl}/pay/${contribution.public_token}`;
 }
 
-// `type` scopes the weekly window. 'bulk' = normal reminders (unchanged),
-// 'custom' = Type One SMS, so neither dispatch consumes the other's allowance.
-async function checkBulkLimit(userId, type = 'bulk') {
+// One SMS campaign per user per 7 days, shared across BOTH SMS modes: the most
+// recent campaign of any type opens the window. `type` is still recorded on each
+// row for auditing, but it no longer scopes the limit.
+async function checkBulkLimit(userId) {
   try {
     const [rows] = await pool.query(
-      'SELECT sent_at FROM sms_logs WHERE user_id = ? AND type = ? ORDER BY sent_at DESC LIMIT 1',
-      [userId, type]
+      'SELECT sent_at FROM sms_logs WHERE user_id = ? ORDER BY sent_at DESC LIMIT 1',
+      [userId]
     );
     if (!rows.length) return { canSend: true, daysRemaining: 0 };
     const diffDays = (Date.now() - new Date(rows[0].sent_at).getTime()) / 86400000;
@@ -67,12 +69,28 @@ async function checkBulkLimit(userId, type = 'bulk') {
   }
 }
 
+// Valid SMS mode assignments. Kept in sync with userController.
+const SMS_MODES = ['custom', 'dispatch_all'];
+
+// Resolves the account's assigned SMS mode. Falls back to 'dispatch_all' — the
+// capability every account had before sms_mode existed — so a pending migration
+// or an unreadable value can never silently grant a mode the user wasn't given.
+async function getUserSmsMode(userId) {
+  try {
+    const [rows] = await pool.query('SELECT sms_mode FROM users WHERE id = ? LIMIT 1', [userId]);
+    const mode = rows[0] && rows[0].sms_mode;
+    return SMS_MODES.includes(mode) ? mode : 'dispatch_all';
+  } catch {
+    return 'dispatch_all';
+  }
+}
+
 async function getBulkStatus(req, res, next) {
   try {
-    // No ?type → 'bulk', so existing callers are unaffected.
-    const type   = req.query.type === 'custom' ? 'custom' : 'bulk';
-    const status = await checkBulkLimit(req.user.userId, type);
-    return res.json({ success: true, data: status });
+    const status  = await checkBulkLimit(req.user.userId);
+    const smsMode = await getUserSmsMode(req.user.userId);
+    // smsMode is additive; canSend/daysRemaining keep their existing shape.
+    return res.json({ success: true, data: { ...status, smsMode, role: req.user.role } });
   } catch (err) {
     next(err);
   }
@@ -157,16 +175,31 @@ async function sendBulkReminders(req, res) {
   try {
     const { eventId, customMessage } = req.body;
 
-    // A non-empty customMessage switches this dispatch onto the Type One SMS
+    // A non-empty customMessage switches this dispatch onto the Custom SMS
     // path. Without it every line below behaves exactly as it always has.
     const customBody = typeof customMessage === 'string' ? customMessage.trim() : '';
     const isCustom   = customBody.length > 0;
 
-    const limit = await checkBulkLimit(req.user.userId, isCustom ? 'custom' : 'bulk');
+    // Authorisation: the account must hold the SMS mode it is trying to use.
+    // Enforced server-side so hiding the button in the UI is not the only guard.
+    // super_admin is exempt — it administers both modes.
+    const requestedMode = isCustom ? 'custom' : 'dispatch_all';
+    if (req.user.role !== 'super_admin') {
+      const assignedMode = await getUserSmsMode(req.user.userId);
+      if (assignedMode !== requestedMode) {
+        return res.status(403).json({
+          success: false,
+          message: 'Your account is not authorised to use this SMS mode.',
+          errors:  [],
+        });
+      }
+    }
+
+    const limit = await checkBulkLimit(req.user.userId);
     if (!limit.canSend) {
       return res.status(429).json({
         success: false,
-        message: `You can send ${isCustom ? 'a custom' : 'bulk'} SMS once per week. Try again in ${limit.daysRemaining} day(s).`,
+        message: `You can send one SMS campaign per week. You can send your next SMS in ${limit.daysRemaining} day(s).`,
         data:    { daysRemaining: limit.daysRemaining },
         errors:  [],
       });

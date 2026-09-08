@@ -9,11 +9,15 @@ const User = {
   // ── findAll ─────────────────────────────────────────────────
   // Excludes hidden users. Falls back to unfiltered query if the
   // is_hidden column hasn't been added yet (migration pending).
+  // `includeNewColumns` is the non-fallback path. On error 1054 (unknown column)
+  // we retry without every post-baseline column, so the list still renders on a
+  // database where a migration has not run yet.
   async findAll({ createdBy, role } = {}) {
-    const buildQuery = (includeHiddenFilter) => {
+    const buildQuery = (includeNewColumns) => {
       let query = `SELECT id, name, email, role, is_active, created_at, created_by
+                   ${includeNewColumns ? ', sms_mode' : ''}
                    FROM users
-                   WHERE ${includeHiddenFilter ? 'is_hidden = FALSE' : '1=1'}`;
+                   WHERE ${includeNewColumns ? 'is_hidden = FALSE' : '1=1'}`;
       const params = [];
       if (createdBy !== null && createdBy !== undefined) {
         query += ' AND created_by = ?';
@@ -60,11 +64,15 @@ const User = {
   // No hidden filter here — controllers need to load hidden users
   // for hide/restore/delete operations.
   async findById(id) {
-    const [rows] = await pool.query(
-      'SELECT id, name, email, role, is_active, created_by, created_at FROM users WHERE id = ?',
-      [id]
-    );
-    return rows[0] || null;
+    const base = 'SELECT id, name, email, role, is_active, created_by, created_at';
+    try {
+      const [rows] = await pool.query(`${base}, sms_mode FROM users WHERE id = ?`, [id]);
+      return rows[0] || null;
+    } catch (err) {
+      if (err.errno !== ERR_UNKNOWN_COLUMN) throw err;
+      const [rows] = await pool.query(`${base} FROM users WHERE id = ?`, [id]);
+      return rows[0] || null;
+    }
   },
 
   async findByEmail(email) {
@@ -72,12 +80,21 @@ const User = {
     return rows[0] || null;
   },
 
-  async create({ name, email, password, role = 'client_user', created_by = null }) {
-    const [result] = await pool.query(
-      'INSERT INTO users (name, email, password, role, created_by) VALUES (?, ?, ?, ?, ?)',
-      [name, email, password, role, created_by]
-    );
-    return result.insertId;
+  async create({ name, email, password, role = 'client_user', created_by = null, sms_mode = 'dispatch_all' }) {
+    try {
+      const [result] = await pool.query(
+        'INSERT INTO users (name, email, password, role, created_by, sms_mode) VALUES (?, ?, ?, ?, ?, ?)',
+        [name, email, password, role, created_by, sms_mode]
+      );
+      return result.insertId;
+    } catch (err) {
+      if (err.errno !== ERR_UNKNOWN_COLUMN) throw err;
+      const [result] = await pool.query(
+        'INSERT INTO users (name, email, password, role, created_by) VALUES (?, ?, ?, ?, ?)',
+        [name, email, password, role, created_by]
+      );
+      return result.insertId;
+    }
   },
 
   async update(id, fields) {

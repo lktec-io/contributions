@@ -57,8 +57,8 @@ export default function Login() {
               <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </div>
-          <h1 className="login-app-name">Finance Hub</h1>
-          <p className="login-tagline">Smart Contribution Management</p>
+          <h1 className="login-app-name">Clix Notify</h1>
+          <p className="login-tagline">Smart Notifications &amp; Communication Platform</p>
         </div>
 
         {/* Form */}
@@ -150,7 +150,7 @@ export default function Login() {
         </form>
 
         <p className="login-footer-text">
-          &copy; {new Date().getFullYear()} Finance Hub &mdash; All rights reserved
+          &copy; {new Date().getFullYear()} Clix Notify &mdash; All rights reserved
         </p>
       </div>
     </div>
