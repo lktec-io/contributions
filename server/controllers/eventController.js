@@ -26,6 +26,17 @@ async function getAll(req, res, next) {
   try {
     const filter = getIsolationFilter(req);
     const events = await Event.findAll(filter);
+
+    // A Custom SMS account uses events for context only, so it receives just
+    // id + name — never target/pledged/paid amounts. Every other caller keeps
+    // the full existing payload unchanged.
+    if (req.user.role !== 'super_admin') {
+      const { getSmsMode } = require('../middleware/smsMode');
+      if (await getSmsMode(req.user.userId) === 'custom') {
+        return res.json({ success: true, data: events.map(e => ({ id: e.id, name: e.name })) });
+      }
+    }
+
     const withAssignments = await attachAssignments(events);
     return res.json({ success: true, data: withAssignments });
   } catch (err) {

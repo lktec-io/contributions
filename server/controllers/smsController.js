@@ -53,10 +53,21 @@ function buildPortalLink(contribution) {
 // row for auditing, but it no longer scopes the limit.
 async function checkBulkLimit(userId) {
   try {
-    const [rows] = await pool.query(
-      'SELECT sent_at FROM sms_logs WHERE user_id = ? ORDER BY sent_at DESC LIMIT 1',
-      [userId]
-    );
+    // recipient_id IS NULL keeps this to campaign rows only. Individual member
+    // sends carry a recipient_id and must never consume the campaign window.
+    let rows;
+    try {
+      [rows] = await pool.query(
+        'SELECT sent_at FROM sms_logs WHERE user_id = ? AND recipient_id IS NULL ORDER BY sent_at DESC LIMIT 1',
+        [userId]
+      );
+    } catch (err) {
+      if (err.errno !== 1054) throw err; // 1054 = column not migrated yet
+      [rows] = await pool.query(
+        'SELECT sent_at FROM sms_logs WHERE user_id = ? ORDER BY sent_at DESC LIMIT 1',
+        [userId]
+      );
+    }
     if (!rows.length) return { canSend: true, daysRemaining: 0 };
     const diffDays = (Date.now() - new Date(rows[0].sent_at).getTime()) / 86400000;
     if (diffDays < 7) {
@@ -281,4 +292,103 @@ async function sendBulkReminders(req, res) {
   }
 }
 
-module.exports = { sendReminder, sendBulkReminders, getBulkStatus };
+// ── Individual Custom SMS to one member ─────────────────────────
+// Cooldown here is per RECIPIENT: contacting one member never disables any
+// other member, and never touches the Dispatch-to-All campaign window.
+
+const MEMBER_COOLDOWN_DAYS = 7;
+
+async function checkMemberLimit(userId, memberId) {
+  try {
+    const [rows] = await pool.query(
+      'SELECT sent_at FROM sms_logs WHERE user_id = ? AND recipient_id = ? ORDER BY sent_at DESC LIMIT 1',
+      [userId, memberId]
+    );
+    if (!rows.length) return { canSend: true, daysRemaining: 0 };
+    const diff = (Date.now() - new Date(rows[0].sent_at).getTime()) / 86400000;
+    if (diff < MEMBER_COOLDOWN_DAYS) {
+      return { canSend: false, daysRemaining: Math.ceil(MEMBER_COOLDOWN_DAYS - diff) };
+    }
+    return { canSend: true, daysRemaining: 0 };
+  } catch {
+    // recipient_id not migrated yet — don't block sending
+    return { canSend: true, daysRemaining: 0 };
+  }
+}
+
+async function sendMemberSms(req, res) {
+  try {
+    const { denyUnlessCustomSms, loadOwnedMember } = require('./contributorController');
+
+    if (await denyUnlessCustomSms(req, res)) return;
+    const member = await loadOwnedMember(req, res);
+    if (!member) return;
+
+    const body = typeof req.body.message === 'string' ? req.body.message.trim() : '';
+    if (!body) {
+      return res.status(400).json({
+        success: false, message: 'Tafadhali andika ujumbe kwanza.',
+        errors: [{ field: 'message', message: 'Message is required' }],
+      });
+    }
+
+    const phone = formatPhone(member.phone);
+    if (!phone || phone.length < 12) {
+      return res.status(400).json({ success: false, message: 'This member has an invalid phone number', errors: [] });
+    }
+
+    // Per-member window. Also the server-side guard against a double-click
+    // landing as two real SMS.
+    const limit = await checkMemberLimit(req.user.userId, member.id);
+    if (!limit.canSend) {
+      return res.status(429).json({
+        success: false,
+        message: `You can send to this member again in ${limit.daysRemaining} day(s).`,
+        data:    { daysRemaining: limit.daysRemaining },
+        errors:  [],
+      });
+    }
+
+    // The event NAME is never taken from the client. An eventId is resolved
+    // through the existing tenant-isolation lookup, so a user can only stamp an
+    // event they actually have access to — and only its name is read, never any
+    // target/pledge amount.
+    let eventName = '';
+    if (req.body.eventId) {
+      const Event = require('../models/Event');
+      const event = await Event.findAccessibleById(req.body.eventId, getIsolationFilter(req));
+      if (!event) {
+        return res.status(403).json({
+          success: false,
+          message: 'You do not have access to the selected event.',
+          errors:  [],
+        });
+      }
+      eventName = event.name || '';
+    }
+
+    const message = buildCustomMessage(member.name, eventName, body);
+
+    await sendBeemSms(phone, message);
+
+    try {
+      await pool.query(
+        'INSERT INTO sms_logs (user_id, type, recipient_id) VALUES (?, ?, ?)',
+        [req.user.userId, 'custom_member', member.id]
+      );
+    } catch (err) {
+      console.error('[sms] Failed to log member send:', err.message);
+    }
+
+    return res.json({
+      success: true,
+      message: 'SMS sent successfully',
+      data:    { memberId: member.id, canSend: false, daysRemaining: MEMBER_COOLDOWN_DAYS },
+    });
+  } catch (err) {
+    console.error('BEEM ERROR FULL:', err.response?.data || err.message);
+    return res.status(500).json({ success: false, message: 'Failed to send SMS', errors: [] });
+  }
+}
+
+module.exports = { sendReminder, sendBulkReminders, getBulkStatus, sendMemberSms };

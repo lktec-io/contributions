@@ -90,11 +90,11 @@ function AppRoutes() {
       />
       <Route
         path="/hidden-records"
-        element={<ProtectedRoute><HiddenRecords /></ProtectedRoute>}
+        element={<ProtectedRoute blockCustomSms><HiddenRecords /></ProtectedRoute>}
       />
       <Route
         path="/payment-requests"
-        element={<ProtectedRoute><PaymentRequests /></ProtectedRoute>}
+        element={<ProtectedRoute blockCustomSms><PaymentRequests /></ProtectedRoute>}
       />
 
       {/* ── Root redirect ──────────────────────────────────── */}

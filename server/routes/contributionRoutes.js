@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const { denyCustomSms } = require('../middleware/smsMode');
 const {
   getAll, getById, create, createBulk, update, remove,
   hide, restore, getHidden, permanentDelete,
 } = require('../controllers/contributionController');
 
-router.use(auth);
+router.use(auth, denyCustomSms);
 
 router.get('/hidden', getHidden);   // must come before /:id
 router.get('/', getAll);

@@ -11,4 +11,9 @@ export const smsService = {
   // customMessage is optional; without it this is the normal reminder dispatch
   sendBulkReminders: (eventId, customMessage) =>
     api.post('/sms/bulk-reminder', customMessage ? { eventId, customMessage } : { eventId }),
+
+  // Individual Custom SMS to one member — cooldown applies to that member only.
+  // eventId only: the server resolves the event name after an ownership check.
+  sendMemberSms: (memberId, { message, eventId }) =>
+    api.post(`/sms/member/${memberId}`, { message, eventId }),
 };

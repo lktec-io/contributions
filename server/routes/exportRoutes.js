@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const { denyCustomSms } = require('../middleware/smsMode');
 const { exportCSV, exportXLSX, exportPDF } = require('../controllers/exportController');
 
-router.use(auth);
+router.use(auth, denyCustomSms);
 
 router.get('/csv', exportCSV);
 router.get('/xlsx', exportXLSX);

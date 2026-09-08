@@ -36,7 +36,13 @@ const CLIENT_ITEMS = [
   { id: 'payment-requests', label: 'Payment Requests', Icon: FiCheckCircle },
 ];
 
-export default function Sidebar({ isOpen, onClose }) {
+// A Custom SMS account is communication-only: one Members destination, and no
+// contribution / payment-request entries that would expose financial figures.
+const CUSTOM_SMS_ITEMS = [
+  { id: 'contributions', label: 'Members', Icon: FiUsers },
+];
+
+export default function Sidebar({ isOpen, onClose, smsMode }) {
   const { user }    = useContext(AuthContext);
   const { logoUrl, organizationName } = useContext(BrandingContext);
   const navigate    = useNavigate();
@@ -49,6 +55,8 @@ export default function Sidebar({ isOpen, onClose }) {
     items = [...ADMIN_ITEMS, ...SUPER_ADMIN_EXTRA];
   } else if (user?.role === 'admin') {
     items = ADMIN_ITEMS;
+  } else if (smsMode === 'custom') {
+    items = CUSTOM_SMS_ITEMS;
   } else {
     items = CLIENT_ITEMS;
   }

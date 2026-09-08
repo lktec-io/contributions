@@ -18,6 +18,8 @@ import { StatsSkeleton } from '../common/SkeletonLoader';
 import EmptyState from '../common/EmptyState';
 import ClientEvents from './ClientEvents';
 import ClientContributions from './ClientContributions';
+import CustomSmsMembers from './CustomSmsMembers';
+import { useSmsMode } from '../../hooks/useSmsMode';
 import PieChartCard from '../common/PieChartCard';
 import './ClientDashboard.css';
 
@@ -58,9 +60,19 @@ export default function ClientDashboard() {
     return null;
   });
 
+  // A Custom SMS account is a communication workspace, not a contribution one:
+  // it gets the member list instead of contributors, and no financial figures.
+  // Resolved from the existing SMS status endpoint — no new route.
+  const smsMode = useSmsMode();
+  const isCustomSms = smsMode === 'custom';
+
   useEffect(() => {
+    // A Custom SMS account has no financial dashboard and the stats endpoint
+    // now rejects it, so don't call it at all.
+    if (smsMode === null || isCustomSms) return;
     if (activeTab === 'dashboard') fetchStats();
-  }, [activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, smsMode]);
 
   const fetchStats = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -239,6 +251,14 @@ export default function ClientDashboard() {
   };
 
   const renderContent = () => {
+    // Wait for the mode before rendering either workspace, so a Custom SMS user
+    // never sees a flash of the contribution/financial UI.
+    if (smsMode === null) return <StatsSkeleton />;
+
+    // Every client tab resolves to the member workspace for a Custom SMS
+    // account, so no contribution or event-amount screen is reachable by URL.
+    if (isCustomSms) return <CustomSmsMembers />;
+
     switch (activeTab) {
       case 'events':        return <ClientEvents onViewContributions={() => navigate('/contributions')} />;
       case 'contributions': return <ClientContributions />;
@@ -251,6 +271,7 @@ export default function ClientDashboard() {
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        smsMode={smsMode}
       />
       <div className="main-area">
         <Header

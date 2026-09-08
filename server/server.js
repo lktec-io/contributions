@@ -74,6 +74,10 @@ async function ensureSchema() {
     // SMS mode assignment. Defaults to 'dispatch_all' so every existing account
     // keeps exactly the SMS capability it already had before this column existed.
     { col: 'users.sms_mode',          sql: "ALTER TABLE users ADD COLUMN sms_mode VARCHAR(20) NOT NULL DEFAULT 'dispatch_all'" },
+    // Per-recipient SMS history. NULL = a campaign row (Dispatch to All / custom
+    // campaign) and keeps the existing campaign cooldown behaviour untouched;
+    // a value = an individual member send, which cools down per member.
+    { col: 'sms_logs.recipient_id',   sql: 'ALTER TABLE sms_logs ADD COLUMN recipient_id INT NULL' },
   ];
 
   for (const step of steps) {
