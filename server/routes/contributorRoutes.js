@@ -3,7 +3,7 @@ const router  = express.Router();
 const auth    = require('../middleware/auth');
 const {
   search, getAll,
-  listMembers, createMember, updateMember, deleteMember,
+  listMembers, createMember, updateMember, deleteMember, deleteAllMembers,
 } = require('../controllers/contributorController');
 const uploadExcel = require('../middleware/uploadExcel');
 const {
@@ -18,6 +18,7 @@ router.get('/members/export/pdf',  exportMembersPDF);
 router.post('/members/import',     uploadExcel, importMembers);
 
 router.get('/members',        listMembers);
+router.delete('/members',     deleteAllMembers);   // before '/members/:id'
 router.post('/members',       createMember);
 router.put('/members/:id',    updateMember);
 router.delete('/members/:id', deleteMember);

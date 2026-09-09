@@ -25,15 +25,6 @@ function findUnsupportedVariables(text) {
   return [...found];
 }
 
-function hasSupportedVariable(text, key) {
-  let present = false;
-  String(text || '').replace(VARIABLE_PATTERN, (_, k) => {
-    if (k.toLowerCase() === key) present = true;
-    return '';
-  });
-  return present;
-}
-
 /** Substitutes only the supported variables; unknown ones are left verbatim. */
 function resolveVariables(text, { name, event }) {
   const values = { name: String(name || '').trim(), event: String(event || '').trim() };
@@ -61,27 +52,33 @@ function normalizeSms(text) {
 }
 
 /**
- * Builds the final Custom SMS body.
+ * Builds the final Custom SMS body in the fixed three-part order:
  *
- * A template that uses {{name}} / {{event}} is used exactly as written.
- * A template using neither still gets personalised with a compact Swahili
- * address line so bulk sends are not anonymous; nothing else is prepended
- * or appended.
+ *   line 1  EVENT NAME   (uppercased)
+ *   line 2  MEMBER NAME  (uppercased)
+ *   line 3+ the operator's message, unchanged apart from whitespace tidy-up
+ *
+ * No greeting and no signature are ever added. A missing event or name simply
+ * drops that line rather than leaving a blank one.
  *
  * @returns {string} the exact SMS body
  */
 function formatCustomSms({ name, event, message }) {
+  // Variables inside the body keep their natural case — only the two header
+  // lines are uppercased.
   const resolved = resolveVariables(message, { name, event });
 
-  // Already addresses the member itself — leave the operator's wording alone.
-  if (hasSupportedVariable(message, 'name')) {
-    return normalizeSms(resolved);
-  }
+  const lines = [];
+  const ev  = String(event || '').trim();
+  const who = String(name  || '').trim();
 
-  const who = String(name || '').trim();
-  if (!who) return normalizeSms(resolved);
+  if (ev)  lines.push(ev.toUpperCase());
+  if (who) lines.push(who.toUpperCase());
 
-  return normalizeSms(`Ndugu ${who},\n${resolved}`);
+  const body = normalizeSms(resolved);
+  if (body) lines.push(body);
+
+  return normalizeSms(lines.join('\n'));
 }
 
 /*  Deterministic identity for a Send-to-All campaign.

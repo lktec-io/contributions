@@ -8,6 +8,14 @@ const { formatCustomSms, buildCampaignKey } = require('../utils/smsFormatter');
 
 const BEEM_ENDPOINT = 'https://apisms.beem.africa/v1/send';
 
+// True only when a number is present and long enough to dial. Members without
+// one stay in the list but are never handed to the provider.
+function isSendablePhone(phone) {
+  if (!phone) return false;
+  const n = formatPhone(phone);
+  return !!n && n.length >= 12;
+}
+
 function formatPhone(phone) {
   if (!phone) return null;
   let n = phone.replace(/\s+/g, '').replace(/^\+/, '');
@@ -448,7 +456,7 @@ async function sendCustomCampaign(req, res) {
     // plan.text is the resolved body — the saved message when a templateId was
     // used, otherwise the request text. Using it here is what keeps the sent
     // body byte-identical to what the preview showed.
-    const { members, eventName, campaignKey, eligible, alreadySent, text } = plan;
+    const { members, eventName, campaignKey, eligible, alreadySent, text, noPhone } = plan;
 
     // The campaign row opens the 7-day campaign window.
     try {
@@ -504,7 +512,7 @@ async function sendCustomCampaign(req, res) {
     return res.json({
       success: true,
       message: `Custom SMS campaign completed. Sent ${sent}, skipped ${skipped}, failed ${failed}.`,
-      data: { sent, skipped, failed, total: members.length, daysRemaining: 7 },
+      data: { sent, skipped, failed, noPhone, total: members.length, daysRemaining: 7 },
     });
   } catch (err) {
     console.error('BEEM ERROR FULL:', err.response?.data || err.message);
@@ -570,10 +578,15 @@ async function resolveCampaign(req, body) {
     if (err.errno !== 1054) throw err; // campaign_key not migrated yet
   }
 
-  const eligible    = members.filter(m => !contacted.has(m.id));
-  const alreadySent = members.filter(m =>  contacted.has(m.id));
+  // A member with no usable phone is a real member who simply cannot be texted
+  // yet. They are held back rather than counted as a delivery failure.
+  const sendable = members.filter(m => isSendablePhone(m.phone));
+  const noPhone  = members.length - sendable.length;
 
-  return { members, eventName, campaignKey, templateId, text, eligible, alreadySent };
+  const eligible    = sendable.filter(m => !contacted.has(m.id));
+  const alreadySent = sendable.filter(m =>  contacted.has(m.id));
+
+  return { members, eventName, campaignKey, templateId, text, eligible, alreadySent, noPhone };
 }
 
 // ── POST /api/sms/members/campaign/preview ──────────────────────
@@ -597,6 +610,7 @@ async function previewCustomCampaign(req, res, next) {
         total:       plan.members.length,
         eligible:    plan.eligible.length,
         alreadySent: plan.alreadySent.length,
+        noPhone:     plan.noPhone,
         campaign:    limit,
         preview:     sample ? buildCustomMessage(sample.name, plan.eventName, plan.text) : '',
         previewFor:  sample ? sample.name : '',

@@ -118,7 +118,7 @@ const Contributor = {
                  AND l.type = 'custom_member') AS last_sms_at
       FROM contributors co
       WHERE co.created_by = ?
-      ORDER BY co.name ASC`;
+      ORDER BY LOWER(co.name) ASC, co.id ASC`;
     try {
       const [rows] = await pool.query(withHistory, [userId, userId]);
       return rows;
@@ -126,7 +126,7 @@ const Contributor = {
       if (err.errno === ERR_TABLE_NOT_EXISTS) return [];
       // sms_logs.recipient_id not migrated yet — list members without history
       const [rows] = await pool.query(
-        'SELECT id, name, phone, created_at, NULL AS last_sms_at FROM contributors WHERE created_by = ? ORDER BY name ASC',
+        'SELECT id, name, phone, created_at, NULL AS last_sms_at FROM contributors WHERE created_by = ? ORDER BY LOWER(name) ASC, id ASC',
         [userId]
       );
       return rows;

@@ -66,16 +66,23 @@ async function loadOwnedMember(req, res) {
   return member;
 }
 
+// Comparison key for member identity: case- and spacing-insensitive. Used only
+// to detect duplicates — the stored display name keeps its original spelling.
+function normalizeName(name) {
+  return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+// A phone number is optional. A member with no number is a real member who
+// simply has no number yet; validation applies only when one is supplied.
 function validateMember(body) {
   const name  = (body.name  || '').trim();
   const phone = (body.phone || '').trim();
   const errors = [];
-  if (!name)  errors.push({ field: 'name',  message: 'Name is required' });
-  if (!phone) errors.push({ field: 'phone', message: 'Phone is required' });
-  else if (phone.replace(/\D/g, '').length < 9) {
+  if (!name) errors.push({ field: 'name', message: 'Name is required' });
+  if (phone && phone.replace(/\D/g, '').length < 9) {
     errors.push({ field: 'phone', message: 'Enter a valid phone number' });
   }
-  return { name, phone, errors };
+  return { name, phone: phone || null, errors };
 }
 
 // Adds the per-member cooldown to each row, computed from that member's own
@@ -99,8 +106,32 @@ function decorateCooldown(rows) {
 async function listMembers(req, res, next) {
   try {
     if (await denyUnlessCustomSms(req, res)) return;
-    const rows = await Contributor.findMembers(req.user.userId);
-    const members = decorateCooldown(rows);
+
+    // findMembers already returns the caller's members sorted A-Z
+    // (case-insensitive) in SQL. Counts below are over the WHOLE list so the
+    // dashboard totals stay correct regardless of which page is requested.
+    const rows    = await Contributor.findMembers(req.user.userId);
+    const all     = decorateCooldown(rows);
+    const total   = all.length;
+    const smsSent = all.filter(m => !m.canSend).length;
+
+    const q = String(req.query.search || '').trim().toLowerCase();
+    const filtered = q
+      ? all.filter(m => (m.name || '').toLowerCase().includes(q) || (m.phone || '').includes(q))
+      : all;
+
+    // Pagination is opt-in: without a limit the full list is returned, so every
+    // existing caller (dashboard, reports, campaigns) is unaffected.
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 0, 0), 200);
+    let members = filtered;
+    let page = 1;
+    let pages = 1;
+
+    if (limit > 0) {
+      pages = Math.max(1, Math.ceil(filtered.length / limit));
+      page  = Math.min(Math.max(parseInt(req.query.page, 10) || 1, 1), pages);
+      members = filtered.slice((page - 1) * limit, page * limit);
+    }
 
     // Campaign window travels with the list so the dashboard needs no extra call.
     const { checkCustomCampaignLimit } = require('./smsController');
@@ -110,9 +141,13 @@ async function listMembers(req, res, next) {
       success: true,
       data: {
         members,
-        total: members.length,
+        total,                       // every member the caller owns
+        matched: filtered.length,    // after the search filter
+        page,
+        pages,
+        limit,
         campaign,
-        smsSent: members.filter(m => !m.canSend).length,
+        smsSent,
       },
     });
   } catch (err) {
@@ -128,6 +163,17 @@ async function createMember(req, res, next) {
     if (errors.length) {
       return res.status(400).json({ success: false, message: 'Validation failed', errors });
     }
+    // Same name identity rule as the Excel import, scoped to this owner only.
+    const existing = await Contributor.findMembers(req.user.userId);
+    const key = normalizeName(name);
+    if (existing.some(m => normalizeName(m.name) === key)) {
+      return res.status(409).json({
+        success: false,
+        message: `"${name}" is already in your member list.`,
+        errors: [{ field: 'name', message: 'A member with this name already exists' }],
+      });
+    }
+
     const id = await Contributor.createMember({ name, phone, created_by: req.user.userId });
     return res.status(201).json({ success: true, data: { id, name, phone } });
   } catch (err) {
@@ -144,6 +190,20 @@ async function updateMember(req, res, next) {
     if (errors.length) {
       return res.status(400).json({ success: false, message: 'Validation failed', errors });
     }
+
+    // Renaming onto another existing member's name would create a duplicate.
+    // Editing a member and keeping its own name is always allowed.
+    const id  = Number(req.params.id);
+    const key = normalizeName(name);
+    const existing = await Contributor.findMembers(req.user.userId);
+    if (existing.some(m => m.id !== id && normalizeName(m.name) === key)) {
+      return res.status(409).json({
+        success: false,
+        message: `"${name}" is already in your member list.`,
+        errors: [{ field: 'name', message: 'A member with this name already exists' }],
+      });
+    }
+
     await Contributor.updateMember(req.params.id, { name, phone });
     return res.json({ success: true, data: { id: Number(req.params.id), name, phone } });
   } catch (err) {
@@ -174,9 +234,50 @@ async function deleteMember(req, res, next) {
   }
 }
 
+// ── DELETE /api/contributors/members ────────────────────────────
+// Hard-deletes the AUTHENTICATED USER'S members only. Rows still referenced by
+// contribution records are kept, so no financial history can be destroyed here.
+// sms_logs is deliberately left untouched: the request is to delete members,
+// not campaign history, and there is no FK cascade on that table.
+async function deleteAllMembers(req, res, next) {
+  try {
+    if (await denyUnlessCustomSms(req, res)) return;
+
+    const members = await Contributor.findMembers(req.user.userId);
+    if (!members.length) {
+      return res.json({ success: true, data: { deleted: 0, kept: 0, message: 'No members to delete' } });
+    }
+
+    let deleted = 0;
+    let kept    = 0;
+
+    for (const m of members) {
+      // Ownership was established by findMembers (created_by = caller); this
+      // only protects contribution-linked people from being removed.
+      const linked = await Contributor.countContributions(m.id);
+      if (linked > 0) { kept++; continue; }
+      try {
+        await Contributor.deleteMember(m.id);
+        deleted++;
+      } catch (err) {
+        console.error('[members] Failed to delete member:', err.message);
+        kept++;
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `${deleted} member${deleted !== 1 ? 's' : ''} deleted successfully.`,
+      data: { deleted, kept },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   search, getAll,
-  listMembers, createMember, updateMember, deleteMember,
+  listMembers, createMember, updateMember, deleteMember, deleteAllMembers,
   // shared with smsController so the member SMS path enforces the same rules
   denyUnlessCustomSms, loadOwnedMember, MEMBER_COOLDOWN_DAYS,
 };

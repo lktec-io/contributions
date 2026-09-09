@@ -22,6 +22,7 @@ import './CustomSmsMembers.css';
     Each member carries their OWN cooldown, returned per row by the API.      */
 
 const emptyForm = { name: '', phone: '' };
+const PAGE_SIZE = 20;
 
 export default function CustomSmsMembers() {
   const { toast } = useContext(ToastContext);
@@ -30,6 +31,16 @@ export default function CustomSmsMembers() {
   const [loading, setLoading] = useState(true);
   const [search,  setSearch]  = useState('');
   const [events,  setEvents]  = useState([]);
+
+  // Pagination (A-Z sorted server-side)
+  const [page,    setPage]    = useState(1);
+  const [pages,   setPages]   = useState(1);
+  const [total,   setTotal]   = useState(0);
+  const [matched, setMatched] = useState(0);
+
+  const [confirmWipe, setConfirmWipe] = useState(false);
+  const [wipeText,    setWipeText]    = useState('');
+  const [wiping,      setWiping]      = useState(false);
 
   const [showForm,   setShowForm]   = useState(false);
   const [editing,    setEditing]    = useState(null);
@@ -70,21 +81,33 @@ export default function CustomSmsMembers() {
   const [downloading, setDownloading] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const fetchMembers = useCallback(async () => {
+  // Server returns one A-Z sorted page; totals in the same response stay
+  // whole-list so counts never reflect only the visible page.
+  const fetchMembers = useCallback(async (p = page, q = search) => {
     setLoading(true);
     try {
-      const res = await contributorService.getMembers();
-      setMembers(res.data.data.members || []);
-      if (res.data.data.campaign) setCampaign(res.data.data.campaign);
+      const res = await contributorService.getMembers({ page: p, limit: PAGE_SIZE, search: q || undefined });
+      const d = res.data.data;
+      setMembers(d.members || []);
+      setTotal(d.total ?? 0);
+      setMatched(d.matched ?? d.total ?? 0);
+      setPages(d.pages ?? 1);
+      if (d.page && d.page !== p) setPage(d.page);   // server clamped the page
+      if (d.campaign) setCampaign(d.campaign);
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page, search]);
 
-  useEffect(() => { fetchMembers(); }, [fetchMembers]);
+  // Debounce only the search box; page changes fetch immediately.
+  useEffect(() => {
+    const t = setTimeout(() => fetchMembers(page, search), search ? 300 : 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, search]);
 
   // Events are contextual only. Only the id is sent; the server resolves the
   // name after checking the caller may access that event.
@@ -98,11 +121,9 @@ export default function CustomSmsMembers() {
       .catch(() => {});
   }, []);
 
-  const filtered = members.filter(m => {
-    const q = search.trim().toLowerCase();
-    if (!q) return true;
-    return (m.name || '').toLowerCase().includes(q) || (m.phone || '').includes(q);
-  });
+  // Searching restarts at page 1 so the user is never left on a page that no
+  // longer exists for the new result set.
+  const onSearch = (value) => { setSearch(value); setPage(1); };
 
   // ── Add / Edit ───────────────────────────────────────────
   const openAdd = () => {
@@ -114,11 +135,13 @@ export default function CustomSmsMembers() {
     setFormErrors({}); setShowForm(true);
   };
 
+  // Phone is optional — a member can be added now and given a number later.
   const validate = () => {
     const errs = {};
-    if (!form.name.trim())  errs.name  = 'Name is required';
-    if (!form.phone.trim()) errs.phone = 'Phone is required';
-    else if (form.phone.replace(/\D/g, '').length < 9) errs.phone = 'Enter a valid phone number';
+    if (!form.name.trim()) errs.name = 'Name is required';
+    if (form.phone.trim() && form.phone.replace(/\D/g, '').length < 9) {
+      errs.phone = 'Enter a valid phone number';
+    }
     setFormErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -350,10 +373,45 @@ export default function CustomSmsMembers() {
     </div>
   );
 
+  // ── Delete all members ───────────────────────────────────
+  const doDeleteAll = async () => {
+    if (wiping) return;
+    setWiping(true);
+    try {
+      const res = await contributorService.deleteAllMembers();
+      const { deleted, kept } = res.data.data;
+      toast.success(`${deleted} member${deleted !== 1 ? 's' : ''} deleted successfully.`);
+      if (kept) toast.error(`${kept} kept — they have contribution records.`);
+      setConfirmWipe(false);
+      setWipeText('');
+      setPage(1);
+      fetchMembers(1, search);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setWiping(false);
+    }
+  };
+
   const sendLabel = (m) => {
     if (sendingId === m.id) return 'Sending…';
+    if (!m.phone) return 'No phone number';
     if (!m.canSend) return `Available in ${m.daysRemaining} day(s)`;
     return 'Send Custom SMS';
+  };
+
+  // Compact page list: always first/last, a window around the current page,
+  // ellipses for the gaps. Keeps the bar small on a phone.
+  const pageList = () => {
+    if (pages <= 7) return Array.from({ length: pages }, (_, i) => i + 1);
+    const out = [1];
+    const from = Math.max(2, page - 1);
+    const to   = Math.min(pages - 1, page + 1);
+    if (from > 2) out.push('…');
+    for (let i = from; i <= to; i++) out.push(i);
+    if (to < pages - 1) out.push('…');
+    out.push(pages);
+    return out;
   };
 
   return (
@@ -389,7 +447,7 @@ export default function CustomSmsMembers() {
           <button
             className="csm-action csm-action-send"
             onClick={openSendAll}
-            disabled={!campaign.canSend || sendingAll || members.length === 0}
+            disabled={!campaign.canSend || sendingAll || total === 0}
             title={campaignLabel()}
           >
             <FiSend size={13} /> {campaignLabel()}
@@ -406,30 +464,40 @@ export default function CustomSmsMembers() {
           className="csm-search"
           placeholder="Search members…"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => onSearch(e.target.value)}
         />
         <span className="csm-count">
-          {filtered.length} member{filtered.length !== 1 ? 's' : ''}
+          {search ? `${matched} of ${total}` : total} member{total !== 1 ? 's' : ''}
         </span>
+        {total > 0 && (
+          <button
+            className="csm-action csm-action-danger csm-wipe"
+            onClick={() => { setWipeText(''); setConfirmWipe(true); }}
+          >
+            <FiTrash2 size={13} /> Delete All Members
+          </button>
+        )}
       </div>
 
       {loading ? (
         <div className="csm-loading">Loading members…</div>
-      ) : filtered.length === 0 ? (
+      ) : members.length === 0 ? (
         <EmptyState
           IconComponent={FiUsers}
-          title={members.length === 0 ? 'No members yet' : 'No members match your search'}
-          description={members.length === 0
+          title={total === 0 ? 'No members yet' : 'No members match your search'}
+          description={total === 0
             ? 'Add your first member to start sending custom notifications.'
             : 'Try a different name or phone number.'}
         />
       ) : (
         <ul className="csm-list">
-          {filtered.map(m => (
+          {members.map(m => (
             <li key={m.id} className="csm-card">
               <div className="csm-card-info">
                 <span className="csm-card-name">{m.name}</span>
-                <span className="csm-card-phone">{m.phone}</span>
+                {m.phone
+                  ? <span className="csm-card-phone">{m.phone}</span>
+                  : <span className="csm-card-nophone">Phone number not yet provided</span>}
               </div>
               <div className="csm-card-actions">
                 <button className="csm-action" onClick={() => openEdit(m)}>
@@ -438,7 +506,7 @@ export default function CustomSmsMembers() {
                 <button
                   className="csm-action csm-action-send"
                   onClick={() => openCompose(m)}
-                  disabled={!m.canSend || sendingId === m.id}
+                  disabled={!m.phone || !m.canSend || sendingId === m.id}
                   title={sendLabel(m)}
                 >
                   <FiSend size={12} /> {sendLabel(m)}
@@ -451,6 +519,89 @@ export default function CustomSmsMembers() {
           ))}
         </ul>
       )}
+
+      {!loading && pages > 1 && (
+        <nav className="csm-pager" aria-label="Member pages">
+          <button
+            className="csm-page csm-page-step"
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            ‹ <span className="csm-page-word">Previous</span>
+          </button>
+
+          {pageList().map((p, i) => (
+            p === '…'
+              ? <span key={`gap${i}`} className="csm-page-gap">…</span>
+              : (
+                <button
+                  key={p}
+                  className={`csm-page ${p === page ? 'is-current' : ''}`}
+                  onClick={() => setPage(p)}
+                  aria-current={p === page ? 'page' : undefined}
+                >
+                  {p}
+                </button>
+              )
+          ))}
+
+          <button
+            className="csm-page csm-page-step"
+            onClick={() => setPage(p => Math.min(pages, p + 1))}
+            disabled={page === pages}
+          >
+            <span className="csm-page-word">Next</span> ›
+          </button>
+        </nav>
+      )}
+
+      {/* ── Delete all members — typed confirmation ────── */}
+      <Modal
+        isOpen={confirmWipe}
+        onClose={() => { setConfirmWipe(false); setWipeText(''); }}
+        title="Delete All Members?"
+        size="small"
+      >
+        <div className="csm-wipe-box">
+          <p className="csm-wipe-lead">
+            You are about to permanently delete <strong>{total}</strong> member{total !== 1 ? 's' : ''}.
+          </p>
+          <p className="csm-wipe-note">
+            This action cannot be undone. Your saved messages and SMS history are kept.
+            Anyone with contribution records is kept as well.
+          </p>
+          <label className="csm-wipe-label" htmlFor="csm-wipe-input">
+            Type <strong>DELETE ALL</strong> to confirm
+          </label>
+          <input
+            id="csm-wipe-input"
+            className="csm-wipe-input"
+            value={wipeText}
+            onChange={e => setWipeText(e.target.value)}
+            placeholder="DELETE ALL"
+            autoComplete="off"
+            disabled={wiping}
+          />
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => { setConfirmWipe(false); setWipeText(''); }}
+              disabled={wiping}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn csm-wipe-go"
+              onClick={doDeleteAll}
+              disabled={wiping || wipeText.trim().toUpperCase() !== 'DELETE ALL'}
+            >
+              <FiTrash2 size={14} /> {wiping ? 'Deleting…' : 'Delete All Members'}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* ── Add / Edit member — name + phone only ──────── */}
       <Modal
@@ -470,7 +621,7 @@ export default function CustomSmsMembers() {
             {formErrors.name && <span className="field-error">{formErrors.name}</span>}
           </div>
           <div className="form-group">
-            <label>Phone *</label>
+            <label>Phone <span className="csm-optional">(optional — can be added later)</span></label>
             <input
               value={form.phone}
               onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
@@ -659,8 +810,12 @@ export default function CustomSmsMembers() {
             <>
               <p className="csm-import-done">Import completed.</p>
               <ul className="csm-import-stats">
-                <li><strong>{importResult.imported}</strong> imported</li>
+                <li><strong>{importResult.rows ?? '—'}</strong> rows read</li>
+                <li><strong>{importResult.imported}</strong> added</li>
                 <li><strong>{importResult.skipped}</strong> skipped</li>
+                {importResult.withoutPhone > 0 && (
+                  <li><strong>{importResult.withoutPhone}</strong> without a phone number</li>
+                )}
               </ul>
               {importResult.reasons?.length > 0 && (
                 <ul className="csm-import-reasons">
@@ -674,8 +829,9 @@ export default function CustomSmsMembers() {
           ) : (
             <>
               <p className="csm-import-hint">
-                Upload a spreadsheet with <strong>Name</strong> and <strong>Phone</strong> columns.
-                Supported formats: .xlsx, .xls
+                Upload a spreadsheet with a <strong>Name</strong> column and an optional
+                <strong> Phone</strong> column. Members without a phone number are still
+                imported — you can add their number later. Supported: .xlsx, .xls
               </p>
               <label className="csm-file">
                 <input

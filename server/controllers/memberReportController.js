@@ -20,6 +20,12 @@ function sanitizeFilename(str) {
   return String(str || 'members').replace(/[^a-z0-9]/gi, '_').toLowerCase();
 }
 
+// Comparison key for member identity: case- and spacing-insensitive.
+// Used only to detect duplicates — the stored display name keeps its spelling.
+function normalizeName(name) {
+  return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
 function fmtDate(d) {
   if (!d) return '—';
   const dt = new Date(d);
@@ -300,28 +306,44 @@ async function importMembers(req, res, next) {
       return key ? String(row[key] ?? '').trim() : '';
     };
 
-    // Existing phones for THIS user only — a match under another owner must
-    // never be read or modified.
+    // Identity is the member NAME, normalised for comparison only (the stored
+    // display name keeps the spelling from the sheet). Scoped to THIS user's
+    // members, so another owner's list neither blocks nor is visible here.
     const existing = await Contributor.findMembers(req.user.userId);
-    const seen = new Set(existing.map(m => String(m.phone || '').replace(/\D/g, '')));
+    const seenNames = new Set(existing.map(m => normalizeName(m.name)));
 
     const valid = [];
-    const skipped = { missingName: 0, missingPhone: 0, invalidPhone: 0, duplicate: 0, empty: 0 };
+    const skipped = {
+      missingName: 0, invalidPhone: 0, alreadyExists: 0, duplicateInFile: 0, empty: 0,
+      notSaved: 0,
+    };
 
     for (const row of sheetRows) {
       const name  = pick(row, ['name', 'full name', 'member', 'member name', 'jina']);
       const phone = pick(row, ['phone', 'phone number', 'mobile', 'simu', 'namba']);
 
       if (!name && !phone) { skipped.empty++; continue; }
-      if (!name)  { skipped.missingName++;  continue; }
-      if (!phone) { skipped.missingPhone++; continue; }
+      if (!name) { skipped.missingName++; continue; }
 
-      const digits = phone.replace(/\D/g, '');
-      if (digits.length < 9 || digits.length > 15) { skipped.invalidPhone++; continue; }
-      if (seen.has(digits)) { skipped.duplicate++; continue; }
+      // A blank phone is not an error — the member is imported without one and
+      // can be given a number later. Validation applies only when one is given.
+      let storedPhone = null;
+      if (phone) {
+        const digits = phone.replace(/\D/g, '');
+        if (digits.length < 9 || digits.length > 15) { skipped.invalidPhone++; continue; }
+        storedPhone = phone.slice(0, 50);
+      }
 
-      seen.add(digits);
-      valid.push({ name: name.slice(0, 255), phone: phone.slice(0, 50) });
+      const key = normalizeName(name);
+      if (seenNames.has(key)) {
+        // Distinguish "already in your list" from "repeated inside this file"
+        if (existing.some(m => normalizeName(m.name) === key)) skipped.alreadyExists++;
+        else skipped.duplicateInFile++;
+        continue;
+      }
+
+      seenNames.add(key);
+      valid.push({ name: name.slice(0, 255), phone: storedPhone });
     }
 
     let imported = 0;
@@ -331,24 +353,33 @@ async function importMembers(req, res, next) {
         await Contributor.createMember({ name: m.name, phone: m.phone, created_by: req.user.userId });
         imported++;
       } catch (err) {
+        // A write failure is not a phone problem — count it separately so the
+        // summary never blames a valid row's phone number.
         console.error('[import] Failed to insert member:', err.message);
-        skipped.invalidPhone++;
+        skipped.notSaved++;
       }
     }
 
     const reasons = [];
-    if (skipped.invalidPhone) reasons.push(`${skipped.invalidPhone} invalid phone number(s)`);
-    if (skipped.missingName)  reasons.push(`${skipped.missingName} missing name(s)`);
-    if (skipped.missingPhone) reasons.push(`${skipped.missingPhone} missing phone number(s)`);
-    if (skipped.duplicate)    reasons.push(`${skipped.duplicate} already in your list`);
-    if (skipped.empty)        reasons.push(`${skipped.empty} empty row(s)`);
+    if (skipped.alreadyExists)   reasons.push(`${skipped.alreadyExists} already in your list`);
+    if (skipped.duplicateInFile) reasons.push(`${skipped.duplicateInFile} repeated inside the file`);
+    if (skipped.invalidPhone)    reasons.push(`${skipped.invalidPhone} invalid phone number(s)`);
+    if (skipped.missingName)     reasons.push(`${skipped.missingName} missing name(s)`);
+    if (skipped.empty)           reasons.push(`${skipped.empty} empty row(s)`);
+    if (skipped.notSaved)        reasons.push(`${skipped.notSaved} could not be saved`);
 
     const totalSkipped = Object.values(skipped).reduce((a, b) => a + b, 0);
 
     return res.json({
       success: true,
-      message: `Import completed. Imported ${imported}, skipped ${totalSkipped}.`,
-      data: { imported, skipped: totalSkipped, reasons },
+      message: `Import completed. Added ${imported}, skipped ${totalSkipped}.`,
+      data: {
+        rows: sheetRows.length,
+        imported,
+        skipped: totalSkipped,
+        withoutPhone: valid.filter(v => !v.phone).length,
+        reasons,
+      },
     });
   } catch (err) {
     next(err);
