@@ -2,9 +2,11 @@ import { useState, useEffect, useContext, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   FiPlus, FiEdit2, FiSend, FiTrash2, FiUsers, FiUpload, FiDownload, FiFileText,
-  FiBookmark,
+  FiBookmark, FiSearch, FiUserPlus, FiPhone, FiPhoneOff, FiClock, FiGrid, FiList,
+  FiArrowDown, FiRefreshCw, FiMessageSquare, FiCalendar, FiEye,
 } from 'react-icons/fi';
 import SavedMessagesModal from './SavedMessagesModal';
+import { MemberAvatar, SmsPhonePreview, MemberSkeleton } from './CustomSmsUI';
 import { ToastContext } from '../../context/ToastContext';
 import { contributorService } from '../../services/contributorService';
 import { eventService } from '../../services/eventService';
@@ -37,6 +39,10 @@ export default function CustomSmsMembers() {
   const [pages,   setPages]   = useState(1);
   const [total,   setTotal]   = useState(0);
   const [matched, setMatched] = useState(0);
+  const [smsSent, setSmsSent] = useState(0);   // whole-list figure from the API
+
+  // Presentation only — which layout the member list uses.
+  const [view, setView] = useState('list');
 
   const [confirmWipe, setConfirmWipe] = useState(false);
   const [wipeText,    setWipeText]    = useState('');
@@ -91,6 +97,7 @@ export default function CustomSmsMembers() {
       setMembers(d.members || []);
       setTotal(d.total ?? 0);
       setMatched(d.matched ?? d.total ?? 0);
+      setSmsSent(d.smsSent ?? 0);
       setPages(d.pages ?? 1);
       if (d.page && d.page !== p) setPage(d.page);   // server clamped the page
       if (d.campaign) setCampaign(d.campaign);
@@ -425,101 +432,204 @@ export default function CustomSmsMembers() {
         onClose={() => setSmsModal({ open: false, status: 'sending', message: '' })}
       />
 
-      <div className="page-header">
-        <div>
-          <h2 className="page-title">Custom SMS</h2>
-          <p className="page-subtitle">
-            Manage your members and send personalized event notifications.
-          </p>
+      {/* ── Workspace header ───────────────────────────── */}
+      <header className="csm-hero">
+        <div className="csm-hero-text">
+          <span className="csm-eyebrow"><FiMessageSquare size={12} /> Communication</span>
+          <h2 className="csm-title">Custom SMS</h2>
+          <p className="csm-sub">Manage members and send personalized event messages.</p>
         </div>
-        <div className="csm-header-actions">
-          <button className="csm-action" onClick={() => { setPickTemplate(false); setShowSaved(true); }}>
-            <FiBookmark size={13} /> Saved Messages
+
+        <div className="csm-hero-actions">
+          <button className="csm-btn csm-btn-ghost" onClick={() => setShowImport(true)}>
+            <FiUpload size={14} /> Import
           </button>
-          <button className="csm-action" onClick={() => setShowImport(true)}>
-            <FiUpload size={13} /> Import Excel
-          </button>
-          <button className="csm-action" onClick={() => download('pdf')} disabled={!!downloading}>
-            <FiFileText size={13} /> {downloading === 'pdf' ? '…' : 'PDF'}
-          </button>
-          <button className="csm-action" onClick={() => download('xlsx')} disabled={!!downloading}>
-            <FiDownload size={13} /> {downloading === 'xlsx' ? '…' : 'Excel'}
-          </button>
-          <button
-            className="csm-action csm-action-send"
-            onClick={openSendAll}
-            disabled={!campaign.canSend || sendingAll || total === 0}
-            title={campaignLabel()}
-          >
-            <FiSend size={13} /> {campaignLabel()}
-          </button>
-          <button className="btn" onClick={openAdd}>
-            <FiPlus size={16} /> Add Member
+          <button className="csm-btn csm-btn-primary" onClick={openAdd}>
+            <FiUserPlus size={14} /> Add Member
           </button>
         </div>
+      </header>
+
+      {/* ── Whole-list figures returned by the API ─────── */}
+      <section className="csm-stats" aria-label="Overview">
+        <div className="csm-stat">
+          <span className="csm-stat-icon"><FiUsers size={14} /></span>
+          <span className="csm-stat-value">{total}</span>
+          <span className="csm-stat-label">Total Members</span>
+        </div>
+        <div className="csm-stat">
+          <span className="csm-stat-icon"><FiClock size={14} /></span>
+          <span className="csm-stat-value">{smsSent}</span>
+          <span className="csm-stat-label">In Cooldown</span>
+        </div>
+        <div className={`csm-stat ${campaign.canSend ? 'is-ready' : 'is-waiting'}`}>
+          <span className="csm-stat-icon"><FiSend size={14} /></span>
+          <span className="csm-stat-value">
+            {campaign.canSend ? 'Ready' : `${campaign.daysRemaining}d`}
+          </span>
+          <span className="csm-stat-label">Campaign</span>
+        </div>
+      </section>
+
+      {/* ── Secondary actions ──────────────────────────── */}
+      <div className="csm-actionbar">
+        <button className="csm-btn csm-btn-ghost" onClick={() => { setPickTemplate(false); setShowSaved(true); }}>
+          <FiBookmark size={14} /> Saved Messages
+        </button>
+        <button
+          className="csm-btn csm-btn-send"
+          onClick={openSendAll}
+          disabled={!campaign.canSend || sendingAll || total === 0}
+          title={campaignLabel()}
+        >
+          <FiSend size={14} /> {campaignLabel()}
+        </button>
+        <span className="csm-actionbar-gap" />
+        <button className="csm-icon-btn" onClick={() => download('pdf')} disabled={!!downloading} title="Download PDF report" aria-label="Download PDF report">
+          {downloading === 'pdf' ? <FiRefreshCw size={14} className="csm-spin" /> : <FiFileText size={14} />}
+        </button>
+        <button className="csm-icon-btn" onClick={() => download('xlsx')} disabled={!!downloading} title="Download Excel report" aria-label="Download Excel report">
+          {downloading === 'xlsx' ? <FiRefreshCw size={14} className="csm-spin" /> : <FiDownload size={14} />}
+        </button>
       </div>
 
-      <div className="csm-toolbar">
-        <input
-          type="text"
-          className="csm-search"
-          placeholder="Search members…"
-          value={search}
-          onChange={e => onSearch(e.target.value)}
-        />
-        <span className="csm-count">
-          {search ? `${matched} of ${total}` : total} member{total !== 1 ? 's' : ''}
-        </span>
-        {total > 0 && (
-          <button
-            className="csm-action csm-action-danger csm-wipe"
-            onClick={() => { setWipeText(''); setConfirmWipe(true); }}
-          >
-            <FiTrash2 size={13} /> Delete All Members
-          </button>
+      {/* ── Member management ──────────────────────────── */}
+      <section className="csm-panel">
+        <div className="csm-panel-head">
+          <h3 className="csm-panel-title">Members</h3>
+          <span className="csm-count">
+            {search ? `${matched} of ${total}` : total} member{total !== 1 ? 's' : ''}
+          </span>
+
+          <div className="csm-panel-tools">
+            <div className="csm-search-wrap">
+              <FiSearch size={14} className="csm-search-icon" aria-hidden="true" />
+              <input
+                type="search"
+                className="csm-search"
+                placeholder="Search members by name or phone…"
+                value={search}
+                onChange={e => onSearch(e.target.value)}
+                aria-label="Search members"
+              />
+            </div>
+
+            <span className="csm-sort" title="Sorted alphabetically A–Z">
+              <FiArrowDown size={12} /> A–Z
+            </span>
+
+            <div className="csm-view" role="group" aria-label="View">
+              <button
+                className={`csm-view-btn ${view === 'list' ? 'is-active' : ''}`}
+                onClick={() => setView('list')}
+                title="List view" aria-label="List view"
+                aria-pressed={view === 'list'}
+              >
+                <FiList size={14} />
+              </button>
+              <button
+                className={`csm-view-btn ${view === 'grid' ? 'is-active' : ''}`}
+                onClick={() => setView('grid')}
+                title="Grid view" aria-label="Grid view"
+                aria-pressed={view === 'grid'}
+              >
+                <FiGrid size={14} />
+              </button>
+            </div>
+
+            {total > 0 && (
+              <button
+                className="csm-icon-btn csm-icon-danger"
+                onClick={() => { setWipeText(''); setConfirmWipe(true); }}
+                title="Delete all members" aria-label="Delete all members"
+              >
+                <FiTrash2 size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {loading ? (
+          <MemberSkeleton rows={6} view={view} />
+        ) : members.length === 0 ? (
+          <div className="csm-empty">
+            <span className="csm-empty-icon"><FiUsers size={22} /></span>
+            <h4 className="csm-empty-title">
+              {total === 0 ? 'No members yet' : 'No members match your search'}
+            </h4>
+            <p className="csm-empty-text">
+              {total === 0
+                ? 'Import your members or add your first member to start sending Custom SMS.'
+                : 'Try a different name or phone number.'}
+            </p>
+            {total === 0 && (
+              <div className="csm-empty-actions">
+                <button className="csm-btn csm-btn-primary" onClick={openAdd}>
+                  <FiUserPlus size={14} /> Add Member
+                </button>
+                <button className="csm-btn csm-btn-ghost" onClick={() => setShowImport(true)}>
+                  <FiUpload size={14} /> Import Members
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <ul className={`csm-list ${view === 'grid' ? 'csm-list-grid' : ''}`}>
+            {members.map(m => {
+              const blocked = !m.phone || !m.canSend || sendingId === m.id;
+              return (
+                <li key={m.id} className="csm-card">
+                  <MemberAvatar name={m.name} />
+
+                  <div className="csm-card-info">
+                    <span className="csm-card-name">{m.name}</span>
+                    {m.phone ? (
+                      <span className="csm-card-phone">
+                        <FiPhone size={11} aria-hidden="true" /> {m.phone}
+                      </span>
+                    ) : (
+                      <span className="csm-card-nophone">
+                        <FiPhoneOff size={11} aria-hidden="true" /> No phone number
+                      </span>
+                    )}
+                    {!m.canSend && m.phone && (
+                      <span className="csm-chip csm-chip-wait">
+                        <FiClock size={10} /> {m.daysRemaining}d cooldown
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="csm-card-actions">
+                    <button
+                      className="csm-send"
+                      onClick={() => openCompose(m)}
+                      disabled={blocked}
+                      title={sendLabel(m)}
+                    >
+                      <FiSend size={13} />
+                      <span className="csm-send-text">{sendLabel(m)}</span>
+                    </button>
+                    <button
+                      className="csm-icon-btn"
+                      onClick={() => openEdit(m)}
+                      title={`Edit ${m.name}`} aria-label={`Edit ${m.name}`}
+                    >
+                      <FiEdit2 size={13} />
+                    </button>
+                    <button
+                      className="csm-icon-btn csm-icon-danger"
+                      onClick={() => setConfirmDelete(m)}
+                      title={`Delete ${m.name}`} aria-label={`Delete ${m.name}`}
+                    >
+                      <FiTrash2 size={13} />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
-      </div>
-
-      {loading ? (
-        <div className="csm-loading">Loading members…</div>
-      ) : members.length === 0 ? (
-        <EmptyState
-          IconComponent={FiUsers}
-          title={total === 0 ? 'No members yet' : 'No members match your search'}
-          description={total === 0
-            ? 'Add your first member to start sending custom notifications.'
-            : 'Try a different name or phone number.'}
-        />
-      ) : (
-        <ul className="csm-list">
-          {members.map(m => (
-            <li key={m.id} className="csm-card">
-              <div className="csm-card-info">
-                <span className="csm-card-name">{m.name}</span>
-                {m.phone
-                  ? <span className="csm-card-phone">{m.phone}</span>
-                  : <span className="csm-card-nophone">Phone number not yet provided</span>}
-              </div>
-              <div className="csm-card-actions">
-                <button className="csm-action" onClick={() => openEdit(m)}>
-                  <FiEdit2 size={12} /> Edit
-                </button>
-                <button
-                  className="csm-action csm-action-send"
-                  onClick={() => openCompose(m)}
-                  disabled={!m.phone || !m.canSend || sendingId === m.id}
-                  title={sendLabel(m)}
-                >
-                  <FiSend size={12} /> {sendLabel(m)}
-                </button>
-                <button className="csm-action csm-action-danger" onClick={() => setConfirmDelete(m)}>
-                  <FiTrash2 size={12} /> Delete
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      </section>
 
       {!loading && pages > 1 && (
         <nav className="csm-pager" aria-label="Member pages">
@@ -657,13 +767,18 @@ export default function CustomSmsMembers() {
         {composeFor && (
           <div className="csm-compose">
             <div className="csm-recipient">
-              <span className="csm-recipient-label">Recipient</span>
-              <span className="csm-recipient-name">{composeFor.name}</span>
-              <span className="csm-recipient-phone">{composeFor.phone}</span>
+              <MemberAvatar name={composeFor.name} size="sm" />
+              <span className="csm-recipient-info">
+                <span className="csm-recipient-label">Recipient</span>
+                <span className="csm-recipient-name">{composeFor.name}</span>
+                <span className="csm-recipient-phone">
+                  <FiPhone size={11} aria-hidden="true" /> {composeFor.phone}
+                </span>
+              </span>
             </div>
 
             <div className="form-group">
-              <label>Event</label>
+              <label><FiCalendar size={12} aria-hidden="true" /> Event</label>
               <select value={eventId} onChange={e => setEventId(e.target.value)}>
                 <option value="">— No event —</option>
                 {events.map(ev => (
@@ -678,7 +793,7 @@ export default function CustomSmsMembers() {
             {templatePicker(!!sendingId)}
 
             <div className="form-group">
-              <label>Message</label>
+              <label><FiMessageSquare size={12} aria-hidden="true" /> Message</label>
               <textarea
                 className="csm-textarea"
                 value={template ? template.message : message}
@@ -762,8 +877,11 @@ export default function CustomSmsMembers() {
 
           {campaignPlan && (
             <div className="csm-plan">
-              <span className="csm-plan-label">Preview{campaignPlan.previewFor ? ` — for ${campaignPlan.previewFor}` : ''}</span>
-              <pre className="csm-plan-body">{campaignPlan.preview || '—'}</pre>
+              <span className="csm-plan-label">
+                <FiEye size={11} aria-hidden="true" />
+                Preview{campaignPlan.previewFor ? ` — for ${campaignPlan.previewFor}` : ''}
+              </span>
+              <SmsPhonePreview body={campaignPlan.preview} />
               <span className="csm-plan-counts">
                 {campaignPlan.chars != null && (
                   <>{campaignPlan.chars} / {campaignPlan.limit} characters · {campaignPlan.segments} SMS · </>
@@ -845,9 +963,18 @@ export default function CustomSmsMembers() {
               <p className="csm-import-hint">
                 Upload a spreadsheet with a <strong>Name</strong> column and an optional
                 <strong> Phone</strong> column. Members without a phone number are still
-                imported — you can add their number later. Supported: .xlsx, .xls
+                imported — you can add their number later.
               </p>
-              <label className="csm-file">
+
+              {/* Styled wrapper around the same native file input and handler */}
+              <label className={`csm-drop ${importFile ? 'has-file' : ''}`}>
+                <span className="csm-drop-icon"><FiFileText size={20} /></span>
+                <span className="csm-drop-title">
+                  {importFile ? importFile.name : 'Choose an Excel file'}
+                </span>
+                <span className="csm-drop-hint">
+                  {importFile ? 'Click to choose a different file' : 'Supported formats: .xlsx, .xls'}
+                </span>
                 <input
                   type="file"
                   accept=".xlsx,.xls"
@@ -855,9 +982,6 @@ export default function CustomSmsMembers() {
                   disabled={importing}
                 />
               </label>
-              {importFile && (
-                <p className="csm-file-name">File selected: <strong>{importFile.name}</strong></p>
-              )}
               <div className="form-actions">
                 <button type="button" className="btn btn-secondary" onClick={closeImport} disabled={importing}>
                   Cancel
