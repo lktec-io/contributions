@@ -18,6 +18,7 @@ const adminRoutes        = require('./routes/adminRoutes');
 const settingsRoutes     = require('./routes/settingsRoutes');
 const publicRoutes       = require('./routes/publicRoutes');
 const paymentRequestRoutes = require('./routes/paymentRequestRoutes');
+const smsTemplateRoutes  = require('./routes/smsTemplateRoutes');
 const errorHandler       = require('./middleware/errorHandler');
 
 const app  = express();
@@ -42,6 +43,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/export',        exportRoutes);
 app.use('/api/dashboard',     dashboardRoutes);
 app.use('/api/sms',           smsRoutes);
+app.use('/api/sms-templates', smsTemplateRoutes);
 app.use('/api/admin',         adminRoutes);
 app.use('/api/settings',      settingsRoutes);
 app.use('/api/public',        publicRoutes);
@@ -78,6 +80,9 @@ async function ensureSchema() {
     // campaign) and keeps the existing campaign cooldown behaviour untouched;
     // a value = an individual member send, which cools down per member.
     { col: 'sms_logs.recipient_id',   sql: 'ALTER TABLE sms_logs ADD COLUMN recipient_id INT NULL' },
+    // Identity of a Send-to-All campaign. NULL on every pre-existing row and on
+    // all non-campaign sends, so nothing about the current behaviour changes.
+    { col: 'sms_logs.campaign_key',   sql: 'ALTER TABLE sms_logs ADD COLUMN campaign_key VARCHAR(64) NULL' },
   ];
 
   for (const step of steps) {
@@ -106,6 +111,39 @@ async function ensureSchema() {
     console.log('[migration] sms_logs table ready');
   } catch (err) {
     console.error('[migration] sms_logs table error:', err.message);
+  }
+
+  // Unique per (sender, member, campaign). campaign_key is NULL on every
+  // existing row and on all non-campaign sends, and MySQL allows unlimited
+  // NULLs in a unique index, so no current row can collide. This is what makes
+  // Send-to-All duplicate protection atomic under concurrent requests.
+  try {
+    await pool.query(
+      'ALTER TABLE sms_logs ADD UNIQUE INDEX uq_sms_campaign_member (user_id, recipient_id, campaign_key)'
+    );
+    console.log('[migration] Added uq_sms_campaign_member');
+  } catch (err) {
+    if (err.errno !== 1061) {
+      console.error('[migration] uq_sms_campaign_member error:', err.message);
+    }
+  }
+
+  // Saved Custom SMS templates (idempotent). Scoped per user via user_id.
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sms_templates (
+        id         INT AUTO_INCREMENT PRIMARY KEY,
+        user_id    INT           NOT NULL,
+        title      VARCHAR(120)  NOT NULL,
+        message    TEXT          NOT NULL,
+        created_at TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_sms_templates_user (user_id)
+      )
+    `);
+    console.log('[migration] sms_templates table ready');
+  } catch (err) {
+    console.error('[migration] sms_templates table error:', err.message);
   }
 
   // Create event_assignments table (idempotent)

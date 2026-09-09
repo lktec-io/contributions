@@ -403,3 +403,88 @@
     flex-basis: 100%;
   }
 }
+
+/* ── Saved-message selection ─────────────────── */
+.csm-tpl {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+  padding: 9px 12px;
+  box-sizing: border-box;
+  background: rgba(0, 184, 148, 0.08);
+  border: 1px solid rgba(0, 184, 148, 0.28);
+  border-radius: 8px;
+}
+
+.csm-tpl-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.csm-tpl-clear {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 180ms ease, border-color 180ms ease;
+}
+
+.csm-tpl-clear:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+[data-theme="light"] .csm-tpl-clear:hover:not(:disabled) {
+  border-color: rgba(0, 0, 0, 0.22);
+}
+
+.csm-tpl-clear:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Campaign plan preview ───────────────────── */
+.csm-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  margin-bottom: 14px;
+  padding: 11px 13px;
+  box-sizing: border-box;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.csm-plan-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--accent-green);
+}
+
+.csm-plan-body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.csm-plan-counts {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}

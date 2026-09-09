@@ -2,7 +2,9 @@ import { useState, useEffect, useContext, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   FiPlus, FiEdit2, FiSend, FiTrash2, FiUsers, FiUpload, FiDownload, FiFileText,
+  FiBookmark,
 } from 'react-icons/fi';
+import SavedMessagesModal from './SavedMessagesModal';
 import { ToastContext } from '../../context/ToastContext';
 import { contributorService } from '../../services/contributorService';
 import { eventService } from '../../services/eventService';
@@ -56,6 +58,14 @@ export default function CustomSmsMembers() {
   const [importFile,  setImportFile]  = useState(null);
   const [importing,   setImporting]   = useState(false);
   const [importResult, setImportResult] = useState(null);
+
+  // Saved messages: a chosen template drives the body server-side, so
+  // `templateId` (not the text) is what gets submitted.
+  const [showSaved,  setShowSaved]  = useState(false);
+  const [pickTemplate, setPickTemplate] = useState(false); // true = choosing, false = managing
+  const [template,   setTemplate]   = useState(null);
+  const [campaignPlan, setCampaignPlan] = useState(null); // eligible/skipped/preview
+  const [planning,   setPlanning]   = useState(false);
 
   const [downloading, setDownloading] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -158,13 +168,17 @@ export default function CustomSmsMembers() {
   };
 
   const sendToMember = async () => {
-    if (!message.trim()) { setMsgError('Tafadhali andika ujumbe kwanza.'); return; }
+    if (!template && !message.trim()) { setMsgError('Tafadhali andika ujumbe kwanza.'); return; }
     if (sendingId) return;                       // duplicate-click guard
     setMsgError('');
     setSendingId(composeFor.id);
     setSmsModal({ open: true, status: 'sending', message: '' });
     try {
-      await smsService.sendMemberSms(composeFor.id, { message: message.trim(), eventId: eventId || undefined });
+      await smsService.sendMemberSms(composeFor.id, {
+        message:    template ? undefined : message.trim(),
+        templateId: template ? template.id : undefined,
+        eventId:    eventId || undefined,
+      });
       toast.success(`SMS sent to ${composeFor.name}`);
       setSmsModal({
         open: true, status: 'success',
@@ -193,13 +207,35 @@ export default function CustomSmsMembers() {
   const openSendAll = () => {
     if (!members.length) { toast.error('No members available.'); return; }
     setMsgError('');
+    setCampaignPlan(null);
     if (!eventId && events.length === 1) setEventId(String(events[0].id));
     setShowSendAll(true);
   };
 
-  const confirmSendAll = () => {
-    if (!message.trim()) { setMsgError('Tafadhali andika ujumbe kwanza.'); return; }
-    setConfirmAll(true);
+  // The backend decides who is eligible; this only shows the operator that
+  // decision before they commit to sending.
+  const confirmSendAll = async () => {
+    if (!template && !message.trim()) { setMsgError('Tafadhali andika ujumbe kwanza.'); return; }
+    setMsgError('');
+    setPlanning(true);
+    try {
+      const res = await smsService.previewCustomCampaign({
+        message:    template ? undefined : message.trim(),
+        templateId: template ? template.id : undefined,
+        eventId:    eventId || undefined,
+      });
+      const plan = res.data.data;
+      setCampaignPlan(plan);
+      if (plan.eligible === 0) {
+        toast.error('All members have already received this message.');
+        return;
+      }
+      setConfirmAll(true);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setPlanning(false);
+    }
   };
 
   const doSendAll = async () => {
@@ -209,14 +245,15 @@ export default function CustomSmsMembers() {
     setSmsModal({ open: true, status: 'sending', message: '' });
     try {
       const res = await smsService.sendCustomCampaign({
-        message: message.trim(),
-        eventId: eventId || undefined,
+        message:    template ? undefined : message.trim(),
+        templateId: template ? template.id : undefined,
+        eventId:    eventId || undefined,
       });
-      const { sent, total } = res.data.data;
-      toast.success(`SMS sent to ${sent} of ${total} member(s)`);
+      const { sent, skipped, failed } = res.data.data;
+      toast.success(`Campaign completed — sent ${sent}, skipped ${skipped}, failed ${failed}`);
       setSmsModal({
         open: true, status: 'success',
-        message: `SMS sent to ${sent} of ${total} member(s). Next campaign available in 7 days.`,
+        message: `Custom SMS campaign completed. Sent: ${sent}. Skipped: ${skipped}. Failed: ${failed}.`,
       });
       setCampaign({ canSend: false, daysRemaining: 7 });
       setShowSendAll(false);
@@ -284,6 +321,35 @@ export default function CustomSmsMembers() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, loading]);
 
+  // Shared by both composers: pick a saved message, or clear it to type freely.
+  const templatePicker = (disabled) => (
+    <div className="form-group">
+      <label>Saved Message</label>
+      {template ? (
+        <div className="csm-tpl">
+          <span className="csm-tpl-name">{template.title}</span>
+          <button
+            type="button"
+            className="csm-tpl-clear"
+            onClick={() => setTemplate(null)}
+            disabled={disabled}
+          >
+            Clear
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="csm-action"
+          onClick={() => { setPickTemplate(true); setShowSaved(true); }}
+          disabled={disabled}
+        >
+          <FiBookmark size={13} /> Choose a saved message
+        </button>
+      )}
+    </div>
+  );
+
   const sendLabel = (m) => {
     if (sendingId === m.id) return 'Sending…';
     if (!m.canSend) return `Available in ${m.daysRemaining} day(s)`;
@@ -308,6 +374,9 @@ export default function CustomSmsMembers() {
           </p>
         </div>
         <div className="csm-header-actions">
+          <button className="csm-action" onClick={() => { setPickTemplate(false); setShowSaved(true); }}>
+            <FiBookmark size={13} /> Saved Messages
+          </button>
           <button className="csm-action" onClick={() => setShowImport(true)}>
             <FiUpload size={13} /> Import Excel
           </button>
@@ -454,20 +523,26 @@ export default function CustomSmsMembers() {
               )}
             </div>
 
+            {templatePicker(!!sendingId)}
+
             <div className="form-group">
               <label>Message</label>
               <textarea
                 className="csm-textarea"
-                value={message}
+                value={template ? template.message : message}
                 onChange={e => { setMessage(e.target.value); if (msgError) setMsgError(''); }}
                 placeholder="Andika ujumbe wako hapa..."
                 rows={6}
-                disabled={!!sendingId}
+                disabled={!!sendingId || !!template}
               />
               <div className="csm-meta">
                 {msgError
                   ? <span className="csm-error">{msgError}</span>
-                  : <span className="csm-chars">Characters: {message.length}</span>}
+                  : <span className="csm-chars">
+                      {template
+                        ? 'Using a saved message — clear it to write your own.'
+                        : `Characters: ${message.length}`}
+                    </span>}
               </div>
             </div>
 
@@ -510,28 +585,44 @@ export default function CustomSmsMembers() {
             </select>
           </div>
 
+          {templatePicker(sendingAll)}
+
           <div className="form-group">
             <label>Message</label>
             <textarea
               className="csm-textarea"
-              value={message}
+              value={template ? template.message : message}
               onChange={e => { setMessage(e.target.value); if (msgError) setMsgError(''); }}
               placeholder="Andika ujumbe wako hapa..."
               rows={6}
-              disabled={sendingAll}
+              disabled={sendingAll || !!template}
             />
             <div className="csm-meta">
               {msgError
                 ? <span className="csm-error">{msgError}</span>
-                : <span className="csm-chars">Characters: {message.length}</span>}
+                : <span className="csm-chars">
+                    {template
+                      ? 'Using a saved message — clear it to write your own.'
+                      : `Characters: ${message.length}`}
+                  </span>}
             </div>
           </div>
+
+          {campaignPlan && (
+            <div className="csm-plan">
+              <span className="csm-plan-label">Preview{campaignPlan.previewFor ? ` — for ${campaignPlan.previewFor}` : ''}</span>
+              <pre className="csm-plan-body">{campaignPlan.preview || '—'}</pre>
+              <span className="csm-plan-counts">
+                {campaignPlan.eligible} will receive · {campaignPlan.alreadySent} already received
+              </span>
+            </div>
+          )}
 
           <div className="form-actions">
             <button type="button" className="btn btn-secondary" onClick={() => setShowSendAll(false)} disabled={sendingAll}>
               Cancel
             </button>
-            <button type="button" className="btn" onClick={confirmSendAll} disabled={sendingAll}>
+            <button type="button" className="btn" onClick={confirmSendAll} disabled={sendingAll || planning}>
               <FiSend size={14} /> {sendingAll ? 'Sending…' : 'Send to All'}
             </button>
           </div>
@@ -543,10 +634,22 @@ export default function CustomSmsMembers() {
         onClose={() => setConfirmAll(false)}
         onConfirm={doSendAll}
         title="Send Custom SMS to All?"
-        message={`You are about to send this message to ${members.length} member${members.length !== 1 ? 's' : ''}. This will send an SMS to every member in your list.`}
-        confirmText="Confirm & Send"
+        message={campaignPlan
+          ? `${campaignPlan.eligible} member${campaignPlan.eligible !== 1 ? 's' : ''} will receive this SMS.`
+            + (campaignPlan.alreadySent
+              ? ` ${campaignPlan.alreadySent} will be skipped because they already received this message.`
+              : '')
+          : ''}
+        confirmText={campaignPlan ? `Send to ${campaignPlan.eligible} Members` : 'Confirm & Send'}
         confirmVariant="danger"
         loading={sendingAll}
+      />
+
+      <SavedMessagesModal
+        isOpen={showSaved}
+        onClose={() => setShowSaved(false)}
+        eventId={eventId || undefined}
+        onSelect={pickTemplate ? (t) => { setTemplate(t); setPickTemplate(false); } : undefined}
       />
 
       {/* ── Import members from Excel ──────────────────── */}

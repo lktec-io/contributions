@@ -114,7 +114,8 @@ const Contributor = {
     const withHistory = `
       SELECT co.id, co.name, co.phone, co.created_at,
              (SELECT MAX(l.sent_at) FROM sms_logs l
-               WHERE l.recipient_id = co.id AND l.user_id = ?) AS last_sms_at
+               WHERE l.recipient_id = co.id AND l.user_id = ?
+                 AND l.type = 'custom_member') AS last_sms_at
       FROM contributors co
       WHERE co.created_by = ?
       ORDER BY co.name ASC`;

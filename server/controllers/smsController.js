@@ -4,6 +4,7 @@ const axios        = require('axios');
 const pool         = require('../config/db');
 const Contribution = require('../models/Contribution');
 const { getIsolationFilter, canAccessContribution } = require('../utils/tenantHelpers');
+const { formatCustomSms, buildCampaignKey } = require('../utils/smsFormatter');
 
 const BEEM_ENDPOINT = 'https://apisms.beem.africa/v1/send';
 
@@ -31,27 +32,11 @@ function buildMessage(name, pledged, paid, balance, eventName, link) {
   return message;
 }
 
-// Collapses accidental whitespace without destroying intentional paragraphs:
-// CRLF -> LF, trailing spaces dropped, 3+ newlines become a single blank line.
-function normalizeMessageBody(text) {
-  return String(text || '')
-    .replace(/\r\n?/g, '\n')
-    .split('\n')
-    .map(line => line.replace(/[ \t]+$/, ''))
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-// Custom SMS: greeting + event context + the operator's own body.
-// Carries no amounts, no payment instructions and no portal link, and appends
-// no brand signature — the sender ID already identifies the service.
+// Thin delegate to the shared formatter (see utils/smsFormatter) so the preview
+// endpoint and every send path produce byte-identical bodies. Carries no
+// amounts, no payment link and no brand signature.
 function buildCustomMessage(name, eventName, body) {
-  const sections = [`Hello ${String(name || '').trim()},`];
-  const event = String(eventName || '').trim();
-  if (event) sections.push(`Event: ${event}`);
-  sections.push(normalizeMessageBody(body));
-  return sections.join('\n\n');
+  return formatCustomSms({ name, event: eventName, message: body });
 }
 
 function buildPortalLink(contribution) {
@@ -314,8 +299,11 @@ const MEMBER_COOLDOWN_DAYS = 7;
 
 async function checkMemberLimit(userId, memberId) {
   try {
+    // type = 'custom_member' keeps this to individual sends only. Campaign rows
+    // also carry a recipient_id, but being included in a Send-to-All must not
+    // start a member's individual cooldown — those are separate concerns.
     const [rows] = await pool.query(
-      'SELECT sent_at FROM sms_logs WHERE user_id = ? AND recipient_id = ? ORDER BY sent_at DESC LIMIT 1',
+      "SELECT sent_at FROM sms_logs WHERE user_id = ? AND recipient_id = ? AND type = 'custom_member' ORDER BY sent_at DESC LIMIT 1",
       [userId, memberId]
     );
     if (!rows.length) return { canSend: true, daysRemaining: 0 };
@@ -338,7 +326,17 @@ async function sendMemberSms(req, res) {
     const member = await loadOwnedMember(req, res);
     if (!member) return;
 
-    const body = typeof req.body.message === 'string' ? req.body.message.trim() : '';
+    // A saved message may be used instead of ad-hoc text. It is loaded by
+    // (id, user), so another user's template is simply not found.
+    let body = typeof req.body.message === 'string' ? req.body.message.trim() : '';
+    if (req.body.templateId) {
+      const SmsTemplate = require('../models/SmsTemplate');
+      const tpl = await SmsTemplate.findByIdForUser(req.body.templateId, req.user.userId);
+      if (!tpl) {
+        return res.status(404).json({ success: false, message: 'Saved message not found', errors: [] });
+      }
+      body = tpl.message;
+    }
     if (!body) {
       return res.status(400).json({
         success: false, message: 'Tafadhali andika ujumbe kwanza.',
@@ -430,13 +428,9 @@ async function sendCustomCampaign(req, res) {
     const { denyUnlessCustomSms } = require('./contributorController');
     if (await denyUnlessCustomSms(req, res)) return;
 
+    // The body may be empty when a saved message is used — resolveCampaign
+    // loads the template and rejects only if neither source yields text.
     const body = typeof req.body.message === 'string' ? req.body.message.trim() : '';
-    if (!body) {
-      return res.status(400).json({
-        success: false, message: 'Tafadhali andika ujumbe kwanza.',
-        errors: [{ field: 'message', message: 'Message is required' }],
-      });
-    }
 
     const limit = await checkCustomCampaignLimit(req.user.userId);
     if (!limit.canSend) {
@@ -448,26 +442,15 @@ async function sendCustomCampaign(req, res) {
       });
     }
 
-    // Recipients come from ownership, never from the request body.
-    const Contributor = require('../models/Contributor');
-    const members = await Contributor.findMembers(req.user.userId);
-    if (!members.length) {
-      return res.status(400).json({ success: false, message: 'No members available.', errors: [] });
-    }
+    const plan = await resolveCampaign(req, body);
+    if (plan.error) return res.status(plan.status).json(plan.error);
 
-    // Event name is resolved server-side through the existing isolation check.
-    let eventName = '';
-    if (req.body.eventId) {
-      const Event = require('../models/Event');
-      const event = await Event.findAccessibleById(req.body.eventId, getIsolationFilter(req));
-      if (!event) {
-        return res.status(403).json({ success: false, message: 'You do not have access to the selected event.', errors: [] });
-      }
-      eventName = event.name || '';
-    }
+    // plan.text is the resolved body — the saved message when a templateId was
+    // used, otherwise the request text. Using it here is what keeps the sent
+    // body byte-identical to what the preview showed.
+    const { members, eventName, campaignKey, eligible, alreadySent, text } = plan;
 
-    // Log the campaign BEFORE sending so a duplicate request that arrives while
-    // this one is still in flight is rejected by the cooldown.
+    // The campaign row opens the 7-day campaign window.
     try {
       await pool.query(
         "INSERT INTO sms_logs (user_id, type, recipient_id) VALUES (?, 'custom_campaign', NULL)",
@@ -477,24 +460,51 @@ async function sendCustomCampaign(req, res) {
       console.error('[sms] Failed to log custom campaign:', err.message);
     }
 
-    let sent = 0;
-    for (const m of members) {
+    let sent = 0, failed = 0;
+    const skipped = alreadySent.length;
+
+    for (const m of eligible) {
+      const phone = formatPhone(m.phone);
+      if (!phone || phone.length < 12) { failed++; continue; }
+
+      // Claim the member for this campaign BEFORE sending. The unique index on
+      // (user_id, recipient_id, campaign_key) makes this atomic, so a
+      // concurrent second request loses the race and skips instead of
+      // re-sending. ER_DUP_ENTRY (1062) means someone else already claimed it.
       try {
-        const phone = formatPhone(m.phone);
-        if (!phone || phone.length < 12) continue;
+        await pool.query(
+          "INSERT INTO sms_logs (user_id, type, recipient_id, campaign_key) VALUES (?, 'custom_campaign_member', ?, ?)",
+          [req.user.userId, m.id, campaignKey]
+        );
+      } catch (err) {
+        if (err.errno === 1062) continue;      // already claimed — not a failure
+        console.error('[sms] Failed to claim member for campaign:', err.message);
+        failed++;
+        continue;
+      }
+
+      try {
         // Name is read from the member record, never from the client.
-        await sendBeemSms(phone, buildCustomMessage(m.name, eventName, body));
+        await sendBeemSms(phone, buildCustomMessage(m.name, eventName, text));
         await new Promise(r => setTimeout(r, 300));
         sent++;
       } catch (err) {
         console.error('BEEM ERROR FULL:', err.response?.data || err.message);
+        failed++;
+        // Release the claim so a genuine provider failure can be retried.
+        try {
+          await pool.query(
+            "DELETE FROM sms_logs WHERE user_id = ? AND recipient_id = ? AND campaign_key = ? AND type = 'custom_campaign_member'",
+            [req.user.userId, m.id, campaignKey]
+          );
+        } catch { /* leaving the claim only costs one skipped retry */ }
       }
     }
 
     return res.json({
       success: true,
-      message: `SMS sent to ${sent} of ${members.length} member(s)`,
-      data:    { sent, total: members.length, daysRemaining: 7 },
+      message: `Custom SMS campaign completed. Sent ${sent}, skipped ${skipped}, failed ${failed}.`,
+      data: { sent, skipped, failed, total: members.length, daysRemaining: 7 },
     });
   } catch (err) {
     console.error('BEEM ERROR FULL:', err.response?.data || err.message);
@@ -502,7 +512,102 @@ async function sendCustomCampaign(req, res) {
   }
 }
 
+/*  Shared resolution for the campaign preview and the campaign send, so the
+    confirmation figures the operator approves are the ones actually used.
+    Returns { error, status } on rejection, otherwise the resolved plan.     */
+async function resolveCampaign(req, body) {
+  const Contributor = require('../models/Contributor');
+  const SmsTemplate = require('../models/SmsTemplate');
+
+  const members = await Contributor.findMembers(req.user.userId);
+  if (!members.length) {
+    return { error: { success: false, message: 'No members available.', errors: [] }, status: 400 };
+  }
+
+  // A saved message is loaded by (id, user) — another user's template 404s.
+  let templateId = null;
+  let text = body;
+  if (req.body.templateId) {
+    const tpl = await SmsTemplate.findByIdForUser(req.body.templateId, req.user.userId);
+    if (!tpl) {
+      return { error: { success: false, message: 'Saved message not found', errors: [] }, status: 404 };
+    }
+    templateId = tpl.id;
+    text = tpl.message;
+  }
+  if (!String(text || '').trim()) {
+    return { error: { success: false, message: 'Tafadhali andika ujumbe kwanza.', errors: [] }, status: 400 };
+  }
+
+  // Event name is resolved server-side through the existing isolation check.
+  let eventName = '';
+  if (req.body.eventId) {
+    const Event = require('../models/Event');
+    const event = await Event.findAccessibleById(req.body.eventId, getIsolationFilter(req));
+    if (!event) {
+      return {
+        error: { success: false, message: 'You do not have access to the selected event.', errors: [] },
+        status: 403,
+      };
+    }
+    eventName = event.name || '';
+  }
+
+  const campaignKey = buildCampaignKey({
+    userId: req.user.userId, templateId, message: text, eventId: req.body.eventId || '',
+  });
+
+  // Who already received THIS campaign. Scoped to this sender, so one user's
+  // history can never affect another's.
+  let contacted = new Set();
+  try {
+    const [rows] = await pool.query(
+      "SELECT recipient_id FROM sms_logs WHERE user_id = ? AND campaign_key = ? AND type = 'custom_campaign_member'",
+      [req.user.userId, campaignKey]
+    );
+    contacted = new Set(rows.map(r => r.recipient_id));
+  } catch (err) {
+    if (err.errno !== 1054) throw err; // campaign_key not migrated yet
+  }
+
+  const eligible    = members.filter(m => !contacted.has(m.id));
+  const alreadySent = members.filter(m =>  contacted.has(m.id));
+
+  return { members, eventName, campaignKey, templateId, text, eligible, alreadySent };
+}
+
+// ── POST /api/sms/members/campaign/preview ──────────────────────
+// Reports who would receive this campaign and who would be skipped, plus a
+// sample body rendered by the same formatter the send path uses.
+async function previewCustomCampaign(req, res, next) {
+  try {
+    const { denyUnlessCustomSms } = require('./contributorController');
+    if (await denyUnlessCustomSms(req, res)) return;
+
+    const body = typeof req.body.message === 'string' ? req.body.message.trim() : '';
+    const plan = await resolveCampaign(req, body);
+    if (plan.error) return res.status(plan.status).json(plan.error);
+
+    const limit  = await checkCustomCampaignLimit(req.user.userId);
+    const sample = plan.eligible[0] || plan.members[0];
+
+    return res.json({
+      success: true,
+      data: {
+        total:       plan.members.length,
+        eligible:    plan.eligible.length,
+        alreadySent: plan.alreadySent.length,
+        campaign:    limit,
+        preview:     sample ? buildCustomMessage(sample.name, plan.eventName, plan.text) : '',
+        previewFor:  sample ? sample.name : '',
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   sendReminder, sendBulkReminders, getBulkStatus, sendMemberSms,
-  sendCustomCampaign, checkCustomCampaignLimit,
+  sendCustomCampaign, checkCustomCampaignLimit, previewCustomCampaign,
 };
