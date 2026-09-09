@@ -1,11 +1,12 @@
 const express = require('express');
 const router  = express.Router();
 const auth    = require('../middleware/auth');
-const { list, create, update, remove } = require('../controllers/smsTemplateController');
+const { list, create, update, remove, preview } = require('../controllers/smsTemplateController');
 
 router.use(auth);
 
 // Saved Custom SMS messages — scoped to the authenticated user
+router.post('/preview', preview);   // live character/segment counter
 router.get('/',       list);
 router.post('/',      create);
 router.put('/:id',    update);

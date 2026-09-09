@@ -272,11 +272,12 @@ export default function CustomSmsMembers() {
         templateId: template ? template.id : undefined,
         eventId:    eventId || undefined,
       });
-      const { sent, skipped, failed } = res.data.data;
+      const { sent, skipped, failed, overLimit } = res.data.data;
       toast.success(`Campaign completed — sent ${sent}, skipped ${skipped}, failed ${failed}`);
       setSmsModal({
         open: true, status: 'success',
-        message: `Custom SMS campaign completed. Sent: ${sent}. Skipped: ${skipped}. Failed: ${failed}.`,
+        message: `Custom SMS campaign completed. Sent: ${sent}. Skipped: ${skipped}. Failed: ${failed}.`
+          + (overLimit ? ` ${overLimit} over the one-SMS limit and not sent.` : ''),
       });
       setCampaign({ canSend: false, daysRemaining: 7 });
       setShowSendAll(false);
@@ -764,8 +765,21 @@ export default function CustomSmsMembers() {
               <span className="csm-plan-label">Preview{campaignPlan.previewFor ? ` — for ${campaignPlan.previewFor}` : ''}</span>
               <pre className="csm-plan-body">{campaignPlan.preview || '—'}</pre>
               <span className="csm-plan-counts">
+                {campaignPlan.chars != null && (
+                  <>{campaignPlan.chars} / {campaignPlan.limit} characters · {campaignPlan.segments} SMS · </>
+                )}
                 {campaignPlan.eligible} will receive · {campaignPlan.alreadySent} already received
+                {campaignPlan.noPhone > 0 && <> · {campaignPlan.noPhone} without a phone</>}
               </span>
+              {campaignPlan.overLimit > 0 && (
+                <span className="csm-plan-warn">
+                  {campaignPlan.overLimit} member{campaignPlan.overLimit !== 1 ? 's' : ''} over the
+                  one-SMS limit and will not be sent
+                  {campaignPlan.overLimitNames?.length
+                    ? ` (${campaignPlan.overLimitNames.join(', ')})` : ''}.
+                  Shorten the message to include them.
+                </span>
+              )}
             </div>
           )}
 

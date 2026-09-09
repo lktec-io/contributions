@@ -1,8 +1,7 @@
 import { useState, useEffect, useContext, useRef, useCallback } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiEye, FiCheck } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiCheck } from 'react-icons/fi';
 import { ToastContext } from '../../context/ToastContext';
 import { smsTemplateService } from '../../services/smsTemplateService';
-import { smsService } from '../../services/smsService';
 import { getErrorMessage } from '../../utils/helpers';
 import Modal from '../common/Modal';
 import ConfirmDialog from '../common/ConfirmDialog';
@@ -119,21 +118,27 @@ export default function SavedMessagesModal({ isOpen, onClose, eventId, onSelect 
     }
   };
 
-  const runPreview = async (message, templateId) => {
+  // Live counter. Debounced so typing doesn't flood the endpoint, and always
+  // server-rendered so the count matches the message that would be sent.
+  useEffect(() => {
+    if (!draft) { setPreview(null); return; }
+    const text = draft.message;
+    if (!text.trim()) { setPreview(null); return; }
+
+    let alive = true;
     setPreviewing(true);
-    try {
-      const res = await smsService.previewCustomCampaign({
-        message: templateId ? undefined : message,
-        templateId,
-        eventId: eventId || undefined,
-      });
-      setPreview(res.data.data);
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    } finally {
-      setPreviewing(false);
-    }
-  };
+    const t = setTimeout(() => {
+      smsTemplateService.preview(text, eventId || undefined)
+        .then(res => { if (alive) setPreview(res.data.data); })
+        .catch(() => { /* counter is advisory; save is still validated server-side */ })
+        .finally(() => { if (alive) setPreviewing(false); });
+    }, 300);
+
+    return () => { alive = false; clearTimeout(t); };
+  }, [draft?.message, eventId, draft]);
+
+  // Over the one-SMS limit — blocks saving until the operator shortens it.
+  const over = !!preview && preview.withinSingle === false;
 
   const title = draft ? (draft.id ? 'Edit Saved Message' : 'New Saved Message') : 'Saved Messages';
 
@@ -178,17 +183,39 @@ export default function SavedMessagesModal({ isOpen, onClose, eventId, onSelect 
                 rows={6}
                 maxLength={1600}
               />
-              <div className="sm-meta">
-                {errors.message
-                  ? <span className="sm-error">{errors.message}</span>
-                  : <span className="sm-chars">Characters: {draft.message.length}</span>}
+              {/* Counts the FINAL rendered SMS — event, greeting, name and
+                  line breaks included — not just the textarea contents. */}
+              <div className={`sm-meta sm-counter ${over ? 'is-over' : ''}`}>
+                {errors.message && <span className="sm-error">{errors.message}</span>}
+                {!errors.message && preview && (
+                  <>
+                    <span className="sm-count-main">
+                      {preview.chars} / {preview.limit} characters
+                    </span>
+                    <span className={`sm-seg ${over ? 'sm-seg-over' : ''}`}>
+                      {preview.segments} SMS
+                    </span>
+                  </>
+                )}
+                {!errors.message && !preview && (
+                  <span className="sm-chars">{previewing ? 'Counting…' : '—'}</span>
+                )}
               </div>
+
+              {over && (
+                <p className="sm-over-note">
+                  This is {preview.chars - preview.limit} character
+                  {preview.chars - preview.limit !== 1 ? 's' : ''} over one SMS
+                  {preview.measuredFor ? ` for your longest member name, “${preview.measuredFor}”` : ''}.
+                  Shorten it to save.
+                </p>
+              )}
             </div>
 
             {preview && (
               <div className="sm-preview">
                 <span className="sm-preview-label">
-                  Preview{preview.previewFor ? ` — for ${preview.previewFor}` : ''}
+                  Preview{preview.measuredFor ? ` — for ${preview.measuredFor}` : ''}
                 </span>
                 <pre className="sm-preview-body">{preview.preview || '—'}</pre>
               </div>
@@ -203,15 +230,7 @@ export default function SavedMessagesModal({ isOpen, onClose, eventId, onSelect 
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => runPreview(draft.message, null)}
-                disabled={previewing || !draft.message.trim()}
-              >
-                <FiEye size={14} /> {previewing ? 'Loading…' : 'Preview'}
-              </button>
-              <button type="submit" className="btn" disabled={saving}>
+              <button type="submit" className="btn" disabled={saving || over}>
                 {saving ? 'Saving…' : draft.id ? 'Save Changes' : 'Save Message'}
               </button>
             </div>

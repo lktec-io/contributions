@@ -4,7 +4,9 @@ const axios        = require('axios');
 const pool         = require('../config/db');
 const Contribution = require('../models/Contribution');
 const { getIsolationFilter, canAccessContribution } = require('../utils/tenantHelpers');
-const { formatCustomSms, buildCampaignKey } = require('../utils/smsFormatter');
+const {
+  formatCustomSms, buildCampaignKey, measureSms, CUSTOM_SMS_SINGLE_LIMIT,
+} = require('../utils/smsFormatter');
 
 const BEEM_ENDPOINT = 'https://apisms.beem.africa/v1/send';
 
@@ -389,6 +391,19 @@ async function sendMemberSms(req, res) {
 
     const message = buildCustomMessage(member.name, eventName, body);
 
+    // One SMS per Custom SMS. Rejected rather than truncated or split, so the
+    // operator decides what to shorten.
+    const size = measureSms(message);
+    if (!size.withinSingle) {
+      return res.status(400).json({
+        success: false,
+        message: `This message is ${size.chars} characters (${size.segments} SMS) for `
+          + `"${member.name}". Shorten it to ${CUSTOM_SMS_SINGLE_LIMIT} characters or fewer.`,
+        data: { chars: size.chars, segments: size.segments, limit: CUSTOM_SMS_SINGLE_LIMIT },
+        errors: [],
+      });
+    }
+
     await sendBeemSms(phone, message);
 
     try {
@@ -456,7 +471,9 @@ async function sendCustomCampaign(req, res) {
     // plan.text is the resolved body — the saved message when a templateId was
     // used, otherwise the request text. Using it here is what keeps the sent
     // body byte-identical to what the preview showed.
-    const { members, eventName, campaignKey, eligible, alreadySent, text, noPhone } = plan;
+    const {
+      members, eventName, campaignKey, eligible, alreadySent, text, noPhone, overLimit,
+    } = plan;
 
     // The campaign row opens the 7-day campaign window.
     try {
@@ -511,8 +528,14 @@ async function sendCustomCampaign(req, res) {
 
     return res.json({
       success: true,
-      message: `Custom SMS campaign completed. Sent ${sent}, skipped ${skipped}, failed ${failed}.`,
-      data: { sent, skipped, failed, noPhone, total: members.length, daysRemaining: 7 },
+      message: `Custom SMS campaign completed. Sent ${sent}, skipped ${skipped}, failed ${failed}.`
+        + (overLimit.length ? ` ${overLimit.length} over the one-SMS limit and not sent.` : ''),
+      data: {
+        sent, skipped, failed, noPhone,
+        overLimit: overLimit.length,
+        overLimitNames: overLimit.slice(0, 10).map(m => m.name),
+        total: members.length, daysRemaining: 7,
+      },
     });
   } catch (err) {
     console.error('BEEM ERROR FULL:', err.response?.data || err.message);
@@ -583,10 +606,23 @@ async function resolveCampaign(req, body) {
   const sendable = members.filter(m => isSendablePhone(m.phone));
   const noPhone  = members.length - sendable.length;
 
-  const eligible    = sendable.filter(m => !contacted.has(m.id));
   const alreadySent = sendable.filter(m =>  contacted.has(m.id));
 
-  return { members, eventName, campaignKey, templateId, text, eligible, alreadySent, noPhone };
+  // The rendered length depends on the recipient's own name, so every member
+  // is measured individually. A template that fits "Ali" may not fit
+  // "Leonard Kusekwa Mwakalonga" — those members are held back, never
+  // truncated, and never silently split into two paid segments.
+  const eligible  = [];
+  const overLimit = [];
+  for (const m of sendable.filter(x => !contacted.has(x.id))) {
+    const { segments } = measureSms(buildCustomMessage(m.name, eventName, text));
+    (segments > 1 ? overLimit : eligible).push(m);
+  }
+
+  return {
+    members, eventName, campaignKey, templateId, text,
+    eligible, alreadySent, noPhone, overLimit,
+  };
 }
 
 // ── POST /api/sms/members/campaign/preview ──────────────────────
@@ -611,9 +647,15 @@ async function previewCustomCampaign(req, res, next) {
         eligible:    plan.eligible.length,
         alreadySent: plan.alreadySent.length,
         noPhone:     plan.noPhone,
+        overLimit:   plan.overLimit.length,
+        // Names are listed so the operator can see exactly whose message is
+        // too long (usually the longest names) and shorten the template.
+        overLimitNames: plan.overLimit.slice(0, 10).map(m => m.name),
+        limit:       CUSTOM_SMS_SINGLE_LIMIT,
         campaign:    limit,
         preview:     sample ? buildCustomMessage(sample.name, plan.eventName, plan.text) : '',
         previewFor:  sample ? sample.name : '',
+        ...(sample ? measureSms(buildCustomMessage(sample.name, plan.eventName, plan.text)) : {}),
       },
     });
   } catch (err) {

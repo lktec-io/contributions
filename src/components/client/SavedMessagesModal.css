@@ -283,3 +283,55 @@
     justify-content: center;
   }
 }
+
+/* ── Character / segment counter ─────────────── */
+.sm-counter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.sm-count-main {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.sm-counter.is-over .sm-count-main {
+  color: var(--accent-red);
+  font-weight: 600;
+}
+
+.sm-seg {
+  flex-shrink: 0;
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: var(--accent-green);
+  background: rgba(0, 184, 148, 0.12);
+}
+
+.sm-seg-over {
+  color: var(--accent-red);
+  background: rgba(255, 76, 76, 0.14);
+}
+
+.sm-over-note {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--accent-red);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 420px) {
+  .sm-counter {
+    justify-content: space-between;
+    gap: 6px;
+  }
+}

@@ -52,14 +52,15 @@ function normalizeSms(text) {
 }
 
 /**
- * Builds the final Custom SMS body in the fixed three-part order:
+ * Builds the final Custom SMS body in the fixed order:
  *
- *   line 1  EVENT NAME   (uppercased)
- *   line 2  MEMBER NAME  (uppercased)
- *   line 3+ the operator's message, unchanged apart from whitespace tidy-up
+ *   line 1  EVENT NAME        (uppercased)
+ *   line 2  HABARI NAME,      (uppercased)
+ *   blank
+ *   line 4+ the operator's message, unchanged apart from whitespace tidy-up
  *
- * No greeting and no signature are ever added. A missing event or name simply
- * drops that line rather than leaving a blank one.
+ * HABARI is the only greeting ever added, and no signature is appended.
+ * A missing event or name drops that line rather than leaving a blank one.
  *
  * @returns {string} the exact SMS body
  */
@@ -68,17 +69,19 @@ function formatCustomSms({ name, event, message }) {
   // lines are uppercased.
   const resolved = resolveVariables(message, { name, event });
 
-  const lines = [];
-  const ev  = String(event || '').trim();
-  const who = String(name  || '').trim();
-
-  if (ev)  lines.push(ev.toUpperCase());
-  if (who) lines.push(who.toUpperCase());
-
+  const ev   = String(event || '').trim();
+  const who  = String(name  || '').trim();
   const body = normalizeSms(resolved);
-  if (body) lines.push(body);
 
-  return normalizeSms(lines.join('\n'));
+  const head = [];
+  if (ev)  head.push(ev.toUpperCase());
+  if (who) head.push(`HABARI ${who.toUpperCase()},`);
+
+  if (!head.length) return body;
+  if (!body) return normalizeSms(head.join('\n'));
+
+  // One blank line separates the header block from the operator's message.
+  return normalizeSms(`${head.join('\n')}\n\n${body}`);
 }
 
 /*  Deterministic identity for a Send-to-All campaign.
@@ -95,11 +98,76 @@ function buildCampaignKey({ userId, templateId, message, eventId }) {
   return crypto.createHash('sha256').update(basis).digest('hex').slice(0, 64);
 }
 
+/*  ── SMS length and segment counting ────────────────────────────
+    Single source of truth for "how many SMS will this cost?".
+
+    Beem is called with encoding 0 (GSM-7), where one segment holds 160
+    characters. A message containing anything outside the GSM 03.38 alphabet
+    is carried as UCS-2 instead, where a segment holds only 70 — so the count
+    reflects the encoding the text actually forces.                          */
+
+const CUSTOM_SMS_SINGLE_LIMIT = 160;   // the product rule: keep Custom SMS to one SMS
+
+const GSM7_BASIC =
+  '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?'
+  + '¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà';
+// Each of these costs two GSM-7 characters (escape + char).
+const GSM7_EXTENDED = '^{}\\[~]|€';
+
+const GSM7_LIMITS = { single: 160, multi: 153 };
+const UCS2_LIMITS = { single: 70,  multi: 67  };
+
+/**
+ * Measures a fully rendered SMS body.
+ * @returns {{chars:number, segments:number, encoding:'GSM-7'|'UCS-2',
+ *            limit:number, withinSingle:boolean}}
+ *          `chars` is billable length (GSM-7 extended characters count as 2).
+ */
+function measureSms(text) {
+  const s = String(text || '');
+
+  let gsm = true;
+  let chars = 0;
+  for (const ch of s) {
+    if (GSM7_BASIC.includes(ch)) { chars += 1; continue; }
+    if (GSM7_EXTENDED.includes(ch)) { chars += 2; continue; }
+    gsm = false;
+    break;
+  }
+
+  if (!gsm) {
+    // UCS-2 bills per UTF-16 code unit, so astral characters count as 2.
+    chars = s.length;
+  }
+
+  const limits = gsm ? GSM7_LIMITS : UCS2_LIMITS;
+  const segments = chars === 0 ? 0
+    : chars <= limits.single ? 1
+      : Math.ceil(chars / limits.multi);
+
+  return {
+    chars,
+    segments,
+    encoding: gsm ? 'GSM-7' : 'UCS-2',
+    limit: limits.single,
+    withinSingle: segments <= 1,
+  };
+}
+
+/** Renders and measures in one step — what every caller should use. */
+function measureCustomSms({ name, event, message }) {
+  const body = formatCustomSms({ name, event, message });
+  return { body, ...measureSms(body) };
+}
+
 module.exports = {
   SUPPORTED_VARIABLES,
+  CUSTOM_SMS_SINGLE_LIMIT,
   findUnsupportedVariables,
   resolveVariables,
   normalizeSms,
   formatCustomSms,
+  measureSms,
+  measureCustomSms,
   buildCampaignKey,
 };

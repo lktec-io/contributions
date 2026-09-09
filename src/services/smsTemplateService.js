@@ -7,4 +7,9 @@ export const smsTemplateService = {
   create: (data)     => api.post('/sms-templates', data),
   update: (id, data) => api.put(`/sms-templates/${id}`, data),
   remove: (id)       => api.delete(`/sms-templates/${id}`),
+
+  // Renders + measures on the server using the same formatter the send path
+  // uses, so the counter can never disagree with what Beem receives.
+  preview: (message, eventId) =>
+    api.post('/sms-templates/preview', { message, eventId }),
 };
