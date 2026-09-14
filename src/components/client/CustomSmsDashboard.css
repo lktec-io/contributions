@@ -1,42 +1,58 @@
 /* ══════════════════════════════════════════════
-   CUSTOM SMS DASHBOARD — communication only
+   CUSTOM SMS DASHBOARD — fintech communication overview
+   Radii: controls 3px · inputs 5px · cards 8px
    ══════════════════════════════════════════════ */
 
 .csd {
+  --cs-r-btn: 3px;
+  --cs-r-card: 8px;
+  --cs-r-tag: 3px;
+
   width: 100%;
-  max-width: 100%;
+  max-width: 1180px;
   min-width: 0;
+  margin: 0 auto;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 /* ── Welcome ─────────────────────────────────── */
 .csd-welcome {
+  position: relative;
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px 20px;
   flex-wrap: wrap;
   min-width: 0;
-  padding: 20px 22px;
+  padding: 16px 18px 16px 20px;
   box-sizing: border-box;
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background:
-    linear-gradient(135deg, rgba(0, 184, 148, 0.14) 0%, rgba(0, 184, 148, 0) 55%),
-    var(--bg-card);
+  border-radius: var(--cs-r-card);
+  overflow: hidden;
 }
 
-.csd-welcome-text { min-width: 0; flex: 1 1 240px; }
+/* A single brand rule on the left edge instead of a gradient wash */
+.csd-welcome::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--accent-green);
+}
+
+.csd-welcome-text { min-width: 0; flex: 1 1 280px; }
 
 .csd-title {
-  margin: 0 0 5px;
+  margin: 0 0 3px;
   font-family: var(--font-heading);
-  font-size: 20px;
+  font-size: clamp(16px, 0.6vw + 13px, 19px);
   font-weight: 600;
   line-height: 1.3;
+  letter-spacing: -0.2px;
   color: var(--text-primary);
   overflow-wrap: anywhere;
 }
@@ -49,8 +65,9 @@
 }
 
 .csd-date {
-  margin: 8px 0 0;
+  margin: 6px 0 0;
   font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
   color: var(--text-muted);
 }
 
@@ -59,134 +76,152 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-  padding: 10px 14px;
-  border: 1px solid rgba(0, 184, 148, 0.3);
-  border-radius: 10px;
-  background: rgba(0, 184, 148, 0.08);
+  max-width: 100%;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--cs-r-tag);
 }
 
 .csd-event-label {
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--accent-green);
 }
 
 .csd-event-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
+  line-height: 1.35;
   color: var(--text-primary);
   overflow-wrap: anywhere;
 }
 
-/* ── Stats ───────────────────────────────────── */
+/* ── Stats: LABEL → value → context ─────────── */
 .csd-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
 .csd-stat {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
-  padding: 14px 15px;
+  padding: 12px 14px;
   box-sizing: border-box;
-  border: 1px solid var(--border-color);
-  border-left: 3px solid var(--accent-green);
-  border-radius: 10px;
   background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--cs-r-card);
 }
 
-.csd-stat-blue  { border-left-color: #3B82F6; }
-.csd-stat-green { border-left-color: var(--accent-green); }
-.csd-stat-teal  { border-left-color: #14B8A6; }
-.csd-stat-amber { border-left-color: var(--accent-orange); }
+/* Reorder visually without touching the markup */
+.csd-stat-label { order: 1; }
+.csd-stat-value { order: 2; }
+.csd-stat-hint  { order: 3; }
 
 .csd-stat-icon {
+  position: absolute;
+  top: 11px;
+  right: 12px;
   display: inline-flex;
-  margin-bottom: 6px;
   color: var(--text-muted);
+}
+
+.csd-stat-label {
+  padding-right: 22px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
 }
 
 .csd-stat-value {
   font-family: var(--font-heading);
-  font-size: 22px;
+  font-size: clamp(18px, 0.8vw + 13px, 22px);
   font-weight: 700;
   line-height: 1.15;
+  font-variant-numeric: tabular-nums;
   color: var(--text-primary);
   overflow-wrap: anywhere;
 }
 
-.csd-stat-label {
-  font-size: 11.5px;
-  color: var(--text-secondary);
-  overflow-wrap: anywhere;
-}
-
 .csd-stat-hint {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--text-muted);
 }
+
+/* Accent is a thin top rule, one colour family, not a rainbow */
+.csd-stat::after {
+  content: '';
+  position: absolute;
+  inset: -1px -1px auto -1px;
+  height: 2px;
+  border-radius: var(--cs-r-card) var(--cs-r-card) 0 0;
+  background: transparent;
+}
+
+.csd-stat-green::after,
+.csd-stat-teal::after,
+.csd-stat-blue::after { background: var(--accent-green); opacity: 0.7; }
+.csd-stat-amber::after { background: var(--accent-orange); }
 
 /* ── Sections ────────────────────────────────── */
 .csd-section { min-width: 0; }
 
 .csd-section-title {
-  margin: 0 0 10px;
-  font-size: 11px;
+  margin: 0 0 8px;
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
+/* ── Quick actions ───────────────────────────── */
 .csd-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
   min-width: 0;
 }
 
 .csd-action {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 8px;
   min-width: 0;
-  min-height: 44px;
-  padding: 10px 14px;
+  min-height: 40px;
+  padding: 9px 12px;
   box-sizing: border-box;
   font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 500;
+  line-height: 1.25;
+  text-align: left;
   color: var(--text-primary);
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--cs-r-btn);
   cursor: pointer;
-  transition:
-    border-color 180ms ease,
-    background-color 180ms ease,
-    box-shadow 180ms ease,
-    transform 180ms ease;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
 }
 
-.csd-action span { overflow-wrap: anywhere; }
+.csd-action svg { flex-shrink: 0; color: var(--text-secondary); }
+.csd-action span { min-width: 0; overflow-wrap: anywhere; }
 
 @media (hover: hover) {
-  .csd-action:hover {
-    border-color: rgba(0, 184, 148, 0.45);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
-  }
-
-  [data-theme="light"] .csd-action:hover {
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-  }
+  .csd-action:hover { border-color: rgba(0, 184, 148, 0.5); }
+  .csd-action:hover svg { color: var(--accent-green); }
 }
 
 .csd-action:focus-visible {
@@ -200,8 +235,11 @@
   border-color: var(--accent-green);
 }
 
-.csd-action-primary:hover {
-  background: var(--accent-green-hover);
+.csd-action-primary svg { color: #fff; }
+
+@media (hover: hover) {
+  .csd-action-primary:hover { background: var(--accent-green-hover); border-color: var(--accent-green-hover); }
+  .csd-action-primary:hover svg { color: #fff; }
 }
 
 /* ── Recent members ──────────────────────────── */
@@ -211,7 +249,10 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--cs-r-card);
+  overflow: hidden;
 }
 
 .csd-recent-item {
@@ -219,14 +260,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  flex-wrap: wrap;
   min-width: 0;
-  padding: 11px 14px;
+  padding: 10px 14px;
   box-sizing: border-box;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
 }
+
+.csd-recent-item:last-child { border-bottom: 0; }
 
 .csd-recent-info {
   display: flex;
@@ -236,7 +276,7 @@
 }
 
 .csd-recent-name {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   overflow-wrap: anywhere;
@@ -244,58 +284,73 @@
 
 .csd-recent-phone {
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
   color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 
 .csd-pill {
   flex-shrink: 0;
-  padding: 3px 9px;
-  font-size: 11px;
-  font-weight: 500;
-  border-radius: 999px;
+  padding: 3px 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  border-radius: var(--cs-r-tag);
   white-space: nowrap;
 }
 
-.csd-pill-ok {
-  color: var(--accent-green);
-  background: rgba(0, 184, 148, 0.12);
-}
-
-.csd-pill-wait {
-  color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-[data-theme="light"] .csd-pill-wait {
-  background: rgba(0, 0, 0, 0.05);
-}
+.csd-pill-ok   { color: var(--accent-green); background: rgba(0, 184, 148, 0.12); }
+.csd-pill-wait { color: var(--accent-orange); background: rgba(255, 165, 0, 0.12); }
 
 .csd-empty {
   margin: 0;
-  padding: 18px;
+  padding: 18px 16px;
   font-size: 12.5px;
   line-height: 1.55;
   color: var(--text-muted);
   text-align: center;
+  background: var(--bg-card);
   border: 1px dashed var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--cs-r-card);
 }
 
 /* ── Responsive ──────────────────────────────── */
+@media (max-width: 1100px) {
+  .csd-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 @media (max-width: 900px) {
   .csd-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .csd-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  /* Global mobile rule forces buttons to width:auto !important — grid cells
+     still size them, and min-width keeps the tile a proper target. */
+  .csd-action { min-width: 0; min-height: 44px; }
 }
 
 @media (max-width: 560px) {
-  .csd-welcome { padding: 16px 16px; }
-  .csd-title { font-size: 17px; }
-  .csd-event { width: 100%; box-sizing: border-box; }
+  .csd { gap: 14px; }
+
+  .csd-welcome { padding: 14px 14px 14px 17px; align-items: flex-start; }
+  .csd-event { width: 100%; }
+
+  .csd-stat { padding: 10px 11px; }
+  .csd-stat-icon { top: 9px; right: 9px; }
+
+  /* Two tiles per row; the primary campaign action spans the full width
+     and leads, so the most important action is the first thing tapped. */
+  .csd-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .csd-action-primary { grid-column: 1 / -1; order: -1; justify-content: center; }
+
+  .csd-recent-item { padding: 10px 12px; }
 }
 
-@media (max-width: 420px) {
-  .csd-stats { grid-template-columns: 1fr; }
-  .csd-actions { grid-template-columns: 1fr; }
-  .csd-stat-value { font-size: 20px; }
+@media (max-width: 340px) {
+  .csd-stat-label { font-size: 10px; letter-spacing: 0.3px; }
+  .csd-action { font-size: 12px; padding: 8px 10px; gap: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .csd-action { transition: none; }
 }

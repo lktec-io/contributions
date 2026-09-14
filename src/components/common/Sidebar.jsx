@@ -79,7 +79,7 @@ export default function Sidebar({ isOpen, onClose, smsMode }) {
           {logoUrl ? (
             <img src={logoUrl} alt="" className="sidebar-logo-mark sidebar-logo-mark-img" />
           ) : (
-            <span className="sidebar-logo-mark">FH</span>
+            <span className="sidebar-logo-mark">CN</span>
           )}
           <span className="sidebar-logo-text">{organizationName}</span>
         </div>

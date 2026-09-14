@@ -23,7 +23,7 @@
   color: var(--text-muted);
   text-align: center;
   border: 1px dashed var(--border-color);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 /* ── Saved message rows ──────────────────────── */
@@ -47,7 +47,7 @@
   box-sizing: border-box;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 8px;
   transition: border-color 180ms ease;
 }
 
@@ -104,7 +104,7 @@
   color: var(--text-secondary);
   background: transparent;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: 3px;
   cursor: pointer;
   white-space: nowrap;
   transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease;
@@ -168,7 +168,7 @@
   color: var(--accent-green);
   background: rgba(0, 184, 148, 0.1);
   border: 1px solid rgba(0, 184, 148, 0.3);
-  border-radius: 999px;
+  border-radius: 3px;
   cursor: pointer;
   white-space: nowrap;
   transition: background-color 180ms ease, border-color 180ms ease;
@@ -197,7 +197,7 @@
   color: var(--text-primary);
   background: var(--bg-input);
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  border-radius: 5px;
   resize: vertical;
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
@@ -232,7 +232,7 @@
   padding: 11px 13px;
   background: rgba(0, 184, 148, 0.07);
   border: 1px solid rgba(0, 184, 148, 0.26);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .sm-preview-label {
@@ -307,10 +307,10 @@
 
 .sm-seg {
   flex-shrink: 0;
-  padding: 2px 9px;
+  padding: 2px 7px;
   font-size: 11px;
   font-weight: 600;
-  border-radius: 999px;
+  border-radius: 3px;
   white-space: nowrap;
   color: var(--accent-green);
   background: rgba(0, 184, 148, 0.12);
@@ -334,4 +334,19 @@
     justify-content: space-between;
     gap: 6px;
   }
+}
+
+/* Touch: 16px text stops iOS Safari zooming on focus, and the variable chips
+   and row actions get real tap targets. min-width is used deliberately — a
+   global mobile rule forces button { width: auto !important }. */
+@media (max-width: 768px) {
+  .sm-textarea { font-size: 16px; }
+
+  .sm-var {
+    min-height: 36px;
+    min-width: 36px;
+    padding: 6px 10px;
+  }
+
+  .sm-btn { min-height: 36px; }
 }

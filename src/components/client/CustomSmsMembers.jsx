@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import {
   FiPlus, FiEdit2, FiSend, FiTrash2, FiUsers, FiUpload, FiDownload, FiFileText,
   FiBookmark, FiSearch, FiUserPlus, FiPhone, FiPhoneOff, FiClock, FiGrid, FiList,
-  FiArrowDown, FiRefreshCw, FiMessageSquare, FiCalendar, FiEye,
+  FiArrowDown, FiRefreshCw, FiMessageSquare, FiCalendar, FiEye, FiMoreVertical,
 } from 'react-icons/fi';
 import SavedMessagesModal from './SavedMessagesModal';
 import { MemberAvatar, SmsPhonePreview, MemberSkeleton } from './CustomSmsUI';
@@ -14,7 +14,6 @@ import { smsService } from '../../services/smsService';
 import { getErrorMessage } from '../../utils/helpers';
 import Modal from '../common/Modal';
 import ConfirmDialog from '../common/ConfirmDialog';
-import EmptyState from '../common/EmptyState';
 import SmsSendingModal from '../common/SmsSendingModal';
 import './CustomSmsMembers.css';
 
@@ -43,6 +42,21 @@ export default function CustomSmsMembers() {
 
   // Presentation only — which layout the member list uses.
   const [view, setView] = useState('list');
+
+  // Presentation only — which row's action menu is open on narrow screens.
+  const [menuFor, setMenuFor] = useState(null);
+
+  useEffect(() => {
+    if (menuFor == null) return undefined;
+    const onDown = (e) => { if (!e.target.closest?.('.csm-more')) setMenuFor(null); };
+    const onKey  = (e) => { if (e.key === 'Escape') setMenuFor(null); };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuFor]);
 
   const [confirmWipe, setConfirmWipe] = useState(false);
   const [wipeText,    setWipeText]    = useState('');
@@ -605,24 +619,57 @@ export default function CustomSmsMembers() {
                       onClick={() => openCompose(m)}
                       disabled={blocked}
                       title={sendLabel(m)}
+                      aria-label={`${sendLabel(m)}: ${m.name}`}
                     >
-                      <FiSend size={13} />
+                      <FiSend size={14} aria-hidden="true" />
                       <span className="csm-send-text">{sendLabel(m)}</span>
                     </button>
+
+                    {/* Wide screens: direct icon actions */}
                     <button
-                      className="csm-icon-btn"
+                      className="csm-icon-btn csm-wide-only"
                       onClick={() => openEdit(m)}
                       title={`Edit ${m.name}`} aria-label={`Edit ${m.name}`}
                     >
-                      <FiEdit2 size={13} />
+                      <FiEdit2 size={14} aria-hidden="true" />
                     </button>
                     <button
-                      className="csm-icon-btn csm-icon-danger"
+                      className="csm-icon-btn csm-icon-danger csm-wide-only"
                       onClick={() => setConfirmDelete(m)}
                       title={`Delete ${m.name}`} aria-label={`Delete ${m.name}`}
                     >
-                      <FiTrash2 size={13} />
+                      <FiTrash2 size={14} aria-hidden="true" />
                     </button>
+
+                    {/* Narrow screens: the same two handlers behind one menu */}
+                    <div className="csm-more csm-narrow-only">
+                      <button
+                        className="csm-icon-btn"
+                        onClick={() => setMenuFor(cur => (cur === m.id ? null : m.id))}
+                        aria-haspopup="menu"
+                        aria-expanded={menuFor === m.id}
+                        aria-label={`More actions for ${m.name}`}
+                        title="More actions"
+                      >
+                        <FiMoreVertical size={15} aria-hidden="true" />
+                      </button>
+                      {menuFor === m.id && (
+                        <div className="csm-menu" role="menu">
+                          <button
+                            type="button" role="menuitem" className="csm-menu-item"
+                            onClick={() => { setMenuFor(null); openEdit(m); }}
+                          >
+                            <FiEdit2 size={14} aria-hidden="true" /> Edit member
+                          </button>
+                          <button
+                            type="button" role="menuitem" className="csm-menu-item is-danger"
+                            onClick={() => { setMenuFor(null); setConfirmDelete(m); }}
+                          >
+                            <FiTrash2 size={14} aria-hidden="true" /> Delete member
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </li>
               );

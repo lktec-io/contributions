@@ -88,7 +88,7 @@ export default function CustomSmsDashboard() {
     <div className="csd">
       <section className="csd-welcome">
         <div className="csd-welcome-text">
-          <h2 className="csd-title">Welcome back, {user?.name || 'there'} 👋</h2>
+          <h2 className="csd-title">Welcome back, {user?.name || 'there'}</h2>
           <p className="csd-sub">
             Manage your members and send personalized event notifications with ease.
           </p>
