@@ -118,7 +118,7 @@
 .cd-event-card {
   background: var(--bg-main);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 4px;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;

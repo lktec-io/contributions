@@ -9,7 +9,7 @@
   display: inline-flex;
   align-items: center;
   padding: 3px 9px;
-  border-radius: 20px;
+  border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
 }
@@ -27,30 +27,30 @@
 }
 
 .role-client_user {
-  background-color: rgba(0, 184, 148, 0.12);
+  background-color: var(--accent-green-soft);
   color: var(--accent-green);
-  border: 1px solid rgba(0, 184, 148, 0.25);
+  border: 1px solid var(--accent-green-line);
 }
 
 .status-pill {
   display: inline-flex;
   align-items: center;
   padding: 3px 9px;
-  border-radius: 20px;
+  border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
 }
 
 .pill-active {
-  background-color: rgba(0, 184, 148, 0.12);
+  background-color: var(--accent-green-soft);
   color: var(--accent-green);
-  border: 1px solid rgba(0, 184, 148, 0.25);
+  border: 1px solid var(--accent-green-line);
 }
 
 .pill-inactive {
-  background-color: rgba(255, 76, 76, 0.1);
+  background-color: rgba(180, 35, 24, 0.09);
   color: var(--accent-red);
-  border: 1px solid rgba(255, 76, 76, 0.25);
+  border: 1px solid rgba(180, 35, 24, 0.26);
 }
 
 .td-actions {
@@ -79,7 +79,7 @@
 .btn-sm-danger {
   background-color: transparent;
   color: var(--accent-red);
-  border-color: rgba(255, 76, 76, 0.4);
+  border-color: rgba(180, 35, 24, 0.26);
 }
 
 .btn-sm-danger:hover:not(:disabled) {
@@ -90,7 +90,7 @@
 .btn-sm-warning {
   background-color: transparent;
   color: var(--accent-orange);
-  border-color: rgba(255, 165, 0, 0.4);
+  border-color: rgba(184, 115, 11, 0.26);
 }
 
 .btn-sm-warning:hover:not(:disabled) {
@@ -101,7 +101,7 @@
 .btn-sm-success {
   background-color: transparent;
   color: var(--accent-green);
-  border-color: rgba(0, 184, 148, 0.4);
+  border-color: var(--accent-green-line);
 }
 
 .btn-sm-success:hover:not(:disabled) {
@@ -112,7 +112,7 @@
 .btn-sm-orange {
   background-color: transparent;
   color: var(--accent-orange);
-  border-color: rgba(255, 165, 0, 0.4);
+  border-color: rgba(184, 115, 11, 0.26);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -245,7 +245,7 @@
   box-sizing: border-box;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 4px;
   cursor: pointer;
   transition:
     border-color 180ms ease,
@@ -283,13 +283,13 @@
   width: 26px;
   height: 26px;
   flex-shrink: 0;
-  border-radius: 8px;
+  border-radius: 4px;
   color: var(--text-secondary);
   background: rgba(255, 255, 255, 0.05);
   transition: color 180ms ease, background-color 180ms ease;
 }
 
-[data-theme="light"] .sms-card-icon {
+:root:not([data-theme="dark"]) .sms-card-icon {
   background: rgba(0, 0, 0, 0.05);
 }
 
@@ -327,12 +327,12 @@
 /* ── Hover (pointer devices only) ───────────── */
 @media (hover: hover) {
   .sms-card:hover {
-    border-color: rgba(0, 184, 148, 0.45);
+    border-color: var(--accent-green-line);
     transform: translateY(-1px);
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
   }
 
-  [data-theme="light"] .sms-card:hover {
+  :root:not([data-theme="dark"]) .sms-card:hover {
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.09);
   }
 }
@@ -340,13 +340,13 @@
 /* ── Selected ───────────────────────────────── */
 .sms-card.is-selected {
   border-color: var(--accent-green);
-  background: rgba(0, 184, 148, 0.09);
-  box-shadow: 0 0 0 1px rgba(0, 184, 148, 0.35), 0 2px 10px rgba(0, 184, 148, 0.1);
+  background: var(--accent-green-soft);
+  box-shadow: 0 0 0 1px var(--accent-green-line), 0 2px 10px var(--accent-green-soft);
 }
 
 .sms-card.is-selected .sms-card-icon {
   color: var(--accent-green);
-  background: rgba(0, 184, 148, 0.16);
+  background: var(--accent-green-soft);
 }
 
 .sms-card.is-selected .sms-card-check {

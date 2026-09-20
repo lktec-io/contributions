@@ -75,7 +75,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: 4px;
   border: none;
   background: none;
   color: var(--text-secondary);
@@ -90,11 +90,11 @@
   background: rgba(255,255,255,0.05);
   color: var(--text-primary);
 }
-[data-theme="light"] .st-nav-item:hover {
+:root:not([data-theme="dark"]) .st-nav-item:hover {
   background: rgba(0,0,0,0.04);
 }
 .st-nav-item-active {
-  background: rgba(0,184,148,0.12);
+  background: var(--accent-green-soft);
   color: var(--accent-green);
 }
 .st-nav-icon { flex-shrink: 0; }
@@ -185,8 +185,8 @@
 .st-input::placeholder { color: var(--text-muted); }
 .st-input:focus,
 .st-select:focus {
-  border-color: rgba(0,184,148,0.5);
-  box-shadow: 0 0 0 3px rgba(0,184,148,0.10);
+  border-color: var(--accent-green-line);
+  box-shadow: 0 0 0 3px var(--accent-green-soft);
 }
 
 .st-select {
@@ -196,7 +196,7 @@
   background-position: right 12px center;
   padding-right: 36px;
 }
-[data-theme="light"] .st-select {
+:root:not([data-theme="dark"]) .st-select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234A5568' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
 }
 
@@ -234,8 +234,8 @@
   animation: st-fade-up 0.25s ease both;
 }
 .st-logo-preview-error {
-  border-color: rgba(255,76,76,0.35);
-  background: rgba(255,76,76,0.05);
+  border-color: rgba(180, 35, 24, 0.26);
+  background: rgba(180, 35, 24, 0.09);
 }
 
 .st-logo-img {
@@ -280,7 +280,7 @@
   width: 112px;
   height: 112px;
   flex-shrink: 0;
-  border-radius: 20px;
+  border-radius: 4px;
   border: 1px solid var(--border-color);
   background: var(--bg-input);
   display: flex;
@@ -292,7 +292,7 @@
 
 .st-brand-logo-preview:hover {
   border-color: var(--accent-green);
-  box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.12);
+  box-shadow: 0 0 0 3px var(--accent-green-soft);
 }
 
 .st-brand-logo-img {
@@ -305,7 +305,7 @@
 .st-brand-logo-placeholder {
   width: 56px;
   height: 56px;
-  border-radius: 14px;
+  border-radius: 4px;
   background: linear-gradient(135deg, var(--accent-green) 0%, #0a2540 100%);
   color: #fff;
   display: flex;
@@ -336,11 +336,11 @@
 
 .st-brand-remove-btn {
   color: var(--accent-red);
-  border-color: rgba(255, 76, 76, 0.3);
+  border-color: rgba(180, 35, 24, 0.26);
 }
 
 .st-brand-remove-btn:hover:not(:disabled) {
-  background: rgba(255, 76, 76, 0.08);
+  background: rgba(180, 35, 24, 0.09);
   border-color: var(--accent-red);
 }
 
@@ -407,7 +407,7 @@
   position: relative;
   width: 42px;
   height: 24px;
-  border-radius: 999px;
+  border-radius: 4px;
   border: none;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
@@ -457,13 +457,13 @@
   background: var(--bg-input);
 }
 .st-sms-card:hover {
-  border-color: rgba(0,184,148,0.35);
-  background: rgba(0,184,148,0.04);
+  border-color: var(--accent-green-line);
+  background: var(--accent-green-soft);
 }
 .st-sms-card-active {
   border-color: var(--accent-green);
-  background: rgba(0,184,148,0.08);
-  box-shadow: 0 0 0 3px rgba(0,184,148,0.12);
+  background: var(--accent-green-soft);
+  box-shadow: 0 0 0 3px var(--accent-green-soft);
 }
 
 .st-sms-radio { display: none; }
@@ -530,7 +530,7 @@
   border-radius: 4px;
   font-size: 11.5px;
 }
-[data-theme="light"] .st-info-box code {
+:root:not([data-theme="dark"]) .st-info-box code {
   background: rgba(0,0,0,0.06);
 }
 
@@ -561,7 +561,7 @@
   width: auto !important;
 }
 .st-save-btn:hover:not(:disabled) {
-  background: var(--accent-green-hover, #00a07d);
+  background: var(--accent-green-hover, var(--accent-green-hover));
   transform: translateY(-1px);
 }
 .st-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -596,7 +596,7 @@
 }
 .st-skeleton-line {
   height: 16px;
-  border-radius: 6px;
+  border-radius: 4px;
   background: linear-gradient(
     90deg,
     var(--bg-input) 25%,
@@ -744,7 +744,7 @@
   transition: var(--transition);
 }
 .st-pm-remove-btn:hover {
-  background: rgba(255, 76, 76, 0.12);
+  background: rgba(180, 35, 24, 0.09);
   border-color: var(--accent-red);
 }
 
@@ -763,7 +763,7 @@
   transition: var(--transition);
 }
 .st-pm-add-btn:hover {
-  background: rgba(0, 184, 148, 0.08);
+  background: var(--accent-green-soft);
   border-color: var(--accent-green);
 }
 

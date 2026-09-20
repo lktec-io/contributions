@@ -16,6 +16,7 @@ import Modal from '../common/Modal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import SmsSendingModal from '../common/SmsSendingModal';
 import './CustomSmsMembers.css';
+import SearchableSelect from '../common/SearchableSelect';
 
 /*  Custom SMS workspace.
     Communication-only: members are name + phone. No contribution, pledge,
@@ -826,12 +827,12 @@ export default function CustomSmsMembers() {
 
             <div className="form-group">
               <label><FiCalendar size={12} aria-hidden="true" /> Event</label>
-              <select value={eventId} onChange={e => setEventId(e.target.value)}>
-                <option value="">— No event —</option>
-                {events.map(ev => (
-                  <option key={ev.id} value={ev.id}>{ev.name}</option>
-                ))}
-              </select>
+              <SearchableSelect
+                value={eventId}
+                onChange={setEventId}
+                aria-label="Event"
+                options={[{ value: '', label: '— No event —' }, ...events.map(ev => ({ value: ev.id, label: ev.name }))]}
+              />
               {events.length === 0 && (
                 <span className="csm-chars">No events are assigned to your account yet.</span>
               )}
@@ -893,10 +894,12 @@ export default function CustomSmsMembers() {
 
           <div className="form-group">
             <label>Event</label>
-            <select value={eventId} onChange={e => setEventId(e.target.value)}>
-              <option value="">— No event —</option>
-              {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-            </select>
+            <SearchableSelect
+              value={eventId}
+              onChange={setEventId}
+              aria-label="Event"
+              options={[{ value: '', label: '— No event —' }, ...events.map(ev => ({ value: ev.id, label: ev.name }))]}
+            />
           </div>
 
           {templatePicker(sendingAll)}

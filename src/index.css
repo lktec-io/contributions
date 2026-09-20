@@ -1,7 +1,7 @@
 /* ============================================================
-   Google Fonts — Poppins
+   Google Fonts — Nunito (single family, whole product)
    ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&display=swap');
 
 /* ============================================================
    CSS Reset
@@ -17,48 +17,99 @@
 }
 
 /* ============================================================
-   CSS Variables — Dark Theme (default)
+   CSS Variables — White Theme (default)
+
+   Surfaces are white and separated by hairlines rather than by
+   shadow or fill. Emerald is the brand anchor; gold marks the
+   active state only. Radii never exceed 4px.
    ============================================================ */
 :root {
-  --bg-primary: #0D1B2A;
-  --bg-secondary: #1B2838;
-  --bg-card: #162232;
-  --bg-input: #1B2838;
-  --text-primary: #FFFFFF;
-  --text-secondary: #8892A0;
-  --text-muted: #5A6577;
-  --accent-green: #00B894;
-  --accent-green-hover: #00A07D;
-  --accent-orange: #FFA500;
-  --accent-red: #FF4C4C;
-  --accent-blue: #3B82F6;
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-radius: 6px;
-  --border-radius-lg: 12px;
-  --shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.45);
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255,255,255,0.04);
-  --glow-green: 0 0 20px rgba(0, 184, 148, 0.2);
+  /* Surfaces */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #FAFBFB;
+  --bg-card: #FFFFFF;
+  --bg-input: #FFFFFF;
+  --bg-subtle: #F7F8F8;
+
+  /* Text */
+  --text-primary: #111418;
+  --text-secondary: #5A636E;
+  --text-muted: #8C949E;
+
+  /* Brand — deep royal emerald */
+  --accent-green: #0F5132;
+  --accent-green-hover: #0B3F27;
+  --accent-green-soft: rgba(15, 81, 50, 0.08);
+  --accent-green-line: rgba(15, 81, 50, 0.22);
+
+  /* Highlight — muted gold, active states only */
+  --accent-gold: #D4AF37;
+  --accent-gold-soft: rgba(212, 175, 55, 0.14);
+
+  /* Signals */
+  --accent-orange: #B8730B;
+  --accent-red: #B42318;
+  --accent-blue: #1D4ED8;
+
+  /* Hairlines & geometry */
+  --border-color: #EAEAEA;
+  --border-strong: #DCDEE1;
+  --border-radius: 3px;
+  --border-radius-lg: 4px;
+
+  /* Depth — restrained; structure comes from lines, not shadow */
+  --shadow: 0 1px 2px rgba(17, 20, 24, 0.04);
+  --shadow-lg: 0 6px 20px rgba(17, 20, 24, 0.10);
+  --shadow-card: none;
+  --glow-green: none;
+
+  /* Shell */
+  --sidebar-bg: #111418;
+  --sidebar-bg-hover: #1A1F25;
+  --sidebar-text: #A7AEB6;
+  --sidebar-text-active: #FFFFFF;
   --sidebar-width: 250px;
   --header-height: 60px;
-  --font-body: 'Poppins', sans-serif;
-  --font-heading: 'DM Sans', sans-serif;
+
+  --font-body: 'Nunito', sans-serif;
+  --font-heading: 'Nunito', sans-serif;
   --transition: all 0.2s ease;
 }
 
 /* ============================================================
-   CSS Variables — Light Theme
+   CSS Variables — Dark Theme (opt-in via the header toggle)
+
+   Same system, inverted. Emerald is lifted for contrast because
+   #0F5132 is unreadable on a charcoal ground.
    ============================================================ */
-[data-theme="light"] {
-  --bg-primary: #F5F7FA;
-  --bg-secondary: #FFFFFF;
-  --bg-card: #FFFFFF;
-  --bg-input: #F0F2F5;
-  --text-primary: #1A1A2E;
-  --text-secondary: #4A5568;
-  --text-muted: #A0AEC0;
-  --border-color: rgba(0, 0, 0, 0.1);
-  --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+[data-theme="dark"] {
+  --bg-primary: #0E1216;
+  --bg-secondary: #141A20;
+  --bg-card: #141A20;
+  --bg-input: #171E25;
+  --bg-subtle: #171E25;
+
+  --text-primary: #F2F4F6;
+  --text-secondary: #9AA3AD;
+  --text-muted: #6B747E;
+
+  --accent-green: #2E9E6B;
+  --accent-green-hover: #38B77D;
+  --accent-green-soft: rgba(46, 158, 107, 0.14);
+  --accent-green-line: rgba(46, 158, 107, 0.34);
+
+  --accent-orange: #E0913A;
+  --accent-red: #E5615A;
+  --accent-blue: #5B8DEF;
+
+  --border-color: #23292F;
+  --border-strong: #2E353D;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 6px 20px rgba(0, 0, 0, 0.55);
+
+  --sidebar-bg: #0A0D10;
+  --sidebar-bg-hover: #151A20;
 }
 
 /* ============================================================
@@ -202,8 +253,8 @@ button:active:not(:disabled) {
 
 .btn:hover:not(:disabled) {
   background-color: var(--accent-green-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 184, 148, 0.35), 0 0 0 1px rgba(0,184,148,0.2);
+  transform: none;
+  box-shadow: none;
 }
 
 .btn-secondary {
@@ -295,7 +346,7 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--accent-green);
-  box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.15);
+  box-shadow: 0 0 0 3px var(--accent-green-soft);
 }
 
 input:disabled,
@@ -311,7 +362,7 @@ textarea {
 }
 
 select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238892A0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238C949E' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 32px;
@@ -444,7 +495,7 @@ select:focus-visible,
 textarea:focus-visible {
   outline: none;
   border-color: var(--accent-green);
-  box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.15);
+  box-shadow: 0 0 0 3px var(--accent-green-soft);
 }
 
 /* ============================================================
@@ -468,7 +519,7 @@ textarea:focus-visible {
   align-items: center;
   justify-content: center;
   padding: 4px 10px;
-  border-radius: 20px;
+  border-radius: var(--border-radius);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.3px;
@@ -477,33 +528,33 @@ textarea:focus-visible {
 }
 
 .status-badge.badge-pledge {
-  background-color: rgba(255, 165, 0, 0.15);
+  background-color: rgba(184, 115, 11, 0.10);
   color: var(--accent-orange);
-  border: 1px solid rgba(255, 165, 0, 0.3);
+  border: 1px solid rgba(184, 115, 11, 0.24);
 }
 
 .status-badge.badge-partial {
-  background-color: rgba(59, 130, 246, 0.15);
+  background-color: rgba(29, 78, 216, 0.09);
   color: var(--accent-blue);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  border: 1px solid rgba(29, 78, 216, 0.22);
 }
 
 .status-badge.badge-paid {
-  background-color: rgba(0, 184, 148, 0.15);
+  background-color: var(--accent-green-soft);
   color: var(--accent-green);
-  border: 1px solid rgba(0, 184, 148, 0.3);
+  border: 1px solid var(--accent-green-line);
 }
 
 .status-badge.badge-rejected {
-  background-color: rgba(255, 76, 76, 0.15);
+  background-color: rgba(180, 35, 24, 0.09);
   color: var(--accent-red);
-  border: 1px solid rgba(255, 76, 76, 0.3);
+  border: 1px solid rgba(180, 35, 24, 0.22);
 }
 
 /* Also support bare class names for grid cards */
-.status-badge.pledge  { background-color: rgba(255, 165, 0, 0.15); color: var(--accent-orange); border: 1px solid rgba(255, 165, 0, 0.3); }
-.status-badge.partial { background-color: rgba(59, 130, 246, 0.15); color: var(--accent-blue); border: 1px solid rgba(59, 130, 246, 0.3); }
-.status-badge.paid    { background-color: rgba(0, 184, 148, 0.15); color: var(--accent-green); border: 1px solid rgba(0, 184, 148, 0.3); }
+.status-badge.pledge  { background-color: rgba(184, 115, 11, 0.10); color: var(--accent-orange); border: 1px solid rgba(184, 115, 11, 0.24); }
+.status-badge.partial { background-color: rgba(29, 78, 216, 0.09); color: var(--accent-blue); border: 1px solid rgba(29, 78, 216, 0.22); }
+.status-badge.paid    { background-color: var(--accent-green-soft); color: var(--accent-green); border: 1px solid var(--accent-green-line); }
 
 /* ============================================================
    Shared page / layout patterns
@@ -529,11 +580,7 @@ textarea:focus-visible {
 }
 
 .section-card:hover {
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="light"] .section-card {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0,0,0,0.05);
+  border-color: var(--border-strong);
 }
 
 .section-title {
@@ -576,7 +623,7 @@ textarea:focus-visible {
 }
 
 .data-table th {
-  background: linear-gradient(180deg, #1e2f42 0%, #1b2838 100%);
+  background: var(--bg-subtle);
   color: var(--text-secondary);
   font-weight: 600;
   font-size: 11px;
@@ -588,9 +635,6 @@ textarea:focus-visible {
   white-space: nowrap;
 }
 
-[data-theme="light"] .data-table th {
-  background: linear-gradient(180deg, #f0f4f8 0%, #eaf0f6 100%);
-}
 
 .data-table td {
   padding: 11px 14px;
@@ -600,18 +644,13 @@ textarea:focus-visible {
 }
 
 .data-table tbody tr:last-child td { border-bottom: none; }
-.data-table tbody tr:nth-child(even) td { background-color: rgba(255,255,255,0.015); }
 
 .data-table tbody tr {
   transition: background 0.15s ease;
 }
 
 .data-table tbody tr:hover td {
-  background-color: rgba(0, 184, 148, 0.04);
-}
-
-[data-theme="light"] .data-table tbody tr:hover td {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: var(--bg-subtle);
 }
 
 .td-name   { font-weight: 500; }
@@ -934,12 +973,12 @@ img, svg {
 /* ── Global icon-button colour variants ───────────────── */
 .icon-btn-orange {
   color: var(--accent-orange) !important;
-  border-color: rgba(255, 165, 0, 0.20) !important;
+  border-color: rgba(184, 115, 11, 0.26) !important;
 }
 .icon-btn-orange:hover {
   border-color: var(--accent-orange) !important;
-  background: rgba(255, 165, 0, 0.12) !important;
-  box-shadow: 0 0 10px rgba(255, 165, 0, 0.20) !important;
+  background: rgba(184, 115, 11, 0.10) !important;
+  box-shadow: 0 0 10px rgba(184, 115, 11, 0.26) !important;
 }
 
 .icon-btn svg,
@@ -995,7 +1034,7 @@ img, svg {
 @media (max-width: 480px) {
   .section-card {
     padding: 14px 12px;
-    border-radius: 12px;
+    border-radius: var(--border-radius-lg);
   }
 
   .section-title {

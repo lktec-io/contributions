@@ -10,6 +10,7 @@ import ConfirmDialog from '../common/ConfirmDialog';
 import { StatsSkeleton } from '../common/SkeletonLoader';
 import EmptyState from '../common/EmptyState';
 import './UserManagement.css';
+import SearchableSelect from '../common/SearchableSelect';
 
 const ROLE_LABELS = {
   super_admin: 'Super Admin',
@@ -225,17 +226,13 @@ export default function UserManagement() {
                       </span>
                     </td>
                     <td>
-                      <select
-                        className="sms-access-select"
+                      <SearchableSelect
                         value={u.sms_mode || 'dispatch_all'}
-                        onChange={e => handleSmsModeChange(u, e.target.value)}
+                        onChange={v => handleSmsModeChange(u, v)}
                         disabled={smsSavingId === u.id || u.role === 'super_admin'}
                         aria-label={`SMS access for ${u.name}`}
-                      >
-                        {SMS_MODE_OPTIONS.map(opt => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
+                        options={SMS_MODE_OPTIONS.map(opt => ({ value: opt.value, label: opt.label }))}
+                      />
                     </td>
                     <td>
                       <span className={`status-pill ${u.is_active ? 'pill-active' : 'pill-inactive'}`}>
@@ -287,17 +284,13 @@ export default function UserManagement() {
                 </div>
                 <div className="um-card-row">
                   <span className="um-card-label">SMS Access</span>
-                  <select
-                    className="sms-access-select"
+                  <SearchableSelect
                     value={u.sms_mode || 'dispatch_all'}
-                    onChange={e => handleSmsModeChange(u, e.target.value)}
+                    onChange={v => handleSmsModeChange(u, v)}
                     disabled={smsSavingId === u.id || u.role === 'super_admin'}
                     aria-label={`SMS access for ${u.name}`}
-                  >
-                    {SMS_MODE_OPTIONS.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                    options={SMS_MODE_OPTIONS.map(opt => ({ value: opt.value, label: opt.label }))}
+                  />
                 </div>
                 <div className="um-card-row">
                   <span className="um-card-label">Status</span>
@@ -369,10 +362,16 @@ export default function UserManagement() {
           </div>
           <div className="form-group">
             <label>Role</label>
-            <select name="role" value={formData.role} onChange={handleChange}>
-              <option value="client_user">Client User</option>
-              {isSuperAdmin && <option value="admin">Admin</option>}
-            </select>
+            <SearchableSelect
+              name="role"
+              value={formData.role}
+              onChange={v => handleChange({ target: { name: 'role', value: v } })}
+              aria-label="Role"
+              options={[
+                { value: 'client_user', label: 'Client User' },
+                ...(isSuperAdmin ? [{ value: 'admin', label: 'Admin' }] : []),
+              ]}
+            />
           </div>
           <div className="form-group">
             {/* Native radios stay in the DOM (visually hidden, not display:none)

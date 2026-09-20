@@ -1,33 +1,25 @@
-/* ══════════════════════════════════════════════
-   HEADER — Glass premium redesign
-   ══════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   HEADER — sticky white command bar
+
+   Flat surface, hairline underline, no glass and no shadow. The
+   only colour is the emerald avatar and the connectivity dot.
+   ══════════════════════════════════════════════════════════════ */
+
 .header {
   position: fixed;
   top: 0;
   right: 0;
   left: var(--sidebar-width);
-  height: var(--header-height);
-  background: rgba(10, 20, 32, 0.82);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow:
-    0 1px 12px rgba(0, 0, 0, 0.25),
-    inset 0 -1px 0 rgba(0, 184, 148, 0.08);
   z-index: 100;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  height: var(--header-height);
   padding: 0 24px;
-  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease;
-}
-
-[data-theme="light"] .header {
-  background: rgba(248, 250, 252, 0.88);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.06), inset 0 -1px 0 rgba(0, 184, 148, 0.06);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease;
 }
 
 .header-left,
@@ -35,40 +27,64 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
 }
 
 /* ── Icon buttons ────────────────────────────── */
 .header-icon-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  padding: 8px;
-  border-radius: 8px;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s ease, background 0.2s ease;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  padding: 0;
   line-height: 1;
-  width: auto;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 .header-icon-btn:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-subtle);
 }
 
-[data-theme="light"] .header-icon-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
+.header .header-icon-btn svg { color: currentColor; }
+
+/* ── Connectivity indicator — flat text, no chrome ── */
+.header-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
-/* ── Hamburger: animated 3-bar → X ──────────── */
+.header-status-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent-green);
+}
+
+.header-status.is-offline { color: var(--accent-red); }
+.header-status.is-offline .header-status-dot { background: var(--accent-red); }
+
+/* ── Hamburger: three bars morphing to × ─────── */
 .hamburger-btn {
   display: none;
-  width: auto;
   flex-direction: column;
   gap: 5px;
-  padding: 8px;
 }
 
 .hamburger-bar {
@@ -77,53 +93,33 @@
   height: 2px;
   background: var(--text-secondary);
   border-radius: 2px;
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity   0.22s ease,
-              width     0.22s ease;
   transform-origin: center;
+  transition:
+    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity   0.22s ease,
+    width     0.22s ease;
 }
 
-.hamburger-btn:hover .hamburger-bar {
-  background: var(--text-primary);
-}
+.hamburger-btn:hover .hamburger-bar { background: var(--text-primary); }
 
-/* Animate to × when sidebar is open */
-.hamburger-open .hamburger-bar:nth-child(1) {
-  transform: translateY(7px) rotate(45deg);
-}
-.hamburger-open .hamburger-bar:nth-child(2) {
-  opacity: 0;
-  width: 0;
-}
-.hamburger-open .hamburger-bar:nth-child(3) {
-  transform: translateY(-7px) rotate(-45deg);
-}
+.hamburger-open .hamburger-bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger-open .hamburger-bar:nth-child(2) { opacity: 0; width: 0; }
+.hamburger-open .hamburger-bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
-/* ── Hamburger: click-pulse feedback ─────────── */
-/*
-  Fires once when hamburger-pulse class is added.
-  Gives a satisfying "press in → spring out" feel
-  without interfering with the bar → X transition.
-*/
+/* Press feedback — fires once per tap */
 .hamburger-pulse {
-  animation: hamburger-press 0.40s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: hamburger-press 0.34s cubic-bezier(0.34, 1.5, 0.64, 1) both;
 }
 
 @keyframes hamburger-press {
   0%   { transform: scale(1);    }
-  25%  { transform: scale(0.78); }
-  65%  { transform: scale(1.18); }
+  30%  { transform: scale(0.84); }
+  70%  { transform: scale(1.1);  }
   100% { transform: scale(1);    }
 }
 
 /* ── Theme toggle ────────────────────────────── */
-.theme-toggle {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="light"] .theme-toggle {
-  border-color: rgba(0, 0, 0, 0.1);
-}
+.theme-toggle { border: 1px solid var(--border-color); }
 
 .theme-icon-spinning {
   animation: theme-icon-spin 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -131,125 +127,127 @@
 
 @keyframes theme-icon-spin {
   0%   { transform: rotate(0deg)   scale(1);    }
-  40%  { transform: rotate(200deg) scale(1.28); }
+  40%  { transform: rotate(200deg) scale(1.22); }
   100% { transform: rotate(360deg) scale(1);    }
 }
 
-/* ── User info ───────────────────────────────── */
+/* ── User widget ─────────────────────────────── */
 .header-user {
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 4px 10px 4px 4px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: background 0.2s ease;
+  min-width: 0;
+  padding: 4px 11px 4px 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  transition: border-color 0.2s ease;
 }
 
-.header-user:hover {
-  background: rgba(255, 255, 255, 0.07);
-}
-
-[data-theme="light"] .header-user {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="light"] .header-user:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
+.header-user:hover { border-color: var(--border-strong); }
 
 .user-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #00B894 0%, #007A63 100%);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background: var(--accent-green);
+  border-radius: var(--border-radius);
 }
 
 .user-avatar-img {
   object-fit: contain;
-  background: var(--bg-input);
   padding: 3px;
-  flex-shrink: 0;
-  box-shadow: 0 0 0 2px rgba(0, 184, 148, 0.25);
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
 }
 
 .user-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary);
   max-width: 130px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* ── Logout button ───────────────────────────── */
+/* ── Logout ──────────────────────────────────── */
 .logout-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: transparent;
-  border: 1px solid rgba(255, 76, 76, 0.35);
-  color: var(--accent-red);
-  padding: 6px 13px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-  font-size: 13px;
-  font-weight: 500;
-  font-family: var(--font-body);
-  white-space: nowrap;
   width: auto;
+  min-height: 38px;
+  padding: 6px 13px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--accent-red);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .logout-btn:hover {
+  color: #FFFFFF;
   background: var(--accent-red);
-  color: #fff;
   border-color: var(--accent-red);
-  box-shadow: 0 4px 12px rgba(255, 76, 76, 0.3);
 }
 
-.logout-btn:active:not(:disabled) {
-  transform: scale(0.97);
-}
+.logout-btn:active:not(:disabled) { transform: scale(0.98); }
 
-/* ── Mobile ──────────────────────────────────── */
+/* ══════════════════════════════════════════════
+   MOBILE — 48px targets
+   ══════════════════════════════════════════════ */
+
 @media (max-width: 768px) {
   .header {
     left: 0 !important;
-    padding: 0 16px;
+    padding: 0 14px;
   }
 
-  .hamburger-btn {
-    display: flex;
-    width: auto;
+  .header-icon-btn {
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
   }
 
-  .user-name {
-    display: none;
-  }
+  .hamburger-btn { display: flex; }
+  .user-name { display: none; }
+  .logout-btn { min-height: 48px; }
+  .header-status { margin-left: 2px; }
 }
 
 @media (max-width: 480px) {
-  .logout-btn span {
-    display: none;
-  }
+  .header-right { gap: 2px; }
+  .header-status-text { display: none; }
+
+  .logout-btn span { display: none; }
 
   .logout-btn {
-    padding: 8px;
-    border-radius: 8px;
+    justify-content: center;
+    width: 48px;
+    min-width: 48px;
+    padding: 0;
   }
+}
 
-  .header-right {
-    gap: 4px;
-  }
+@media (prefers-reduced-motion: reduce) {
+  .header,
+  .header-icon-btn,
+  .hamburger-bar,
+  .header-user,
+  .logout-btn { transition: none; }
+
+  .hamburger-pulse,
+  .theme-icon-spinning { animation: none; }
 }

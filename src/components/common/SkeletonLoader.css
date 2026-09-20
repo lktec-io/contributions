@@ -7,27 +7,19 @@
   100% { background-position: 400px 0; }
 }
 
+/* Both themes read the same two tokens, so no theme override is needed */
 .skeleton {
   display: block;
   background: linear-gradient(
     90deg,
-    var(--bg-tertiary, rgba(255,255,255,0.04)) 25%,
-    rgba(255,255,255,0.08)                     50%,
-    var(--bg-tertiary, rgba(255,255,255,0.04)) 75%
+    var(--bg-subtle)   25%,
+    var(--border-color) 50%,
+    var(--bg-subtle)   75%
   );
   background-size: 800px 100%;
+  border-radius: var(--border-radius);
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
   flex-shrink: 0;
-}
-
-[data-theme="light"] .skeleton {
-  background: linear-gradient(
-    90deg,
-    #e8edf2 25%,
-    #f5f7fa 50%,
-    #e8edf2 75%
-  );
-  background-size: 800px 100%;
 }
 
 /* ── Stat card skeleton ─────────────────────── */
@@ -45,7 +37,7 @@
 .skeleton-stat-icon {
   width: 44px;
   height: 44px;
-  border-radius: 10px;
+  border-radius: var(--border-radius-lg);
   flex-shrink: 0;
 }
 
@@ -89,7 +81,7 @@
   gap: 12px;
   padding: 14px 16px;
   border-bottom: 1px solid var(--border-color);
-  background: rgba(255,255,255,0.02);
+  background: var(--bg-subtle);
 }
 
 .skeleton-table-row {
@@ -125,7 +117,7 @@
 .skeleton-avatar {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: var(--border-radius);
   flex-shrink: 0;
 }
 

@@ -16,6 +16,7 @@ import ContributorsTable from './ContributorsTable';
 import ContributorsGrid from './ContributorsGrid';
 import SmsSendingModal from '../common/SmsSendingModal';
 import './ClientContributions.css';
+import SearchableSelect from '../common/SearchableSelect';
 
 export default function ClientContributions() {
   const { toast } = useContext(ToastContext);
@@ -357,16 +358,25 @@ export default function ClientContributions() {
           value={search}
           onChange={handleSearchChange}
         />
-        <select value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)} className="filter-select">
-          <option value="">All Events</option>
-          {events.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-        </select>
-        <select value={selectedStatus} onChange={e => setSelectedStatus(e.target.value)} className="filter-select">
-          <option value="">All Statuses</option>
-          <option value="pledge">Pledge</option>
-          <option value="partial">Partial</option>
-          <option value="paid">Paid</option>
-        </select>
+        <SearchableSelect
+          className="filter-select"
+          value={selectedEvent}
+          onChange={setSelectedEvent}
+          aria-label="Filter by event"
+          options={[{ value: '', label: 'All Events' }, ...events.map(e => ({ value: e.id, label: e.name }))]}
+        />
+        <SearchableSelect
+          className="filter-select"
+          value={selectedStatus}
+          onChange={setSelectedStatus}
+          aria-label="Filter by status"
+          options={[
+            { value: '',        label: 'All Statuses' },
+            { value: 'pledge',  label: 'Pledge'  },
+            { value: 'partial', label: 'Partial' },
+            { value: 'paid',    label: 'Paid'    },
+          ]}
+        />
         {hasFilters && (
           <button className="btn btn-secondary" onClick={clearFilters}>Clear Filters</button>
         )}

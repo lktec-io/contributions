@@ -32,13 +32,13 @@
 .empty-state-icon {
   color: var(--text-muted);
   opacity: 0.7;
-  filter: drop-shadow(0 0 10px rgba(0, 184, 148, 0.25));
+  filter: drop-shadow(0 0 10px var(--accent-green-line));
   transition: filter 0.3s ease, opacity 0.3s ease;
 }
 
 .empty-state:hover .empty-state-icon {
   opacity: 0.9;
-  filter: drop-shadow(0 0 14px rgba(0, 184, 148, 0.4));
+  filter: drop-shadow(0 0 14px var(--accent-green-line));
 }
 
 .empty-state-title {

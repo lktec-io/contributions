@@ -22,7 +22,7 @@
   min-width: 16px;
   height: 16px;
   padding: 0 3px;
-  border-radius: 999px;
+  border-radius: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -37,7 +37,7 @@
   content: '';
   position: absolute;
   inset: -3px;
-  border-radius: 999px;
+  border-radius: 4px;
   border: 1.5px solid var(--accent-red);
   opacity: 0;
   animation: badge-ring 2.5s ease-in-out infinite;

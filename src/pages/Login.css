@@ -83,8 +83,8 @@
   left: 18%;
   background: radial-gradient(
     circle at center,
-    rgba(0, 184, 148, 0.11) 0%,
-    rgba(0, 184, 148, 0.04) 45%,
+    var(--accent-green-soft) 0%,
+    var(--accent-green-soft) 45%,
     transparent 70%
   );
   animation: blob-pulse-float 8s ease-in-out infinite 0.5s;
@@ -145,7 +145,7 @@
   -webkit-backdrop-filter: blur(28px) saturate(180%);
 
   border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 24px;
+  border-radius: 4px;
   padding: 48px 44px 40px;
 
   box-shadow:
@@ -182,7 +182,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 24px;
+  border-radius: 4px;
   background: linear-gradient(
     110deg,
     transparent 25%,
@@ -221,7 +221,7 @@
 .login-logo-mark {
   width: 72px;
   height: 72px;
-  border-radius: 20px;
+  border-radius: 4px;
   background: linear-gradient(140deg, #2ecc71 0%, #1a9e55 55%, #148043 100%);
   display: flex;
   align-items: center;
@@ -339,7 +339,7 @@
 
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 12px;
+  border-radius: 4px;
   outline: none;
 
   transition:
@@ -382,7 +382,7 @@
   padding: 0 !important;
   background: transparent !important;
   border: none !important;
-  border-radius: 6px;
+  border-radius: 4px;
   color: rgba(255, 255, 255, 0.3);
   cursor: pointer;
   display: flex;
@@ -413,7 +413,7 @@
   color: #ffffff;
   cursor: pointer;
   border: none;
-  border-radius: 12px;
+  border-radius: 4px;
 
   background: linear-gradient(135deg, #2ecc71 0%, #27ae60 50%, #1e8449 100%);
   background-size: 200% 100%;
@@ -537,7 +537,7 @@
   width: 18px;
   height: 18px;
   min-width: 18px;
-  border-radius: 5px;
+  border-radius: 4px;
   border: 1.5px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.05);
   display: flex;
@@ -588,7 +588,7 @@
 /* Tablet */
 @media (max-width: 768px) {
   .login-page  { padding: 20px; }
-  .login-card  { padding: 40px 36px 34px; border-radius: 20px; }
+  .login-card  { padding: 40px 36px 34px; border-radius: 4px; }
   .login-app-name { font-size: 24px; }
 }
 
@@ -602,14 +602,14 @@
 
   .login-card {
     padding: 34px 22px 28px;
-    border-radius: 18px;
+    border-radius: 4px;
     max-width: 100%;
   }
 
   .login-logo-mark {
     width: 64px;
     height: 64px;
-    border-radius: 18px;
+    border-radius: 4px;
   }
 
   .login-logo-mark svg { width: 30px; height: 30px; }

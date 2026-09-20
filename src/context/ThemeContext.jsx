@@ -3,13 +3,14 @@ import { createContext, useState, useEffect, useRef } from 'react';
 export const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [theme,       setTheme]       = useState(() => localStorage.getItem('theme') || 'dark');
+  const [theme,       setTheme]       = useState(() => localStorage.getItem('theme') || 'light');
   const [waveTrigger, setWaveTrigger] = useState(null); // null | 'light' | 'dark'
   const timers = useRef([]);
 
   useEffect(() => {
-    if (theme === 'light') {
-      document.documentElement.setAttribute('data-theme', 'light');
+    /* White is the base palette, so only dark stamps an attribute. */
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
     } else {
       document.documentElement.removeAttribute('data-theme');
     }

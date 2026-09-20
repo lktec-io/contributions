@@ -23,7 +23,7 @@
 }
 
 .event-card:hover {
-  border-color: rgba(0, 184, 148, 0.3);
+  border-color: var(--accent-green-line);
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }

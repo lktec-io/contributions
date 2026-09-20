@@ -1,76 +1,28 @@
-/* ══════════════════════════════════════════════
-   SIDEBAR — Premium dark SaaS redesign
-   ══════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   SIDEBAR — fixed charcoal navigation panel
+
+   The sidebar stays charcoal in both themes: it is the constant
+   contrast anchor the white workspace is read against. Active
+   state is a muted-gold left indicator, never a filled pill.
+   ══════════════════════════════════════════════════════════════ */
+
 .sidebar {
   position: fixed;
   top: 0;
   left: 0;
   width: var(--sidebar-width);
   height: 100vh;
-  background: linear-gradient(180deg,
-    #121E2D 0%,
-    #0F1B28 50%,
-    #0C1720 100%
-  );
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 2px 0 20px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
+  background: var(--sidebar-bg);
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
   z-index: 1000;
-  transition:
-    transform   0.42s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity     0.32s ease,
-    visibility  0s   linear 0.42s;
-  overflow-y: auto;
   overflow-x: hidden;
-}
-
-/* Subtle inner glow on left edge */
-.sidebar::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 1px;
-  height: 100%;
-  background: linear-gradient(180deg,
-    transparent 0%,
-    rgba(0, 184, 148, 0.3) 30%,
-    rgba(0, 184, 148, 0.15) 70%,
-    transparent 100%
-  );
-  pointer-events: none;
-}
-
-[data-theme="light"] .sidebar {
-  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.06);
-}
-
-[data-theme="light"] .sidebar::before {
-  background: linear-gradient(180deg,
-    transparent 0%,
-    rgba(0, 184, 148, 0.2) 40%,
-    transparent 100%
-  );
-}
-
-/* ── Overlay (mobile) ────────────────────────── */
-.sidebar-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-  z-index: 999;
-  animation: fade-in 0.2s ease;
-}
-
-@keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  overflow-y: auto;
+  transition:
+    transform  0.32s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity    0.24s ease,
+    visibility 0s linear 0.32s;
 }
 
 /* ── Logo ────────────────────────────────────── */
@@ -78,251 +30,212 @@
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 20px 20px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
+  min-width: 0;
+  padding: 20px 18px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .sidebar-logo-mark {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #00B894 0%, #00A07D 100%);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 38px;
+  height: 38px;
   flex-shrink: 0;
-  letter-spacing: -0.5px;
-  box-shadow:
-    0 4px 12px rgba(0, 184, 148, 0.35),
-    0 0 0 1px rgba(0, 184, 148, 0.3);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: #FFFFFF;
+  background: var(--accent-green);
+  border-radius: var(--border-radius-lg);
 }
 
 .sidebar-logo-mark-img {
   object-fit: contain;
-  padding: 4px;
-  background: var(--bg-input);
+  padding: 3px;
+  background: #FFFFFF;
 }
 
 .sidebar-logo-text {
+  min-width: 0;
   font-size: 15px;
   font-weight: 700;
-  color: var(--text-primary);
   letter-spacing: 0.1px;
+  color: #FFFFFF;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-[data-theme="light"] .sidebar-logo {
-  border-bottom-color: rgba(0, 0, 0, 0.07);
-}
-
-/* ── Nav ─────────────────────────────────────── */
+/* ── Navigation ──────────────────────────────── */
 .sidebar-nav {
   flex: 1;
-  padding: 12px 10px;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-height: 0;
+  padding: 12px 10px;
 }
 
 .sidebar-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 11px;
   width: 100%;
+  min-height: 44px;
+  min-width: 0;
   padding: 10px 14px;
-  background: transparent;
-  border: none;
-  border-radius: 8px;
-  border-left: 3px solid transparent;
-  color: rgba(136, 146, 160, 0.85);
+  font-family: var(--font-body);
   font-size: 13.5px;
   font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
   letter-spacing: 0.1px;
+  text-align: left;
+  color: var(--sidebar-text);
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Gold edge marker — the single highlight accent in the shell */
+.sidebar-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 0;
+  background: var(--accent-gold);
+  border-radius: 0 2px 2px 0;
+  transform: translateY(-50%);
+  transition: height 0.2s ease;
 }
 
 .sidebar-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-primary);
-  border-left-color: rgba(255, 255, 255, 0.1);
+  color: var(--sidebar-text-active);
+  background: var(--sidebar-bg-hover);
 }
 
-[data-theme="light"] .sidebar-item:hover {
-  background: rgba(0, 0, 0, 0.04);
+.sidebar-item-active,
+.sidebar-item-active:hover {
+  color: var(--sidebar-text-active);
+  background: rgba(212, 175, 55, 0.10);
 }
 
-/* Active state — premium pill */
-.sidebar-item-active {
-  background: linear-gradient(
-    90deg,
-    rgba(0, 184, 148, 0.18) 0%,
-    rgba(0, 184, 148, 0.06) 100%
-  );
-  color: var(--accent-green);
-  border-left-color: var(--accent-green);
-  box-shadow: inset 0 0 20px rgba(0, 184, 148, 0.04);
-}
-
-.sidebar-item-active .sidebar-item-icon {
-  color: var(--accent-green);
-  filter: drop-shadow(0 0 4px rgba(0, 184, 148, 0.5));
-}
-
-[data-theme="light"] .sidebar-item-active {
-  background: linear-gradient(
-    90deg,
-    rgba(0, 184, 148, 0.12) 0%,
-    rgba(0, 184, 148, 0.04) 100%
-  );
-}
+.sidebar-item-active::before { height: 60%; }
 
 .sidebar-item-icon {
+  display: inline-flex;
   flex-shrink: 0;
-  color: rgba(136, 146, 160, 0.7);
-  transition: color 0.2s ease, filter 0.2s ease, transform 0.2s ease;
+  color: currentColor;
+  transition: color 0.2s ease;
 }
 
-.sidebar-item:hover .sidebar-item-icon {
-  color: var(--text-primary);
-  transform: translateX(1px);
-}
+.sidebar-item-active .sidebar-item-icon { color: var(--accent-gold); }
 
 .sidebar-item-label {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* ── Settings — bottom pinned section ───────── */
+/* Global rule paints these white; keep the sidebar's own colours */
+.sidebar .sidebar-item-icon svg { color: currentColor; }
+
+/* ── Settings — pinned to the bottom ─────────── */
 .sidebar-settings-section {
   margin-top: auto;
   padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
-[data-theme="light"] .sidebar-settings-section {
-  border-top-color: rgba(0, 0, 0, 0.07);
-}
-
-.sidebar-settings-item {
-  width: 100%;
-}
+.sidebar-settings-item { width: 100%; }
 
 /* ── Footer ──────────────────────────────────── */
 .sidebar-footer {
-  padding: 14px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
-}
-
-[data-theme="light"] .sidebar-footer {
-  border-top-color: rgba(0, 0, 0, 0.07);
+  padding: 14px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .sidebar-version {
   font-size: 11px;
-  color: var(--text-muted);
   letter-spacing: 0.3px;
+  color: #6C757F;
 }
 
-/* ── Mobile — floating top-center modal ──────── */
+/* ── Overlay (mobile) ────────────────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(17, 20, 24, 0.55);
+  animation: sidebar-overlay-in 0.2s ease;
+}
+
+@keyframes sidebar-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ══════════════════════════════════════════════
+   MOBILE — slide-out drawer, 48px touch targets
+   ══════════════════════════════════════════════ */
+
 @media (max-width: 768px) {
   .sidebar {
-    top: 18px;
-    left: 50%;
-    width: min(90vw, 360px);
-    height: auto;
-    max-height: calc(100vh - 36px);
-    border-radius: 18px;
-    border-right: none;
-    overflow-y: auto;
-
-    /*
-      Hidden default: pulled up + compressed.
-      Stronger scale gap (0.88 → 1) makes the pop feel more dramatic.
-    */
-    transform: translateX(-50%) translateY(-24px) scale(0.88);
-    opacity: 0;
+    width: min(82vw, 300px);
+    height: 100vh;
+    max-height: 100vh;
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0;
+    transform: translateX(-100%);
+    opacity: 1;
     visibility: hidden;
     pointer-events: none;
-
-    box-shadow:
-      0 28px 64px rgba(0, 0, 0, 0.70),
-      0 8px 24px rgba(0, 0, 0, 0.35),
-      0 0 0 1px rgba(255, 255, 255, 0.08);
+    box-shadow: none;
     z-index: 1001;
-
-    /*
-      Opening transition — spring overshoot easing.
-      Higher tension (1.62) gives the "pop into place" fintech feel.
-    */
     transition:
-      transform   0.48s cubic-bezier(0.34, 1.62, 0.64, 1),
-      opacity     0.32s ease,
-      visibility  0s   linear 0s;
+      transform  0.3s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s linear 0.3s;
   }
 
   .sidebar.sidebar-open {
-    transform: translateX(-50%) translateY(0) scale(1);
-    opacity: 1;
+    transform: translateX(0);
     visibility: visible;
     pointer-events: auto;
-
-    /*
-      Closing transition — smooth ease-in collapse.
-      Visibility delayed so fade-out finishes before element hides.
-    */
+    box-shadow: 18px 0 44px rgba(0, 0, 0, 0.42);
     transition:
-      transform   0.28s cubic-bezier(0.4, 0, 0.8, 1),
-      opacity     0.24s ease,
-      visibility  0s   linear 0.28s;
+      transform  0.3s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s linear 0s;
   }
 
-  /* ── Staggered item entrance ──────────────────
-     Items animate in sequentially after the container
-     pops open, giving a premium "cascade" feel.
-  */
-  .sidebar.sidebar-open .sidebar-logo {
-    animation: sidebar-child-in 0.32s cubic-bezier(0.34, 1.4, 0.64, 1) 0.04s both;
+  /* Comfortable one-thumb targets */
+  .sidebar-item {
+    min-height: 48px;
+    padding: 12px 16px;
+    font-size: 14.5px;
+    border-radius: var(--border-radius);
   }
 
-  .sidebar.sidebar-open .sidebar-nav > button:nth-child(1) {
-    animation: sidebar-child-in 0.30s cubic-bezier(0.34, 1.4, 0.64, 1) 0.08s both;
-  }
-  .sidebar.sidebar-open .sidebar-nav > button:nth-child(2) {
-    animation: sidebar-child-in 0.30s cubic-bezier(0.34, 1.4, 0.64, 1) 0.12s both;
-  }
-  .sidebar.sidebar-open .sidebar-nav > button:nth-child(3) {
-    animation: sidebar-child-in 0.30s cubic-bezier(0.34, 1.4, 0.64, 1) 0.16s both;
-  }
-  .sidebar.sidebar-open .sidebar-nav > button:nth-child(4) {
-    animation: sidebar-child-in 0.30s cubic-bezier(0.34, 1.4, 0.64, 1) 0.20s both;
-  }
-  .sidebar.sidebar-open .sidebar-nav > button:nth-child(5) {
-    animation: sidebar-child-in 0.30s cubic-bezier(0.34, 1.4, 0.64, 1) 0.24s both;
-  }
-  .sidebar.sidebar-open .sidebar-settings-section {
-    animation: sidebar-child-in 0.30s cubic-bezier(0.34, 1.4, 0.64, 1) 0.28s both;
-  }
+  .sidebar-item-active::before { height: 64%; }
 
-  @keyframes sidebar-child-in {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+  .sidebar-logo { padding: 18px 16px 16px; }
+  .sidebar-nav { padding: 10px 10px 16px; }
+  .sidebar-overlay { display: block; z-index: 1000; }
+  .sidebar-footer { display: none; }
+}
 
-  .sidebar-overlay {
-    display: block;
-    z-index: 1000;
-  }
-
-  .sidebar-footer {
-    display: none;
-  }
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar-item,
+  .sidebar-item::before,
+  .sidebar-item-icon { transition: none; }
+  .sidebar-overlay { animation: none; }
 }

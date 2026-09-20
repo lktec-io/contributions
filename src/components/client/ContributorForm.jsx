@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { FiCheckSquare, FiSquare } from 'react-icons/fi';
 import { contributorService } from '../../services/contributorService';
 import './ContributorForm.css';
+import SearchableSelect from '../common/SearchableSelect';
 
 // ── Currency helpers ──────────────────────────────────────────
 const formatCommas = (val) => {
@@ -73,9 +74,13 @@ function EditForm({ initialData, events, onSubmit, onCancel, loading }) {
     <form className="contributor-form" onSubmit={handleSubmit} noValidate>
       <div className="form-group">
         <label>Event</label>
-        <select name="event_id" value={formData.event_id} disabled>
-          {events.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-        </select>
+        <SearchableSelect
+          name="event_id"
+          value={formData.event_id}
+          disabled
+          aria-label="Event"
+          options={events.map(e => ({ value: e.id, label: e.name }))}
+        />
       </div>
 
       <div className="form-group">

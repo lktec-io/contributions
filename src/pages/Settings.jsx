@@ -19,6 +19,7 @@ import Footer from '../components/common/Footer';
 import ImageCropModal from '../components/common/ImageCropModal';
 import MobileLogoPreview from '../components/common/MobileLogoPreview';
 import './Settings.css';
+import SearchableSelect from '../components/common/SearchableSelect';
 
 // ── Primitives ───────────────────────────────────────────────────
 
@@ -673,17 +674,18 @@ export default function Settings() {
               </Field>
 
               <Field label="Default Currency">
-                <select
-                  className="st-select"
+                <SearchableSelect
                   value={system.default_currency}
-                  onChange={e => setSystem(s => ({ ...s, default_currency: e.target.value }))}
-                >
-                  <option value="TZS">TZS — Tanzanian Shilling</option>
-                  <option value="USD">USD — US Dollar</option>
-                  <option value="KES">KES — Kenyan Shilling</option>
-                  <option value="UGX">UGX — Ugandan Shilling</option>
-                  <option value="ZAR">ZAR — South African Rand</option>
-                </select>
+                  onChange={v => setSystem(s => ({ ...s, default_currency: v }))}
+                  aria-label="Default currency"
+                  options={[
+                    { value: 'TZS', label: 'TZS — Tanzanian Shilling' },
+                    { value: 'USD', label: 'USD — US Dollar' },
+                    { value: 'KES', label: 'KES — Kenyan Shilling' },
+                    { value: 'UGX', label: 'UGX — Ugandan Shilling' },
+                    { value: 'ZAR', label: 'ZAR — South African Rand' },
+                  ]}
+                />
               </Field>
 
               <ToggleRow
@@ -781,14 +783,15 @@ export default function Settings() {
 
               {org.enable_sms === 'true' && (
                 <Field label="SMS Provider" hint="Choose which gateway to use for your organisation.">
-                  <select
-                    className="st-select"
+                  <SearchableSelect
                     value={org.sms_provider}
-                    onChange={e => setOrg(o => ({ ...o, sms_provider: e.target.value }))}
-                  >
-                    <option value="beem">Beem Africa</option>
-                    <option value="africastalking">Africa's Talking</option>
-                  </select>
+                    onChange={v => setOrg(o => ({ ...o, sms_provider: v }))}
+                    aria-label="SMS provider"
+                    options={[
+                      { value: 'beem',           label: 'Beem Africa' },
+                      { value: 'africastalking', label: "Africa's Talking" },
+                    ]}
+                  />
                 </Field>
               )}
 

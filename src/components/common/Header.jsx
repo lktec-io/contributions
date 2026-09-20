@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiSun, FiMoon, FiLogOut, FiSettings } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
@@ -14,6 +14,20 @@ export default function Header({ onMenuToggle, menuOpen }) {
   const navigate                = useNavigate();
   const [iconSpin,       setIconSpin]       = useState(false);
   const [hamburgerPulse, setHamburgerPulse] = useState(false);
+
+  // Presentation only — browser connectivity, no polling and no API call.
+  const [online, setOnline] = useState(() => navigator.onLine);
+
+  useEffect(() => {
+    const goOnline  = () => setOnline(true);
+    const goOffline = () => setOnline(false);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, []);
 
   function handleThemeToggle() {
     setIconSpin(true);
@@ -40,6 +54,15 @@ export default function Header({ onMenuToggle, menuOpen }) {
           <span className="hamburger-bar" />
           <span className="hamburger-bar" />
         </button>
+
+        <span
+          className={`header-status${online ? '' : ' is-offline'}`}
+          role="status"
+          title={online ? 'Connected' : 'No network connection'}
+        >
+          <span className="header-status-dot" aria-hidden="true" />
+          <span className="header-status-text">{online ? 'Live' : 'Offline'}</span>
+        </span>
       </div>
 
       <div className="header-right">

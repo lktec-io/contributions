@@ -41,7 +41,7 @@
 .icon-btn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 7px;
+  border-radius: 4px;
   padding: 7px 9px;
   min-width: 34px;
   min-height: 34px;
@@ -80,36 +80,36 @@
 /* Payment button — green */
 .icon-btn-green {
   color: var(--accent-green);
-  border-color: rgba(0, 184, 148, 0.2);
+  border-color: var(--accent-green-line);
 }
 
 .icon-btn-green:hover {
   border-color: var(--accent-green);
-  background: rgba(0, 184, 148, 0.12);
+  background: var(--accent-green-soft);
   color: var(--accent-green);
-  box-shadow: 0 0 10px rgba(0, 184, 148, 0.2);
+  box-shadow: 0 0 10px var(--accent-green-line);
 }
 
 /* Delete button — red */
 .icon-btn-red {
   color: var(--accent-red);
-  border-color: rgba(255, 76, 76, 0.2);
+  border-color: rgba(180, 35, 24, 0.26);
 }
 
 .icon-btn-red:hover {
   border-color: var(--accent-red);
-  background: rgba(255, 76, 76, 0.12);
+  background: rgba(180, 35, 24, 0.09);
   color: var(--accent-red);
-  box-shadow: 0 0 10px rgba(255, 76, 76, 0.2);
+  box-shadow: 0 0 10px rgba(180, 35, 24, 0.26);
 }
 
-[data-theme="light"] .icon-btn {
+:root:not([data-theme="dark"]) .icon-btn {
   background: rgba(0, 0, 0, 0.04);
   border-color: rgba(0, 0, 0, 0.13);
   color: #4a5568;
 }
 
-[data-theme="light"] .icon-btn:hover {
+:root:not([data-theme="dark"]) .icon-btn:hover {
   background: rgba(0, 0, 0, 0.08);
   border-color: rgba(0, 0, 0, 0.22);
   color: #1a202c;
@@ -130,8 +130,8 @@
 /* Confirmed-sent state — turns green briefly */
 .icon-btn-sms-sent {
   color: var(--accent-green) !important;
-  border-color: rgba(0, 184, 148, 0.35) !important;
-  background: rgba(0, 184, 148, 0.1) !important;
+  border-color: var(--accent-green-line) !important;
+  background: var(--accent-green-soft) !important;
 }
 
 /* Spinning animation for loading state */

@@ -44,7 +44,7 @@
   width: 36px;
   height: 36px;
   border: 1px solid rgba(255, 255, 255, 0.10);
-  border-radius: 9px;
+  border-radius: 4px;
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-secondary);
   cursor: pointer;
@@ -129,13 +129,13 @@
 }
 
 .pr-action-approve {
-  background-color: rgba(0, 184, 148, 0.12);
+  background-color: var(--accent-green-soft);
   color: var(--accent-green);
-  border-color: rgba(0, 184, 148, 0.3);
+  border-color: var(--accent-green-line);
 }
 
 .pr-action-reject {
-  background-color: rgba(255, 76, 76, 0.12);
+  background-color: rgba(180, 35, 24, 0.09);
   color: var(--accent-red);
-  border-color: rgba(255, 76, 76, 0.3);
+  border-color: rgba(180, 35, 24, 0.26);
 }

@@ -66,15 +66,15 @@
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.025);
+  border-radius: var(--border-radius);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease;
   cursor: default;
 }
 
 .pie-legend-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-subtle);
   transform: translateX(2px);
 }
 
@@ -84,14 +84,6 @@
 
 .pie-legend-item--zero:hover {
   transform: none;
-}
-
-[data-theme="light"] .pie-legend-item {
-  background: rgba(0, 0, 0, 0.02);
-}
-
-[data-theme="light"] .pie-legend-item:hover {
-  background: rgba(0, 0, 0, 0.04);
 }
 
 .pie-legend-dot {
@@ -141,7 +133,7 @@
 .pie-tooltip {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 4px;
   padding: 10px 14px;
   display: flex;
   align-items: flex-start;
@@ -194,7 +186,7 @@
 .pie-sk-title {
   width: 160px;
   height: 16px;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 .pie-sk-donut-wrap {
@@ -220,7 +212,7 @@
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
-  border-radius: 10px;
+  border-radius: 4px;
   border: 1px solid var(--border-color);
 }
 
@@ -273,7 +265,7 @@
 
   .pie-legend-item {
     padding: 8px 10px;
-    border-radius: 8px;
+    border-radius: 4px;
   }
 
   .pie-legend-amount {

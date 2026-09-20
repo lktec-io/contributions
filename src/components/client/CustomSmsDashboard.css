@@ -5,7 +5,7 @@
 
 .csd {
   --cs-r-btn: 3px;
-  --cs-r-card: 8px;
+  --cs-r-card: 4px;
   --cs-r-tag: 3px;
 
   width: 100%;
@@ -27,13 +27,21 @@
   gap: 12px 20px;
   flex-wrap: wrap;
   min-width: 0;
-  padding: 16px 18px 16px 20px;
+  padding: 20px 22px 20px 24px;
   box-sizing: border-box;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: #0F5132;
+  border: 1px solid #0F5132;
   border-radius: var(--cs-r-card);
   overflow: hidden;
 }
+
+/* Hero row: every string inside sits on emerald, so it is solid white */
+.csd-welcome .csd-title,
+.csd-welcome .csd-sub,
+.csd-welcome .csd-date { color: #FFFFFF; }
+
+.csd-welcome .csd-sub  { opacity: 0.92; }
+.csd-welcome .csd-date { opacity: 0.78; }
 
 /* A single brand rule on the left edge instead of a gradient wash */
 .csd-welcome::before {
@@ -41,7 +49,7 @@
   position: absolute;
   inset: 0 auto 0 0;
   width: 3px;
-  background: var(--accent-green);
+  background: var(--accent-gold);
 }
 
 .csd-welcome-text { min-width: 0; flex: 1 1 280px; }
@@ -79,10 +87,13 @@
   max-width: 100%;
   padding: 8px 12px;
   box-sizing: border-box;
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: var(--cs-r-tag);
 }
+
+.csd-welcome .csd-event-label { color: var(--accent-gold); }
+.csd-welcome .csd-event-name  { color: #FFFFFF; }
 
 .csd-event-label {
   font-size: 10px;
@@ -220,7 +231,7 @@
 .csd-action span { min-width: 0; overflow-wrap: anywhere; }
 
 @media (hover: hover) {
-  .csd-action:hover { border-color: rgba(0, 184, 148, 0.5); }
+  .csd-action:hover { border-color: var(--accent-green-line); }
   .csd-action:hover svg { color: var(--accent-green); }
 }
 
@@ -299,8 +310,8 @@
   white-space: nowrap;
 }
 
-.csd-pill-ok   { color: var(--accent-green); background: rgba(0, 184, 148, 0.12); }
-.csd-pill-wait { color: var(--accent-orange); background: rgba(255, 165, 0, 0.12); }
+.csd-pill-ok   { color: var(--accent-green); background: var(--accent-green-soft); }
+.csd-pill-wait { color: var(--accent-orange); background: rgba(184, 115, 11, 0.10); }
 
 .csd-empty {
   margin: 0;

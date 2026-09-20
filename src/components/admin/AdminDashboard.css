@@ -31,22 +31,25 @@
 /* ════════════════════════════════════════════════
    WELCOME BANNER — Premium redesign
    ════════════════════════════════════════════════ */
+/* Hero row — flat emerald ground, solid white type, no gradient or glow */
 .welcome-banner {
-  background: linear-gradient(125deg,
-    #071A0E 0%,
-    #0A1628 35%,
-    #0D1B2A 60%,
-    #0D2235 100%
-  );
-  border-radius: 16px;
-  padding: 36px 40px;
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(0, 184, 148, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  background: #0F5132;
+  border-radius: var(--border-radius-lg);
+  padding: 28px 32px;
+  box-shadow: none;
   position: relative;
   overflow: hidden;
-  animation: fadeInDown 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  min-width: 0;
+  animation: fadeInDown 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Gold rule anchors the hero to the highlight accent */
+.welcome-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--accent-gold);
 }
 
 /* Skeleton loading state — suppress orb pseudo-elements */
@@ -55,43 +58,6 @@
   display: none;
 }
 
-/* Primary glow orb — top right */
-.welcome-banner::before {
-  content: '';
-  position: absolute;
-  top: -40%;
-  right: -5%;
-  width: 380px;
-  height: 380px;
-  background: radial-gradient(circle,
-    rgba(0, 184, 148, 0.15) 0%,
-    rgba(0, 184, 148, 0.04) 40%,
-    transparent 70%
-  );
-  border-radius: 50%;
-  pointer-events: none;
-  animation: orb-float 9s ease-in-out infinite alternate;
-}
-
-/* Secondary glow orb — bottom left */
-.welcome-banner::after {
-  content: '';
-  position: absolute;
-  bottom: -50%;
-  left: 5%;
-  width: 260px;
-  height: 260px;
-  background: radial-gradient(circle,
-    rgba(59, 130, 246, 0.1) 0%,
-    rgba(59, 130, 246, 0.02) 50%,
-    transparent 70%
-  );
-  border-radius: 50%;
-  pointer-events: none;
-  animation: orb-float 12s ease-in-out infinite alternate-reverse;
-}
-
-/* Shimmer line across banner */
 .welcome-banner-inner {
   position: relative;
   z-index: 1;
@@ -111,7 +77,7 @@
 .welcome-banner-logo {
   width: 56px;
   height: 56px;
-  border-radius: 14px;
+  border-radius: 4px;
   object-fit: contain;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -137,7 +103,7 @@
   border: 1px solid rgba(255, 255, 255, 0.28);
   color: #ffffff !important;
   padding: 9px 18px;
-  border-radius: 9px;
+  border-radius: 4px;
   font-size: 13px;
   font-weight: 500;
   display: inline-flex;
@@ -158,11 +124,11 @@
 
 /* ── Refresh Data button ─────────────────────── */
 .btn-refresh {
-  background: rgba(0, 184, 148, 0.18);
-  border: 1px solid rgba(0, 184, 148, 0.40);
+  background: var(--accent-green-soft);
+  border: 1px solid var(--accent-green-line);
   color: #ffffff !important;
   padding: 9px 18px;
-  border-radius: 9px;
+  border-radius: 4px;
   font-size: 13px;
   font-weight: 500;
   display: inline-flex;
@@ -177,10 +143,10 @@
 }
 
 .btn-refresh:hover:not(:disabled) {
-  background: rgba(0, 184, 148, 0.32);
-  border-color: rgba(0, 184, 148, 0.60);
+  background: var(--accent-green-line);
+  border-color: var(--accent-green-line);
   color: #ffffff;
-  box-shadow: 0 0 16px rgba(0, 184, 148, 0.28);
+  box-shadow: 0 0 16px var(--accent-green-line);
   transform: translateY(-1px);
 }
 
@@ -200,20 +166,6 @@
   to   { transform: rotate(360deg); }
 }
 
-.welcome-banner-inner::before {
-  content: '';
-  position: absolute;
-  inset: -36px -40px;
-  background: linear-gradient(
-    105deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.025) 50%,
-    transparent 70%
-  );
-  background-size: 200% 100%;
-  animation: shimmer-sweep 6s ease-in-out infinite;
-  pointer-events: none;
-}
 
 .welcome-text {
   position: relative;
@@ -230,20 +182,21 @@
   position: relative;
 }
 
-/* Subtle green name highlight inside h1 — targets last word via wrapping span if present */
+/* Hero type is solid white throughout — no gradient fills */
 .welcome-banner h1 span {
-  background: linear-gradient(90deg, #00B894, #00D8A8);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  background: none;
+  -webkit-text-fill-color: #FFFFFF;
+  color: #FFFFFF;
 }
 
 .welcome-banner p {
-  color: rgba(255, 255, 255, 0.5);
+  color: #FFFFFF;
   font-size: 0.875rem;
   margin: 0;
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: 0.2px;
+  opacity: 0.92;
+  overflow-wrap: break-word;
 }
 
 /* Welcome banner is intentionally always dark — no light-theme override */
@@ -260,7 +213,7 @@
 .stat-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 4px;
   box-shadow: var(--shadow);
   padding: 22px 20px;
   display: flex;
@@ -273,19 +226,8 @@
 }
 
 /* Top accent bar */
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.06) 50%,
-    transparent 100%
-  );
-}
+/* Ledger tiles read as ruled rows, not floating cards */
+.stat-card::before { content: none; }
 
 .stat-card:nth-child(1) { animation-delay: 0.06s; }
 .stat-card:nth-child(2) { animation-delay: 0.12s; }
@@ -294,14 +236,12 @@
 .stat-card:nth-child(5) { animation-delay: 0.30s; }
 
 .stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
+  transform: none;
+  box-shadow: none;
+  border-color: var(--accent-green-line);
 }
 
-[data-theme="light"] .stat-card:hover {
+:root:not([data-theme="dark"]) .stat-card:hover {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
@@ -320,7 +260,7 @@
 .stat-icon-wrap {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -340,15 +280,19 @@
   flex: 1;
 }
 
+/* Long labels wrap instead of forcing the tile wider than the phone */
 .stat-label {
   font-size: 11px;
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.7px;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: break-word;
+  min-width: 0;
 }
 
+/* Multi-digit figures break rather than push the layout sideways */
 .stat-value {
   font-size: 23px;
   font-weight: 700;
@@ -356,6 +300,9 @@
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.5px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* ════════════════════════════════════════════════
@@ -384,7 +331,7 @@
 
   .welcome-banner {
     padding: 24px 22px;
-    border-radius: 12px;
+    border-radius: 4px;
   }
 
   .welcome-banner h1 { font-size: 1.3rem; }
@@ -392,7 +339,7 @@
   .welcome-banner-logo {
     width: 44px;
     height: 44px;
-    border-radius: 12px;
+    border-radius: 4px;
   }
 
   .stats-grid {
@@ -463,7 +410,7 @@
 .activity-card {
   background: rgba(255, 255, 255, 0.028);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 4px;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
@@ -476,11 +423,11 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
 }
 
-[data-theme="light"] .activity-card {
+:root:not([data-theme="dark"]) .activity-card {
   background: rgba(0, 0, 0, 0.018);
 }
 
-[data-theme="light"] .activity-card:hover {
+:root:not([data-theme="dark"]) .activity-card:hover {
   background: rgba(0, 0, 0, 0.04);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
