@@ -1,0 +1,292 @@
+/* ══════════════════════════════════════════════════════════════
+   MEMBERSHIP POSTURE — engagement intelligence
+
+   Deliberately unlike the financial screen: no rings and no money
+   type. This panel reads as one horizontal distribution band with
+   nested ratio tiles beneath it.
+   ══════════════════════════════════════════════════════════════ */
+
+.mp {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px 18px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+
+.mp *,
+.mp *::before,
+.mp *::after { box-sizing: border-box; }
+
+/* ── Head ────────────────────────────────────── */
+.mp-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.mp-head-copy { min-width: 0; }
+
+.mp-eyebrow {
+  margin: 0 0 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--accent-green);
+}
+
+.mp-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+  overflow-wrap: break-word;
+}
+
+.mp-total {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+}
+
+.mp-total-value {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.6px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.mp-total-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ── Distribution band ───────────────────────── */
+.mp-dist {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: 10px;
+  background: var(--silver-200);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.mp-seg {
+  display: block;
+  height: 100%;
+  transition: width 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.mp-seg--ready { background: var(--accent-green-bright); }
+.mp-seg--wait  { background: var(--accent-orange); }
+
+/* ── Keys ────────────────────────────────────── */
+.mp-keys {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  margin: 0;
+  min-width: 0;
+}
+
+.mp-key {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.mp-key-term {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.mp-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
+.mp-dot--ready { background: var(--accent-green-bright); }
+.mp-dot--wait  { background: var(--accent-orange); }
+
+.mp-key-val {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.mp-key-val b {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.mp-key-val span {
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+/* ── Nested ratio tiles ──────────────────────── */
+.mp-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+  margin-top: 2px;
+}
+
+.mp-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px 13px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+
+.mp-tile-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.mp-tile-head svg { flex-shrink: 0; }
+
+.mp-tile-value {
+  display: inline-flex;
+  align-items: baseline;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.6px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mp-tile-value i {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 800;
+  margin-left: 1px;
+  color: var(--text-muted);
+}
+
+.mp-tile-track {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 3px;
+  background: var(--silver-200);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.mp-tile-track i {
+  display: block;
+  height: 100%;
+  background: var(--accent-green-bright);
+  border-radius: 2px;
+  transition: width 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.mp-tile.is-waiting .mp-tile-track i { background: var(--accent-orange); }
+.mp-tile.is-waiting .mp-tile-value   { color: var(--accent-orange); }
+.mp-tile.is-open    .mp-tile-value   { color: var(--accent-green-bright); }
+
+.mp-tile-note {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE — dense mobile ledger tiles
+   ══════════════════════════════════════════════ */
+
+@media (max-width: 760px) {
+  .mp-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .mp { padding: 14px; gap: 11px; }
+
+  .mp-head { align-items: flex-start; }
+  .mp-total-value { font-size: 22px; }
+
+  /* Keys and tiles fold into a single dense column */
+  .mp-keys { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .mp-key { padding: 8px 0; }
+
+  .mp-tiles { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+
+  .mp-tile {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "head  value"
+      "track track"
+      "note  note";
+    align-items: baseline;
+    gap: 5px 12px;
+  }
+
+  .mp-tile-head  { grid-area: head; }
+  .mp-tile-value { grid-area: value; font-size: 19px; justify-self: end; }
+  .mp-tile-track { grid-area: track; }
+  .mp-tile-note  { grid-area: note; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-seg,
+  .mp-tile-track i { transition: none; }
+}

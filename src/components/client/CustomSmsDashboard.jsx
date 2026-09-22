@@ -11,6 +11,7 @@ import { eventService } from '../../services/eventService';
 import { getErrorMessage } from '../../utils/helpers';
 import { StatsSkeleton } from '../common/SkeletonLoader';
 import './CustomSmsDashboard.css';
+import './MemberPosture.css';
 
 /*  Communication dashboard for sms_mode = 'custom'.
     Every figure below is derived from the member list the API actually
@@ -56,37 +57,19 @@ export default function CustomSmsDashboard() {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
 
-  /* share drives the micro bar under each figure. Every value is a ratio of
-     numbers already on this page — nothing new is fetched or estimated. */
-  const pct = (part) => (total ? part / total : 0);
+  /* Posture maths — every ratio below comes from the member list this page
+     already holds. Nothing extra is fetched and nothing is estimated. */
+  const share = (part) => (total ? Math.round((part / total) * 100) : 0);
 
-  const stats = [
-    {
-      key: 'members', label: 'Members', value: total, Icon: FiUsers, tone: 'blue',
-      share: total ? 1 : 0,
-      caption: total === 1 ? '1 member on record' : `${total} members on record`,
-    },
-    {
-      key: 'sent', label: 'Recently Contacted', value: contacted, Icon: FiSend, tone: 'green',
-      share: pct(contacted),
-      caption: `${contacted} of ${total} in cooldown`,
-    },
-    {
-      key: 'available', label: 'Available Members', value: available, Icon: FiCheckCircle, tone: 'teal',
-      share: pct(available),
-      caption: `${available} of ${total} ready to receive`,
-    },
-    {
-      key: 'campaign',
-      label: 'Campaign Status',
-      value: campaign.canSend ? 'Available' : `${campaign.daysRemaining}d`,
-      hint:  campaign.canSend ? 'Ready to send' : 'Cooldown active',
-      Icon: FiClock,
-      tone: campaign.canSend ? 'green' : 'amber',
-      // The campaign window is 7 days; show how much of it has elapsed.
-      share: campaign.canSend ? 1 : Math.max(0, (7 - campaign.daysRemaining) / 7),
-    },
-  ];
+  const withPhone    = members.filter(m => m.phone).length;
+  const reachPct     = share(withPhone);
+  const availablePct = share(available);
+  const cooldownPct  = total ? 100 - availablePct : 0;
+
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+  const newThisMonth = members.filter(
+    m => m.created_at && Date.now() - new Date(m.created_at).getTime() < THIRTY_DAYS,
+  ).length;
 
   const actions = [
     { label: 'Add Member',            Icon: FiPlus,     to: '/contributions?action=add' },
@@ -120,22 +103,94 @@ export default function CustomSmsDashboard() {
         )}
       </section>
 
-      <section className="csd-stats">
-        {stats.map(s => (
-          <div key={s.key} className={`csd-stat csd-stat-${s.tone}`}>
-            <span className="csd-stat-icon"><s.Icon size={16} /></span>
-            <span className="csd-stat-value">{s.value}</span>
-            <span className="csd-stat-label">{s.label}</span>
-            <span className="csd-bar" aria-hidden="true">
-              <span
-                className="csd-bar-fill"
-                style={{ width: `${Math.round((s.share || 0) * 100)}%` }}
-              />
-            </span>
-            {s.caption && <span className="csd-stat-caption">{s.caption}</span>}
-            {s.hint && <span className="csd-stat-hint">{s.hint}</span>}
+      {/* ══════════════════════════════════════════
+          MEMBERSHIP POSTURE — engagement intelligence
+          ══════════════════════════════════════════ */}
+      <section className="mp" aria-label="Membership posture">
+        <header className="mp-head">
+          <div className="mp-head-copy">
+            <p className="mp-eyebrow">Engagement posture</p>
+            <h3 className="mp-title">Membership intelligence</h3>
           </div>
-        ))}
+          <p className="mp-total">
+            <span className="mp-total-value">{total}</span>
+            <span className="mp-total-label">{total === 1 ? 'member' : 'members'}</span>
+          </p>
+        </header>
+
+        {/* Distribution: who can be reached right now */}
+        <div
+          className="mp-dist"
+          role="img"
+          aria-label={`${available} available, ${contacted} in cooldown`}
+        >
+          <span className="mp-seg mp-seg--ready" style={{ width: `${availablePct}%` }} />
+          <span className="mp-seg mp-seg--wait"  style={{ width: `${cooldownPct}%` }} />
+        </div>
+
+        <dl className="mp-keys">
+          <div className="mp-key">
+            <dt className="mp-key-term">
+              <i className="mp-dot mp-dot--ready" aria-hidden="true" />
+              Available
+            </dt>
+            <dd className="mp-key-val">
+              <b>{available}</b><span>{availablePct}%</span>
+            </dd>
+          </div>
+          <div className="mp-key">
+            <dt className="mp-key-term">
+              <i className="mp-dot mp-dot--wait" aria-hidden="true" />
+              In cooldown
+            </dt>
+            <dd className="mp-key-val">
+              <b>{contacted}</b><span>{cooldownPct}%</span>
+            </dd>
+          </div>
+        </dl>
+
+        {/* Nested analytics tiles */}
+        <div className="mp-tiles">
+          <article className="mp-tile">
+            <span className="mp-tile-head">
+              <FiSend size={14} aria-hidden="true" />
+              Communication reach
+            </span>
+            <span className="mp-tile-value">{reachPct}<i>%</i></span>
+            <span className="mp-tile-track" aria-hidden="true">
+              <i style={{ width: `${reachPct}%` }} />
+            </span>
+            <span className="mp-tile-note">{withPhone} of {total} have a phone number</span>
+          </article>
+
+          <article className="mp-tile">
+            <span className="mp-tile-head">
+              <FiUsers size={14} aria-hidden="true" />
+              Growth momentum
+            </span>
+            <span className="mp-tile-value">{newThisMonth}</span>
+            <span className="mp-tile-track" aria-hidden="true">
+              <i style={{ width: `${share(newThisMonth)}%` }} />
+            </span>
+            <span className="mp-tile-note">joined in the last 30 days</span>
+          </article>
+
+          <article className={`mp-tile ${campaign.canSend ? 'is-open' : 'is-waiting'}`}>
+            <span className="mp-tile-head">
+              <FiClock size={14} aria-hidden="true" />
+              Campaign window
+            </span>
+            <span className="mp-tile-value">
+              {campaign.canSend ? 'Open' : `${campaign.daysRemaining}d`}
+            </span>
+            <span className="mp-tile-track" aria-hidden="true">
+              <i style={{ width: `${campaign.canSend ? 100 : Math.max(0, Math.round(((7 - campaign.daysRemaining) / 7) * 100))}%` }} />
+            </span>
+            <span className="mp-tile-note">
+              {campaign.canSend ? 'Ready to send to all' : 'Cooldown active'}
+            </span>
+          </article>
+        </div>
       </section>
 
       <section className="csd-section">

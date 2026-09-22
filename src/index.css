@@ -701,7 +701,7 @@ textarea:focus-visible {
    Opt in with .data-table--stack and give each <td> a data-label.
    Above the breakpoint it stays a normal table.
    ============================================================ */
-@media (max-width: 720px) {
+@media (max-width: 760px) {
   /* Two classes deep on purpose: a later global rule sets
      .data-table { min-width: 600px } and would otherwise win on source order. */
   .data-table.data-table--stack {

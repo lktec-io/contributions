@@ -27,13 +27,16 @@
   gap: 10px;
   width: 100%;
   min-width: 0;
-  padding: 13px 16px;
-  color: #FFFFFF;
+  padding: 13px 15px;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.45;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-left-width: 3px;
   border-radius: var(--border-radius-lg);
-  box-shadow: 0 14px 40px rgba(17, 20, 24, 0.26);
+  box-shadow: 0 14px 40px rgba(17, 20, 24, 0.18);
   pointer-events: all;
   overflow: hidden;
   max-height: 140px;
@@ -65,13 +68,16 @@
   100% { opacity: 0; transform: translateY(-10px) scale(0.98); }
 }
 
-/* ── Colour variants — flat surfaces, no glass ── */
-.toast-success { background: #0F5132; border: 1px solid #0F5132; }
-.toast-error   { background: #8C1D18; border: 1px solid #8C1D18; }
-.toast-warning { background: #8A5606; border: 1px solid #8A5606; }
-.toast-info    { background: #1E3A8A; border: 1px solid #1E3A8A; }
+/* ── Colour variants ─────────────────────────────
+   Charcoal text on a white surface; the status colour is carried by
+   a single edge highlight and the icon chip. No glass, no gradient.
+   ─────────────────────────────────────────────── */
+.toast-success { border-left-color: #0F5132; }
+.toast-error   { border-left-color: #B42318; }
+.toast-warning { border-left-color: #B8730B; }
+.toast-info    { border-left-color: #1D4ED8; }
 
-/* ── Icon badge ──────────────────────────────── */
+/* ── Icon chip ───────────────────────────────── */
 .toast-icon {
   display: flex;
   align-items: center;
@@ -80,8 +86,17 @@
   width: 26px;
   height: 26px;
   border-radius: var(--border-radius);
-  background: rgba(255, 255, 255, 0.16);
 }
+
+.toast-success .toast-icon { color: #0F5132; background: rgba(15, 81, 50, 0.10); }
+.toast-error   .toast-icon { color: #B42318; background: rgba(180, 35, 24, 0.10); }
+.toast-warning .toast-icon { color: #B8730B; background: rgba(184, 115, 11, 0.12); }
+.toast-info    .toast-icon { color: #1D4ED8; background: rgba(29, 78, 216, 0.10); }
+
+[data-theme="dark"] .toast-success .toast-icon { color: var(--accent-green-bright); }
+[data-theme="dark"] .toast-error   .toast-icon { color: var(--accent-red); }
+[data-theme="dark"] .toast-warning .toast-icon { color: var(--accent-orange); }
+[data-theme="dark"] .toast-info    .toast-icon { color: var(--accent-blue); }
 
 /* ── Message ─────────────────────────────────── */
 .toast-message {
@@ -102,7 +117,7 @@
   height: 26px;
   min-height: 26px;
   padding: 0;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-muted);
   background: transparent;
   border: none;
   border-radius: var(--border-radius);
@@ -111,8 +126,8 @@
 }
 
 .toast-close:hover {
-  color: #FFFFFF;
-  background: rgba(255, 255, 255, 0.18);
+  color: var(--text-primary);
+  background: var(--bg-subtle);
 }
 
 /* ══════════════════════════════════════════════

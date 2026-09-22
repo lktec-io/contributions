@@ -19,6 +19,7 @@ import EmptyState from '../common/EmptyState';
 import ClientEvents from './ClientEvents';
 import ClientContributions from './ClientContributions';
 import CustomSmsMembers from './CustomSmsMembers';
+import './ClientLedger.css';
 import CustomSmsDashboard from './CustomSmsDashboard';
 import { useSmsMode } from '../../hooks/useSmsMode';
 import PieChartCard from '../common/PieChartCard';
@@ -127,6 +128,41 @@ export default function ClientDashboard() {
       </div>
     );
 
+    /* Ledger maths — derived entirely from figures already in `stats`.
+       No new fetch, no estimate: pledged is the goal, paid is against it. */
+    const pledged     = Number(stats?.totalPledged ?? 0);
+    const paid        = Number(stats?.totalPaid ?? 0);
+    const outstanding = Number(stats?.outstanding ?? 0);
+    const collectedPct = pledged > 0 ? Math.min(100, Math.round((paid / pledged) * 100)) : 0;
+    const owedPct      = pledged > 0 ? Math.max(0, 100 - collectedPct) : 0;
+
+    const ledgerRows = [
+      {
+        key: 'pledged',
+        term: 'Jumla ya Michango ya Vikundi',
+        gloss: 'Total pledged — the goal',
+        value: pledged,
+        share: pledged > 0 ? 100 : 0,
+        tone: 'neutral',
+      },
+      {
+        key: 'paid',
+        term: 'Kiasi Kilicholipwa',
+        gloss: 'Collected to date',
+        value: paid,
+        share: collectedPct,
+        tone: 'good',
+      },
+      {
+        key: 'outstanding',
+        term: 'Mizani Inayodaiwa',
+        gloss: 'Still owed',
+        value: outstanding,
+        share: owedPct,
+        tone: 'owed',
+      },
+    ];
+
     return (
       <>
         <div className="welcome-banner">
@@ -159,29 +195,88 @@ export default function ClientDashboard() {
           </div>
         </div>
 
-        <div className="stats-grid stats-grid-5">
-          {CLIENT_STATS.map(({ key, label, Icon, color, money, to }) => (
-            <div
-              key={key}
-              className="stat-card stat-card--link"
-              onClick={() => navigate(to)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(to); } }}
-              title={`Go to ${label}`}
-            >
-              <div className="stat-icon-wrap" style={{ background: `${color}1F` }}>
-                <Icon size={24} color={color} />
-              </div>
-              <div className="stat-info">
-                <span className="stat-label">{label}</span>
-                <span className="stat-value" style={money ? { color, fontSize: '17px' } : {}}>
-                  {money ? formatCurrency(stats?.[key] ?? 0) : (stats?.[key] ?? 0)}
-                </span>
-              </div>
+        {/* ══════════════════════════════════════════
+            LEDGER INTELLIGENCE — collection posture
+            ══════════════════════════════════════════ */}
+        <section className="fl" aria-label="Collection posture">
+          <header className="fl-head">
+            <div className="fl-head-copy">
+              <p className="fl-eyebrow">Ledger intelligence</p>
+              <h2 className="fl-title">Collection posture</h2>
             </div>
-          ))}
-        </div>
+            <button
+              type="button"
+              className="fl-head-link"
+              onClick={() => navigate('/contributions')}
+            >
+              Open ledger
+            </button>
+          </header>
+
+          <div className="fl-grid">
+            {/* Percentage ring — pure CSS conic gradient */}
+            <article className="fl-ring-card">
+              <div
+                className="fl-ring"
+                style={{ '--pct': collectedPct }}
+                role="img"
+                aria-label={`${collectedPct}% of pledged contributions collected`}
+              >
+                <div className="fl-ring-hole">
+                  <span className="fl-ring-pct">{collectedPct}<i>%</i></span>
+                  <span className="fl-ring-cap">Collected</span>
+                </div>
+              </div>
+
+              <dl className="fl-legend">
+                <div className="fl-legend-row">
+                  <dt className="fl-legend-term"><i className="fl-dot fl-dot--good" />Kiasi Kilicholipwa</dt>
+                  <dd className="fl-legend-val">{collectedPct}%</dd>
+                </div>
+                <div className="fl-legend-row">
+                  <dt className="fl-legend-term"><i className="fl-dot fl-dot--owed" />Mizani Inayodaiwa</dt>
+                  <dd className="fl-legend-val">{owedPct}%</dd>
+                </div>
+              </dl>
+            </article>
+
+            {/* Weighted comparison rows */}
+            <article className="fl-rows">
+              {ledgerRows.map(r => (
+                <div className={`fl-row fl-row--${r.tone}`} key={r.key}>
+                  <div className="fl-row-id">
+                    <span className="fl-row-term">{r.term}</span>
+                    <span className="fl-row-gloss">{r.gloss}</span>
+                  </div>
+                  <span className="fl-row-value">{formatCurrency(r.value)}</span>
+                  <span className="fl-row-share">{r.share}%</span>
+                  <span className="fl-row-track" aria-hidden="true">
+                    <i className="fl-row-fill" style={{ width: `${r.share}%` }} />
+                  </span>
+                </div>
+              ))}
+            </article>
+          </div>
+
+          {/* Counters stay one tap from the ledger */}
+          <div className="fl-counters">
+            {CLIENT_STATS.filter(s => !s.money).map(({ key, label, Icon, to }) => (
+              <button
+                type="button"
+                key={key}
+                className="fl-counter"
+                onClick={() => navigate(to)}
+                title={`Go to ${label}`}
+              >
+                <span className="fl-counter-icon"><Icon size={16} /></span>
+                <span className="fl-counter-body">
+                  <span className="fl-counter-label">{label}</span>
+                  <span className="fl-counter-value">{stats?.[key] ?? 0}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
 
         <div className="dashboard-bottom-grid">
           <PieChartCard chartData={stats?.chartData} loading={false} />

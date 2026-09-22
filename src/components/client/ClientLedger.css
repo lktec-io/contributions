@@ -1,0 +1,405 @@
+/* ══════════════════════════════════════════════════════════════
+   LEDGER INTELLIGENCE — collection posture
+
+   A percentage ring beside weighted comparison rows. Every value is
+   derived from figures already present in `stats`; the ring is a pure
+   CSS conic gradient — no chart library, no canvas.
+   ══════════════════════════════════════════════════════════════ */
+
+.fl {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+
+.fl *,
+.fl *::before,
+.fl *::after { box-sizing: border-box; }
+
+/* ── Head ────────────────────────────────────── */
+.fl-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.fl-head-copy { min-width: 0; }
+
+.fl-eyebrow {
+  margin: 0 0 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--accent-green);
+}
+
+.fl-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+  overflow-wrap: break-word;
+}
+
+.fl-head-link {
+  width: auto;
+  min-height: 34px;
+  padding: 0 12px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--accent-green);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.fl-head-link:hover {
+  border-color: var(--accent-green);
+  background: var(--accent-green-soft);
+}
+
+/* ── Grid ────────────────────────────────────── */
+.fl-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 250px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+/* ── Percentage ring ─────────────────────────── */
+.fl-ring-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px 16px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+
+/* A ring has to be round: the 2-4px geometry rule governs panels,
+   controls and badges, not data marks. */
+.fl-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 150px;
+  height: 150px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--accent-green-bright) calc(var(--pct, 0) * 1%),
+    var(--silver-200) 0
+  );
+}
+
+.fl-ring-hole {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background: var(--bg-card);
+}
+
+.fl-ring-pct {
+  display: inline-flex;
+  align-items: baseline;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.fl-ring-pct i {
+  font-style: normal;
+  font-size: 15px;
+  font-weight: 800;
+  margin-left: 1px;
+  color: var(--text-muted);
+}
+
+.fl-ring-cap {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ── Ring legend ─────────────────────────────── */
+.fl-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.fl-legend-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fl-legend-term {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.fl-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
+.fl-dot--good { background: var(--accent-green-bright); }
+.fl-dot--owed { background: var(--silver-200); border: 1px solid var(--border-strong); }
+
+.fl-legend-val {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* ── Weighted comparison rows ────────────────── */
+.fl-rows {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+}
+
+.fl-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 52px;
+  grid-template-areas:
+    "id value share"
+    "track track track";
+  align-items: center;
+  gap: 8px 12px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.fl-row:last-child { border-bottom: none; }
+
+.fl-row-id {
+  grid-area: id;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.fl-row-term {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.fl-row-gloss {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow-wrap: break-word;
+}
+
+/* Currency: heavy, tabular, tightly tracked */
+.fl-row-value {
+  grid-area: value;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.fl-row-share {
+  grid-area: share;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--text-muted);
+}
+
+.fl-row-track {
+  grid-area: track;
+  display: block;
+  width: 100%;
+  height: 4px;
+  background: var(--silver-200);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.fl-row-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--silver-500);
+  transition: width 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.fl-row--good .fl-row-value { color: var(--accent-green-bright); }
+.fl-row--good .fl-row-fill  { background: var(--accent-green-bright); }
+.fl-row--owed .fl-row-value { color: var(--accent-red); }
+.fl-row--owed .fl-row-fill  { background: var(--accent-red); }
+
+/* ── Counters ────────────────────────────────── */
+.fl-counters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.fl-counter {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-width: 0;
+  min-height: 56px;
+  padding: 10px 14px;
+  text-align: left;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.fl-counter:hover {
+  border-color: var(--accent-green-line);
+  background: var(--bg-subtle);
+}
+
+.fl-counter-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  color: var(--accent-green);
+  background: var(--accent-green-soft);
+  border-radius: var(--border-radius);
+}
+
+.fl-counter-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.fl-counter-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  overflow-wrap: break-word;
+}
+
+.fl-counter-value {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════ */
+
+@media (max-width: 860px) {
+  .fl-grid { grid-template-columns: minmax(0, 1fr); }
+  .fl-ring-card { flex-direction: row; justify-content: flex-start; gap: 20px; }
+  .fl-legend { width: auto; flex: 1 1 auto; }
+}
+
+@media (max-width: 600px) {
+  .fl { padding: 14px; gap: 12px; }
+
+  .fl-ring { width: 124px; height: 124px; }
+  .fl-ring-hole { width: 92px; height: 92px; }
+  .fl-ring-pct { font-size: 26px; }
+
+  /* Rows collapse into dense mobile ledger tiles */
+  .fl-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "id    id"
+      "value share"
+      "track track";
+    gap: 6px 10px;
+    padding: 12px 13px;
+  }
+
+  .fl-row-value { font-size: 17px; text-align: left; }
+  .fl-row-share { text-align: right; }
+
+  .fl-head-link { width: 100%; min-height: 44px; }
+  .fl-counter { min-height: 60px; }
+}
+
+@media (max-width: 380px) {
+  .fl-ring-card { flex-direction: column; align-items: flex-start; }
+  .fl-ring { align-self: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fl-row-fill,
+  .fl-counter,
+  .fl-head-link { transition: none; }
+}

@@ -92,8 +92,26 @@
   gap: 10px;
   flex-shrink: 0;
   flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
   position: relative;
   z-index: 2;
+}
+
+/* Two side-by-side hero buttons cannot fit a 320px screen; give them the
+   full row so nothing spills past the viewport. */
+@media (max-width: 560px) {
+  .welcome-banner { padding: 18px 16px; }
+
+  .welcome-banner-btns { width: 100%; }
+
+  .welcome-banner-btns .btn,
+  .welcome-banner-btns .btn-view-contribs,
+  .welcome-banner-btns .btn-refresh {
+    flex: 1 1 100%;
+    min-width: 0;
+    justify-content: center;
+  }
 }
 
 /* ── View Contributors button ────────────────── */
