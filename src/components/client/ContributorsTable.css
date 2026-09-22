@@ -144,11 +144,78 @@
   to   { transform: rotate(360deg); }
 }
 
+/* ══════════════════════════════════════════════
+   Desktop ledger density
+
+   Ten columns have to coexist. Tightening the gutters and holding
+   the event column to one ellipsised line keeps Date and Actions
+   on screen instead of pushing them behind a horizontal scroll.
+   ══════════════════════════════════════════════ */
+@media (min-width: 721px) {
+  .contributors-table th,
+  .contributors-table td {
+    padding: 10px 12px;
+  }
+
+  .contributors-table th {
+    font-size: 10px;
+    letter-spacing: 0.6px;
+  }
+
+  .contributors-table td { font-size: 13px; }
+
+  /* Name — allow two lines, never a single runaway column */
+  .contributors-table td.td-name {
+    min-width: 132px;
+    max-width: 190px;
+  }
+
+  /* Event — one line, ellipsised; the full value stays in the DOM */
+  .contributors-table td:nth-child(4) {
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .contributors-table td.td-secondary {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Ten columns still exceed the content width at 1280, so the card keeps its
+     horizontal scroll for the final column. Denser controls reduce how far
+     that scroll has to travel. */
+  .contributors-table td.td-actions { white-space: nowrap; }
+
+  .contributors-table .icon-btn {
+    width: 26px;
+    min-width: 26px;
+    height: 26px;
+    min-height: 26px;
+    padding: 0;
+  }
+
+  .contributors-table .icon-btn svg { width: 14px; height: 14px; }
+}
+
+/* Between 721px and 1400px the ten columns cannot all earn their space.
+   Email is dropped first: phone is the channel this system actually uses,
+   and the address is still available in the edit form and the export. */
+@media (min-width: 721px) and (max-width: 1400px) {
+  .contributors-table th:nth-child(3),
+  .contributors-table td:nth-child(3) { display: none; }
+
+  .contributors-table td:nth-child(4) { max-width: 140px; }
+}
+
 /* ── Mobile touch targets ────────────────────── */
 @media (max-width: 768px) {
   .icon-btn {
-    min-width: 38px;
-    min-height: 38px;
+    min-width: 48px;
+    min-height: 48px;
     padding: 8px;
   }
 

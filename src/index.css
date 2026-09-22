@@ -41,6 +41,15 @@
   --accent-green-hover: #0B3F27;
   --accent-green-soft: rgba(15, 81, 50, 0.08);
   --accent-green-line: rgba(15, 81, 50, 0.22);
+  /* Lifted emerald for positive figures and data bars, where #0F5132
+     reads as near-black against white */
+  --accent-green-bright: #198754;
+
+  /* Metallic silver & platinum — structure, neutral badges, tracks */
+  --silver-50: #F8FAFC;
+  --silver-100: #F1F5F9;
+  --silver-200: #E2E8F0;
+  --silver-500: #64748B;
 
   /* Highlight — muted gold, active states only */
   --accent-gold: #D4AF37;
@@ -97,6 +106,12 @@
   --accent-green-hover: #38B77D;
   --accent-green-soft: rgba(46, 158, 107, 0.14);
   --accent-green-line: rgba(46, 158, 107, 0.34);
+  --accent-green-bright: #38B77D;
+
+  --silver-50: #171E25;
+  --silver-100: #1B222A;
+  --silver-200: #232A33;
+  --silver-500: #8B949E;
 
   --accent-orange: #E0913A;
   --accent-red: #E5615A;
@@ -407,9 +422,19 @@ label {
   }
 }
 
-@media (max-width: 480px) {
-  button {
-    min-height: 40px;
+/* Touch targets: 48px minimum for every interactive control on mobile.
+   Class-level rules (e.g. .csm-icon-btn) still win where a component
+   sets its own deliberate size. */
+@media (max-width: 768px) {
+  button,
+  [role="button"],
+  .icon-btn,
+  .tab-button {
+    min-height: 48px;
+  }
+
+  .icon-btn {
+    min-width: 48px;
   }
 }
 
@@ -653,9 +678,105 @@ textarea:focus-visible {
   background-color: var(--bg-subtle);
 }
 
-.td-name   { font-weight: 500; }
-.td-money  { font-variant-numeric: tabular-nums; color: var(--accent-green); }
+.td-name   { font-weight: 600; }
 .td-date   { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
+
+/* Money columns: tabular figures, aligned and tightly tracked so a
+   treasurer can scan a column of amounts without re-reading digits. */
+.td-money {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.td-paid        { color: var(--accent-green-bright); }
+.td-outstanding { color: var(--accent-red); }
+
+/* ============================================================
+   Ledger mode — tables that stack into rows on small screens
+
+   Opt in with .data-table--stack and give each <td> a data-label.
+   Above the breakpoint it stays a normal table.
+   ============================================================ */
+@media (max-width: 720px) {
+  /* Two classes deep on purpose: a later global rule sets
+     .data-table { min-width: 600px } and would otherwise win on source order. */
+  .data-table.data-table--stack {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Hidden outright rather than clipped: an off-screen <thead> still lays out
+     a full-width row, which pushes the page sideways. Each cell carries its
+     own visible label via data-label, so no header text is lost. */
+  .data-table--stack thead { display: none; }
+
+  .data-table--stack tbody tr {
+    display: block;
+    min-width: 0;
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+  }
+
+  .data-table--stack tbody tr:last-child { margin-bottom: 0; }
+
+  .data-table--stack tbody td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    min-width: 0;
+    padding: 5px 0;
+    border: 0;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .data-table--stack tbody td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--text-muted);
+  }
+
+  /* Name leads the card, full width, no label */
+  .data-table--stack tbody td.td-name {
+    padding: 0 0 8px;
+    margin-bottom: 6px;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .data-table--stack tbody td.td-name::before { content: none; }
+
+  /* Actions sit on their own row with real touch targets */
+  .data-table--stack tbody td.td-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 6px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .data-table--stack tbody td.td-actions::before { margin-right: auto; }
+
+  /* The wrapper no longer needs to scroll once rows are stacked */
+  .contributors-table-wrap:has(.data-table--stack),
+  .table-wrap:has(.data-table--stack) { overflow-x: visible; }
+}
 
 /* ============================================================
    Shared loading / error states

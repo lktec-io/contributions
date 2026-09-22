@@ -1,655 +1,565 @@
-/* ═══════════════════════════════════════════════════════
-   FINANCE HUB — Login Page
-   Premium dark glass + floating radial blobs
-   ═══════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   LOGIN — corporate banking portal
 
-/* ── 1. Page shell ─────────────────────────────────────── */
+   Split screen: an emerald brand panel on the left, a crisp white
+   sign-in panel on the right. Collapses to the sign-in panel alone
+   below 900px. No blobs, no glass, no gradients — structure comes
+   from hairlines and one emerald field.
+   ══════════════════════════════════════════════════════════════ */
+
 .login-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   min-height: 100vh;
+  min-width: 0;
+  background: var(--bg-primary);
+  font-family: var(--font-body);
+}
+
+.login-page *,
+.login-page *::before,
+.login-page *::after { box-sizing: border-box; }
+
+/* ══════════════════════════════════════════════
+   BRAND PANEL
+   ══════════════════════════════════════════════ */
+
+.lp-brand {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+  min-width: 0;
+  padding: 44px 48px;
+  color: #FFFFFF;
+  background: #0F5132;
+  overflow: hidden;
+}
+
+/* A single gold hairline down the inner edge */
+.lp-brand::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 3px;
+  background: var(--accent-gold);
+}
+
+.lp-brand-top {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.lp-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: var(--border-radius-lg);
+}
+
+.lp-brand-mark svg { width: 20px; height: 20px; }
+
+.lp-brand-name {
+  font-size: 15.5px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: #FFFFFF;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.lp-brand-body { min-width: 0; }
+
+.lp-brand-eyebrow {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+}
+
+.lp-brand-headline {
+  margin: 0 0 14px;
+  font-family: var(--font-heading);
+  font-size: clamp(26px, 2.4vw + 14px, 40px);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.8px;
+  color: #FFFFFF;
+  overflow-wrap: break-word;
+}
+
+.lp-brand-copy {
+  max-width: 44ch;
+  margin: 0 0 26px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #FFFFFF;
+  opacity: 0.88;
+  overflow-wrap: break-word;
+}
+
+.lp-brand-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.lp-brand-point {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding-top: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #FFFFFF;
+  opacity: 0.94;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  overflow-wrap: break-word;
+}
+
+.lp-brand-point svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--accent-gold);
+}
+
+.lp-brand-foot {
+  margin: 0;
+  font-size: 11.5px;
+  color: #FFFFFF;
+  opacity: 0.66;
+  overflow-wrap: break-word;
+}
+
+/* ══════════════════════════════════════════════
+   SIGN-IN PANEL
+   ══════════════════════════════════════════════ */
+
+.lp-main {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  position: relative;
-  overflow: hidden;
-  background-color: #0f172a;
-  /* Subtle base vignette */
-  background-image: radial-gradient(
-    ellipse 80% 60% at 50% 0%,
-    rgba(15, 30, 50, 0.8) 0%,
-    transparent 100%
-  );
+  min-width: 0;
+  padding: 40px 32px;
+  background: var(--bg-primary);
 }
 
-/* ── 2. Floating radial blobs ──────────────────────────── */
-.lp-blob {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  will-change: transform;
-  filter: blur(1px);
-}
-
-/* Blob 1 — large green, top-right, floats UP */
-.lp-blob-1 {
-  width: 600px;
-  height: 600px;
-  top: -18%;
-  right: -10%;
-  background: radial-gradient(
-    circle at center,
-    rgba(46, 204, 113, 0.18) 0%,
-    rgba(46, 204, 113, 0.07) 35%,
-    transparent 65%
-  );
-  animation: blob-up 12s ease-in-out infinite;
-}
-
-/* Blob 2 — large blue, bottom-left, floats DOWN */
-.lp-blob-2 {
-  width: 560px;
-  height: 560px;
-  bottom: -18%;
-  left: -10%;
-  background: radial-gradient(
-    circle at center,
-    rgba(59, 130, 246, 0.14) 0%,
-    rgba(59, 130, 246, 0.05) 35%,
-    transparent 65%
-  );
-  animation: blob-down 15s ease-in-out infinite;
-}
-
-/* Blob 3 — medium green, center-left, diagonal float */
-.lp-blob-3 {
-  width: 380px;
-  height: 380px;
-  top: 30%;
-  left: 5%;
-  background: radial-gradient(
-    circle at center,
-    rgba(39, 174, 96, 0.12) 0%,
-    rgba(39, 174, 96, 0.04) 40%,
-    transparent 65%
-  );
-  animation: blob-diagonal-a 10s ease-in-out infinite 1s;
-}
-
-/* Blob 4 — small teal, top-left, floats UP with scale */
-.lp-blob-4 {
-  width: 260px;
-  height: 260px;
-  top: 8%;
-  left: 18%;
-  background: radial-gradient(
-    circle at center,
-    var(--accent-green-soft) 0%,
-    var(--accent-green-soft) 45%,
-    transparent 70%
-  );
-  animation: blob-pulse-float 8s ease-in-out infinite 0.5s;
-}
-
-/* Blob 5 — medium, center-right, diagonal counter float */
-.lp-blob-5 {
-  width: 320px;
-  height: 320px;
-  bottom: 15%;
-  right: 10%;
-  background: radial-gradient(
-    circle at center,
-    rgba(46, 204, 113, 0.09) 0%,
-    rgba(59, 130, 246, 0.05) 40%,
-    transparent 65%
-  );
-  animation: blob-diagonal-b 13s ease-in-out infinite 2s;
-}
-
-/* ── Keyframes ─────────────────────────────────────────── */
-@keyframes blob-up {
-  0%, 100% { transform: translateY(0)    scale(1);    }
-  50%       { transform: translateY(-55px) scale(1.05); }
-}
-
-@keyframes blob-down {
-  0%, 100% { transform: translateY(0)   scale(1);    }
-  50%       { transform: translateY(55px) scale(1.06); }
-}
-
-@keyframes blob-diagonal-a {
-  0%, 100% { transform: translate(0, 0)          scale(1);    }
-  40%       { transform: translate(35px, -48px)   scale(1.07); }
-  70%       { transform: translate(-20px, 25px)   scale(0.96); }
-}
-
-@keyframes blob-diagonal-b {
-  0%, 100% { transform: translate(0, 0)           scale(1);    }
-  35%       { transform: translate(-30px, 42px)    scale(1.04); }
-  70%       { transform: translate(20px, -30px)    scale(0.97); }
-}
-
-@keyframes blob-pulse-float {
-  0%, 100% { transform: translateY(0)     scale(1);    opacity: 1;    }
-  50%       { transform: translateY(-40px) scale(1.10); opacity: 0.85; }
-}
-
-/* ── 3. Glass card ─────────────────────────────────────── */
 .login-card {
-  position: relative;
-  z-index: 10;
   width: 100%;
-  max-width: 430px;
-
-  background: rgba(15, 23, 42, 0.60);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 4px;
-  padding: 48px 44px 40px;
-
-  box-shadow:
-    0 0 0 1px rgba(46, 204, 113, 0.06),
-    0 24px 60px rgba(0, 0, 0, 0.55),
-    0 8px 24px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-
-  animation: card-enter 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  max-width: 400px;
+  min-width: 0;
 }
 
-/* Green accent line across top edge */
-.login-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 10%;
-  right: 10%;
-  height: 2px;
-  border-radius: 0 0 4px 4px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(46, 204, 113, 0.7) 30%,
-    rgba(0, 212, 180, 0.8) 55%,
-    rgba(59, 130, 246, 0.5) 80%,
-    transparent
-  );
-  pointer-events: none;
-}
-
-/* Slow shimmer across the card face */
-.login-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 4px;
-  background: linear-gradient(
-    110deg,
-    transparent 25%,
-    rgba(255, 255, 255, 0.022) 50%,
-    transparent 75%
-  );
-  background-size: 300% 100%;
-  animation: card-shimmer 9s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes card-enter {
-  from {
-    opacity: 0;
-    transform: translateY(32px) scale(0.96);
-    filter: blur(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0);
-  }
-}
-
-@keyframes card-shimmer {
-  0%   { background-position: 150% center; }
-  100% { background-position: -150% center; }
-}
-
-/* ── 4. Logo & header ──────────────────────────────────── */
+/* Compact lockup — the only branding on the right at desktop width */
 .login-logo {
-  text-align: center;
-  margin-bottom: 36px;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin-bottom: 28px;
 }
 
 .login-logo-mark {
-  width: 72px;
-  height: 72px;
-  border-radius: 4px;
-  background: linear-gradient(140deg, #2ecc71 0%, #1a9e55 55%, #148043 100%);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 18px;
-  color: #ffffff;
-
-  box-shadow:
-    0 0 0 1px rgba(46, 204, 113, 0.35),
-    0 8px 28px rgba(46, 204, 113, 0.38),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
-
-  animation: logo-glow 4s ease-in-out infinite;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  color: #FFFFFF;
+  background: var(--accent-green);
+  border-radius: var(--border-radius-lg);
 }
 
-.login-logo-mark svg {
-  width: 34px;
-  height: 34px;
-  color: #fff;
-  display: block;
-}
-
-@keyframes logo-glow {
-  0%, 100% {
-    box-shadow:
-      0 0 0 1px rgba(46, 204, 113, 0.35),
-      0 8px 28px rgba(46, 204, 113, 0.38);
-  }
-  50% {
-    box-shadow:
-      0 0 0 1px rgba(46, 204, 113, 0.55),
-      0 8px 36px rgba(46, 204, 113, 0.55),
-      0 0 52px rgba(46, 204, 113, 0.15);
-  }
-}
+.login-logo-mark svg { width: 19px; height: 19px; }
 
 .login-app-name {
-  font-size: 26px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: var(--text-primary);
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+/* ── Heading hierarchy ───────────────────────── */
+.lp-head { margin-bottom: 26px; min-width: 0; }
+
+.lp-eyebrow {
+  margin: 0 0 8px;
+  font-size: 10.5px;
   font-weight: 700;
-  color: #ffffff;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: var(--accent-green);
+}
+
+.lp-title {
+  margin: 0 0 6px;
+  font-family: var(--font-heading);
+  font-size: clamp(22px, 1.4vw + 17px, 28px);
+  font-weight: 800;
+  line-height: 1.18;
   letter-spacing: -0.6px;
-  line-height: 1.1;
-  margin-bottom: 8px;
+  color: var(--text-primary);
+  overflow-wrap: break-word;
 }
 
-.login-tagline {
-  font-size: 12px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.38);
-  letter-spacing: 0.8px;
-  /* text-transform: lowercase; */
+.lp-subtitle {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  overflow-wrap: break-word;
 }
 
-/* ── 5. Form ───────────────────────────────────────────── */
+/* ══════════════════════════════════════════════
+   FORM
+   ══════════════════════════════════════════════ */
+
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 16px;
+  min-width: 0;
 }
 
-/* Field block */
-.lp-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 18px;
-  animation: field-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
+.lp-field { min-width: 0; }
 
-.lp-field:nth-child(1) { animation-delay: 0.15s; }
-.lp-field:nth-child(2) { animation-delay: 0.22s; }
-
-@keyframes field-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0);    }
-}
-
-.lp-label {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
-  letter-spacing: 0.7px;
-  /* text-transform: uppercase; */
-}
-
-/* Input wrap (icon + field) */
 .lp-input-wrap {
   position: relative;
   display: flex;
   align-items: center;
+  min-width: 0;
 }
 
 .lp-input-icon {
   position: absolute;
-  left: 15px;
-  color: rgba(255, 255, 255, 0.28);
+  left: 13px;
+  z-index: 1;
+  color: var(--text-muted);
   pointer-events: none;
   transition: color 0.2s ease;
-  flex-shrink: 0;
-  z-index: 1;
-}
-
-.lp-input-wrap:focus-within .lp-input-icon {
-  color: rgba(46, 204, 113, 0.75);
 }
 
 .lp-input {
   width: 100%;
-  padding: 13px 16px 13px 44px;
+  min-width: 0;
+  height: 54px;
+  padding: 20px 14px 6px 40px;
+  font-family: var(--font-body);
   font-size: 14px;
-  font-family: inherit;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.9);
-  caret-color: #2ecc71;
-
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 4px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--border-radius);
   outline: none;
-
-  transition:
-    border-color 0.22s ease,
-    background   0.22s ease,
-    box-shadow   0.22s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.lp-input::placeholder {
-  color: rgba(255, 255, 255, 0.2);
-}
+.lp-input-pw { padding-right: 46px; }
 
 .lp-input:focus {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(46, 204, 113, 0.55);
-  box-shadow:
-    0 0 0 3px rgba(46, 204, 113, 0.12),
-    0 0 20px rgba(46, 204, 113, 0.06);
+  border-color: var(--accent-green);
+  box-shadow: 0 0 0 3px var(--accent-green-soft);
 }
 
+/* The icon precedes the input in the DOM, so this keys off the wrapper */
+.lp-input-wrap:focus-within .lp-input-icon { color: var(--accent-green); }
+
 .lp-input:disabled {
-  opacity: 0.5;
+  opacity: 0.65;
   cursor: not-allowed;
 }
 
-/* Extra right padding for password field (toggle button) */
-.lp-input-pw {
-  padding-right: 48px;
-}
-
-/* Password toggle */
-.lp-pw-toggle {
-  position: absolute !important;
-  right: 13px;
+/* ── Floating label ──────────────────────────── */
+.lp-label {
+  position: absolute;
+  left: 40px;
   top: 50%;
   transform: translateY(-50%);
-  width: 28px !important;
-  height: 28px !important;
-  min-width: unset !important;
-  padding: 0 !important;
-  background: transparent !important;
-  border: none !important;
-  border-radius: 4px;
-  color: rgba(255, 255, 255, 0.3);
-  cursor: pointer;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  pointer-events: none;
+  transform-origin: left center;
+  transition: transform 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+              font-size 0.18s ease,
+              color 0.18s ease;
+}
+
+.lp-input:focus + .lp-label,
+.lp-input:not(:placeholder-shown) + .lp-label {
+  transform: translateY(-20px);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--accent-green);
+}
+
+.lp-input:not(:focus):not(:placeholder-shown) + .lp-label { color: var(--text-muted); }
+
+/* ── Password toggle ─────────────────────────── */
+.lp-pw-toggle {
+  position: absolute;
+  right: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.18s ease, background 0.18s ease;
-  z-index: 2;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 .lp-pw-toggle:hover {
-  color: rgba(255, 255, 255, 0.75) !important;
-  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-primary);
+  background: var(--bg-subtle);
 }
 
-.lp-pw-toggle:active {
-  transform: translateY(-50%) scale(0.9) !important;
-}
-
-/* ── 6. Submit button ──────────────────────────────────── */
-.lp-submit {
-  width: 100% !important;
-  padding: 14px 20px;
-  margin-top: 10px;
-  font-size: 15px;
-  font-weight: 600;
-  font-family: inherit;
-  letter-spacing: 0.25px;
-  color: #ffffff;
-  cursor: pointer;
-  border: none;
-  border-radius: 4px;
-
-  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 50%, #1e8449 100%);
-  background-size: 200% 100%;
-  background-position: 0% 0%;
-
-  box-shadow:
-    0 4px 20px rgba(46, 204, 113, 0.35),
-    0 1px 0 rgba(255, 255, 255, 0.12) inset;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  transition:
-    transform       0.22s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow      0.22s ease,
-    background-position 0.4s ease;
-
-  animation: field-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
-}
-
-.lp-submit:hover:not(:disabled) {
-  transform: translateY(-2px) scale(1.018);
-  background-position: 100% 0%;
-  box-shadow:
-    0 8px 30px rgba(46, 204, 113, 0.48),
-    0 0 0 1px rgba(46, 204, 113, 0.35),
-    0 1px 0 rgba(255, 255, 255, 0.18) inset;
-}
-
-.lp-submit:active:not(:disabled) {
-  transform: translateY(0) scale(0.985);
-  transition-duration: 0.1s;
-  box-shadow: 0 2px 12px rgba(46, 204, 113, 0.28);
-}
-
-.lp-submit:disabled {
-  opacity: 0.68;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.lp-btn-inner,
-.lp-loading-inner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-}
-
-/* ── 7. Loading dots ───────────────────────────────────── */
-.lp-dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.lp-dots span {
-  display: block;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
-  animation: dot-wave 1.3s ease-in-out infinite both;
-}
-
-.lp-dots span:nth-child(1) { animation-delay: 0s;    }
-.lp-dots span:nth-child(2) { animation-delay: 0.18s; }
-.lp-dots span:nth-child(3) { animation-delay: 0.36s; }
-
-@keyframes dot-wave {
-  0%, 60%, 100% {
-    transform: translateY(0)    scale(0.75);
-    opacity: 0.45;
-  }
-  30% {
-    transform: translateY(-6px) scale(1.1);
-    opacity: 1;
-  }
-}
-
-/* ── 7b. Label row (password label + forgot link) ─────── */
-.lp-label-row {
+/* ── Remember / forgot row ───────────────────── */
+.lp-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+  margin-top: 2px;
 }
 
-.lp-forgot-link {
-  font-size: 11.5px;
-  font-weight: 500;
-  color: rgba(46, 204, 113, 0.75);
-  text-decoration: none;
-  transition: color 0.18s ease;
-}
-.lp-forgot-link:hover {
-  color: #2ecc71;
-  text-decoration: underline;
-}
-
-/* ── 7c. Remember Me checkbox ──────────────────────────── */
 .lp-remember {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
+  min-height: 32px;
+  margin: 0;
   cursor: pointer;
-  margin-bottom: 14px;
   user-select: none;
-  animation: field-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.26s both;
 }
 
 .lp-remember-input {
   position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  padding: 0;
   opacity: 0;
-  width: 0;
-  height: 0;
-  pointer-events: none;
 }
 
 .lp-remember-box {
-  width: 18px;
-  height: 18px;
-  min-width: 18px;
-  border-radius: 4px;
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.05);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.18s ease, background 0.18s ease;
-  position: relative;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.lp-remember-box::after {
+  content: '';
+  width: 9px;
+  height: 5px;
+  border-left: 2px solid #FFFFFF;
+  border-bottom: 2px solid #FFFFFF;
+  transform: rotate(-45deg) translate(1px, -1px) scale(0.6);
+  opacity: 0;
+  transition: opacity 0.16s ease, transform 0.16s ease;
 }
 
 .lp-remember-input:checked + .lp-remember-box {
-  background: rgba(46, 204, 113, 0.20);
-  border-color: rgba(46, 204, 113, 0.70);
+  background: var(--accent-green);
+  border-color: var(--accent-green);
 }
 
 .lp-remember-input:checked + .lp-remember-box::after {
-  content: '';
-  display: block;
-  width: 5px;
-  height: 9px;
-  border: 2px solid #2ecc71;
-  border-top: none;
-  border-left: none;
-  transform: rotate(45deg) translate(-1px, -1px);
+  opacity: 1;
+  transform: rotate(-45deg) translate(1px, -1px) scale(1);
 }
 
-.lp-remember:hover .lp-remember-box {
-  border-color: rgba(46, 204, 113, 0.45);
+.lp-remember-input:focus-visible + .lp-remember-box {
+  outline: 2px solid var(--accent-green);
+  outline-offset: 2px;
 }
 
 .lp-remember-label {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
-/* ── 8. Footer ─────────────────────────────────────────── */
-.login-footer-text {
-  text-align: center;
-  margin-top: 28px;
-  font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.18);
+.lp-forgot-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-green);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.lp-forgot-link:hover {
+  color: var(--accent-green-hover);
+  text-decoration: underline;
+}
+
+/* ── Submit ──────────────────────────────────── */
+.lp-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 6px;
+  padding: 0 18px;
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  font-weight: 700;
   letter-spacing: 0.2px;
+  color: #FFFFFF;
+  background: var(--accent-green);
+  border: 1px solid var(--accent-green);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.22s ease, border-color 0.22s ease;
 }
 
-/* ═══════════════════════════════════════════════════════
+.lp-submit:hover:not(:disabled) {
+  background: var(--accent-green-hover);
+  border-color: var(--accent-green-hover);
+}
+
+.lp-submit:active:not(:disabled) { transform: none; }
+
+.lp-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.lp-btn-inner,
+.lp-loading-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+/* Three-dot progress — no spinner ring */
+.lp-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.lp-dots span {
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 50%;
+  animation: lp-dot 1s ease-in-out infinite;
+}
+
+.lp-dots span:nth-child(2) { animation-delay: 0.14s; }
+.lp-dots span:nth-child(3) { animation-delay: 0.28s; }
+
+@keyframes lp-dot {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50%      { opacity: 1;   transform: translateY(-2px); }
+}
+
+.login-footer-text {
+  margin: 22px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--text-muted);
+  overflow-wrap: break-word;
+}
+
+/* ══════════════════════════════════════════════
    RESPONSIVE
-   ═══════════════════════════════════════════════════════ */
+   ══════════════════════════════════════════════ */
 
-/* Tablet */
-@media (max-width: 768px) {
-  .login-page  { padding: 20px; }
-  .login-card  { padding: 40px 36px 34px; border-radius: 4px; }
-  .login-app-name { font-size: 24px; }
+/* Tablet — narrow the brand panel before dropping it */
+@media (max-width: 1100px) {
+  .lp-brand { padding: 36px 34px; }
+  .lp-brand-copy { margin-bottom: 20px; }
 }
 
-/* Mobile */
+/* Below 900px the brand panel is dropped entirely and the
+   compact lockup takes over inside the card */
+@media (max-width: 900px) {
+  .login-page { grid-template-columns: minmax(0, 1fr); }
+  .lp-brand { display: none; }
+  .login-logo { display: flex; }
+  .lp-main { padding: 32px 20px; }
+}
+
 @media (max-width: 480px) {
-  .login-page {
-    padding: 16px;
+  .lp-main {
     align-items: flex-start;
-    padding-top: 10vh;
+    padding: 28px 16px 40px;
   }
 
-  .login-card {
-    padding: 34px 22px 28px;
-    border-radius: 4px;
-    max-width: 100%;
+  .login-card { max-width: 100%; }
+
+  /* 16px stops iOS Safari zooming the page on focus */
+  .lp-input {
+    height: 56px;
+    font-size: 16px;
+    padding-top: 22px;
   }
 
-  .login-logo-mark {
-    width: 64px;
-    height: 64px;
-    border-radius: 4px;
-  }
+  .lp-label { font-size: 15px; }
 
-  .login-logo-mark svg { width: 30px; height: 30px; }
-  .login-app-name      { font-size: 22px; }
-  .login-logo          { margin-bottom: 28px; }
+  .lp-input:focus + .lp-label,
+  .lp-input:not(:placeholder-shown) + .lp-label { font-size: 10.5px; }
 
-  .lp-input   { padding: 12px 14px 12px 42px; font-size: 14px; }
-  .lp-submit  { padding: 13px; font-size: 14px; }
-
-  /* Scale down large blobs so they don't dominate mobile bg */
-  .lp-blob-1 { width: 320px; height: 320px; }
-  .lp-blob-2 { width: 280px; height: 280px; }
-  .lp-blob-3 { width: 200px; height: 200px; }
+  .lp-pw-toggle { width: 44px; min-width: 44px; height: 44px; }
+  .lp-submit { min-height: 52px; }
+  .lp-remember { min-height: 44px; }
+  .lp-row { gap: 10px; }
 }
 
-/* Very small */
-@media (max-width: 360px) {
-  .login-page { padding-top: 6vh; }
-  .login-card { padding: 28px 18px 24px; }
-  .login-tagline { font-size: 10px; }
+@media (max-width: 340px) {
+  .lp-row { flex-direction: column; align-items: flex-start; }
 }
 
-/* ── Accessibility: respect reduced motion ─────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .lp-blob,
-  .login-logo-mark,
-  .login-card::after,
-  .lp-field,
-  .lp-submit {
-    animation: none;
-  }
+  .lp-input,
+  .lp-label,
+  .lp-submit,
+  .lp-pw-toggle,
+  .lp-remember-box,
+  .lp-remember-box::after,
+  .lp-forgot-link { transition: none; }
 
-  .login-card {
-    animation: none;
-    opacity: 1;
-    transform: none;
-    filter: none;
-  }
-
-  .lp-submit:hover:not(:disabled) {
-    transform: none;
-  }
+  .lp-dots span { animation: none; opacity: 0.7; }
 }

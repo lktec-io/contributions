@@ -133,9 +133,49 @@
 }
 
 /* Reorder visually without touching the markup */
-.csd-stat-label { order: 1; }
-.csd-stat-value { order: 2; }
-.csd-stat-hint  { order: 3; }
+/* Reading order inside a tile: LABEL → figure → bar → context line */
+.csd-stat-label   { order: 1; }
+.csd-stat-value   { order: 2; }
+.csd-bar          { order: 3; }
+.csd-stat-caption { order: 4; }
+.csd-stat-hint    { order: 5; }
+
+/* ── Micro data bar — pure CSS, no chart library ── */
+.csd-bar {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 4px;
+  margin-top: 3px;
+  background: var(--silver-200);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.csd-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent-green-bright);
+  border-radius: 2px;
+  transition: width 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.csd-stat-amber .csd-bar-fill { background: var(--accent-orange); }
+.csd-stat-blue  .csd-bar-fill { background: var(--silver-500); }
+
+.csd-stat-caption {
+  font-size: 11px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .csd-bar-fill { transition: none; }
+}
 
 .csd-stat-icon {
   position: absolute;
@@ -155,14 +195,19 @@
   overflow-wrap: anywhere;
 }
 
+/* Financial-grade figures: heavy, tabular, tightly tracked for fast scanning */
 .csd-stat-value {
   font-family: var(--font-heading);
-  font-size: clamp(18px, 0.8vw + 13px, 22px);
-  font-weight: 700;
-  line-height: 1.15;
+  font-size: clamp(20px, 1vw + 14px, 26px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.6px;
   font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
   color: var(--text-primary);
+  min-width: 0;
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .csd-stat-hint {

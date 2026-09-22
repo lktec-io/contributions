@@ -56,10 +56,26 @@ export default function CustomSmsDashboard() {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
 
+  /* share drives the micro bar under each figure. Every value is a ratio of
+     numbers already on this page — nothing new is fetched or estimated. */
+  const pct = (part) => (total ? part / total : 0);
+
   const stats = [
-    { key: 'members',   label: 'Members',           value: total,     Icon: FiUsers,       tone: 'blue' },
-    { key: 'sent',      label: 'Recently Contacted', value: contacted, Icon: FiSend,        tone: 'green' },
-    { key: 'available', label: 'Available Members', value: available, Icon: FiCheckCircle, tone: 'teal' },
+    {
+      key: 'members', label: 'Members', value: total, Icon: FiUsers, tone: 'blue',
+      share: total ? 1 : 0,
+      caption: total === 1 ? '1 member on record' : `${total} members on record`,
+    },
+    {
+      key: 'sent', label: 'Recently Contacted', value: contacted, Icon: FiSend, tone: 'green',
+      share: pct(contacted),
+      caption: `${contacted} of ${total} in cooldown`,
+    },
+    {
+      key: 'available', label: 'Available Members', value: available, Icon: FiCheckCircle, tone: 'teal',
+      share: pct(available),
+      caption: `${available} of ${total} ready to receive`,
+    },
     {
       key: 'campaign',
       label: 'Campaign Status',
@@ -67,6 +83,8 @@ export default function CustomSmsDashboard() {
       hint:  campaign.canSend ? 'Ready to send' : 'Cooldown active',
       Icon: FiClock,
       tone: campaign.canSend ? 'green' : 'amber',
+      // The campaign window is 7 days; show how much of it has elapsed.
+      share: campaign.canSend ? 1 : Math.max(0, (7 - campaign.daysRemaining) / 7),
     },
   ];
 
@@ -108,6 +126,13 @@ export default function CustomSmsDashboard() {
             <span className="csd-stat-icon"><s.Icon size={16} /></span>
             <span className="csd-stat-value">{s.value}</span>
             <span className="csd-stat-label">{s.label}</span>
+            <span className="csd-bar" aria-hidden="true">
+              <span
+                className="csd-bar-fill"
+                style={{ width: `${Math.round((s.share || 0) * 100)}%` }}
+              />
+            </span>
+            {s.caption && <span className="csd-stat-caption">{s.caption}</span>}
             {s.hint && <span className="csd-stat-hint">{s.hint}</span>}
           </div>
         ))}

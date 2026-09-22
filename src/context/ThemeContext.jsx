@@ -3,7 +3,11 @@ import { createContext, useState, useEffect, useRef } from 'react';
 export const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [theme,       setTheme]       = useState(() => localStorage.getItem('theme') || 'light');
+  /* Key deliberately bumped from 'theme' to 'ct_theme': the previous provider
+     wrote 'dark' automatically on every mount, so returning users all carried a
+     stale preference they never chose. The new key starts everyone on the light
+     workspace, and the toggle still persists their real choice from here on. */
+  const [theme,       setTheme]       = useState(() => localStorage.getItem('ct_theme') || 'light');
   const [waveTrigger, setWaveTrigger] = useState(null); // null | 'light' | 'dark'
   const timers = useRef([]);
 
@@ -14,7 +18,7 @@ export function ThemeProvider({ children }) {
     } else {
       document.documentElement.removeAttribute('data-theme');
     }
-    localStorage.setItem('theme', theme);
+    localStorage.setItem('ct_theme', theme);
   }, [theme]);
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
