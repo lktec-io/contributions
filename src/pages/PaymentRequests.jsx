@@ -135,6 +135,8 @@ export default function PaymentRequests() {
             Payment Requests
           </h2>
           <p className="pr-subtitle">
+            <span className="pr-subtitle-term">Uhakiki Unaosubiri</span>
+            {' — '}
             {pendingCount} pending request{pendingCount !== 1 ? 's' : ''} awaiting verification
           </p>
         </div>

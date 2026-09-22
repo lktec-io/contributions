@@ -4,9 +4,9 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(17, 20, 24, 0.5);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
+  background: rgba(17, 20, 24, 0.52);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -91,26 +91,23 @@
   scrollbar-color: var(--text-muted) transparent;
 }
 
-/* ── Mobile bottom-sheet ─────────────────────── */
+/* ── Mobile ──────────────────────────────────────
+   Dialogs stay dead-centre at every width rather than sliding up as a
+   bottom sheet, so a form never sits half under the thumb rail.
+   ─────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .modal-overlay {
-    align-items: flex-end;
-    padding: 0;
+    align-items: center;
+    padding: 16px 12px;
   }
 
   .modal-small,
   .modal-medium,
   .modal-large {
     max-width: 100%;
-    max-height: 92vh;
+    max-height: 88vh;
     margin: 0;
-    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
-    animation: modal-sheet-in 0.26s cubic-bezier(0.32, 0.72, 0, 1);
-  }
-
-  @keyframes modal-sheet-in {
-    from { opacity: 0; transform: translateY(60px); }
-    to   { opacity: 1; transform: translateY(0); }
+    border-radius: var(--border-radius-lg);
   }
 
   .modal-header {
@@ -118,7 +115,15 @@
   }
 
   .modal-body {
-    padding: 16px 20px 24px;
+    padding: 16px 20px 20px;
+  }
+
+  /* Square, thumb-sized dismiss target */
+  .modal-close {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
   }
 }
 

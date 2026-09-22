@@ -211,6 +211,72 @@
   .contributors-table td:nth-child(4) { max-width: 140px; }
 }
 
+/* ══════════════════════════════════════════════
+   Row overflow menu
+   ══════════════════════════════════════════════ */
+
+.ct-more {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Portalled to document.body and positioned from the trigger's rect, so the
+   scrolling table wrapper can neither clip it nor be forced to stop clipping
+   (which would let the table itself spill past the card). */
+.ct-menu {
+  position: fixed;
+  z-index: 11000;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 210px;
+  padding: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: ct-menu-in 0.14s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes ct-menu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ct-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 10px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ct-menu-item:hover:not(:disabled),
+.ct-menu-item:focus-visible:not(:disabled) { background: var(--bg-subtle); }
+
+.ct-menu-item:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.ct-menu-item.is-danger { color: var(--accent-red); }
+.ct-menu-item.is-danger:hover { background: rgba(180, 35, 24, 0.07); }
+
+.ct-menu-item svg { flex-shrink: 0; }
+
 /* ── Mobile touch targets ────────────────────── */
 @media (max-width: 768px) {
   .icon-btn {

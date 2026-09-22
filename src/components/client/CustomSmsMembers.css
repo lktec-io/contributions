@@ -1313,9 +1313,10 @@
   .csm-page-word { display: none; }
   .csm-page-step { padding: 0; }
 
+  /* Centred at every width — matches the global dialog behaviour */
   .csm .modal-small,
   .csm .modal-medium,
-  .csm .modal-large { border-radius: var(--cs-r-modal) var(--cs-r-modal) 0 0; }
+  .csm .modal-large { border-radius: var(--cs-r-modal); }
 
   .csm .modal-header { padding: 14px 16px 10px; }
   .csm .modal-body { padding: 14px 16px 18px; }

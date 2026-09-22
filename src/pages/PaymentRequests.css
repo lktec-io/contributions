@@ -139,3 +139,10 @@
   color: var(--accent-red);
   border-color: rgba(180, 35, 24, 0.26);
 }
+
+/* Swahili banking term leading the verification summary */
+.pr-subtitle-term {
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: var(--accent-green);
+}

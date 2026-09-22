@@ -54,29 +54,30 @@ export default function Login() {
         </div>
 
         <div className="lp-brand-body">
-          <p className="lp-brand-eyebrow">Treasury &amp; Contribution System</p>
+          <p className="lp-brand-eyebrow">Contribution &amp; Membership Management</p>
           <h2 className="lp-brand-headline">
             Every contribution<br />accounted for.
           </h2>
           <p className="lp-brand-copy">
-            A single ledger for member contributions, campaign messaging and
-            approval records — reconciled and ready when you are.
+            One reconciled ledger for member contributions, membership records
+            and campaign messaging — built to the controls a treasury runs on.
           </p>
 
-          <ul className="lp-brand-points">
-            <li className="lp-brand-point">
-              <FiShield size={15} />
-              <span>Role-scoped access with full ownership checks</span>
-            </li>
-            <li className="lp-brand-point">
-              <FiActivity size={15} />
-              <span>Live delivery status on every message sent</span>
-            </li>
-            <li className="lp-brand-point">
-              <FiUsers size={15} />
-              <span>Member records that stay clean and de-duplicated</span>
-            </li>
-          </ul>
+          {/* Trust posture, stated as a small tabular spec sheet */}
+          <dl className="lp-brand-specs">
+            <div className="lp-spec">
+              <dt className="lp-spec-term"><FiShield size={14} /> Access control</dt>
+              <dd className="lp-spec-value">Role-scoped, ownership verified</dd>
+            </div>
+            <div className="lp-spec">
+              <dt className="lp-spec-term"><FiActivity size={14} /> Audit trail</dt>
+              <dd className="lp-spec-value">Every send and approval logged</dd>
+            </div>
+            <div className="lp-spec">
+              <dt className="lp-spec-term"><FiUsers size={14} /> Membership</dt>
+              <dd className="lp-spec-value">De-duplicated, import-safe records</dd>
+            </div>
+          </dl>
         </div>
 
         <p className="lp-brand-foot">

@@ -175,8 +175,8 @@ export default function AdminContributions() {
                   <th>Event</th>
                   <th>Owner</th>
                   <th>Pledged</th>
-                  <th>Paid</th>
-                  <th>Outstanding</th>
+                  <th>Kiasi Kilicholipwa</th>
+                  <th>Mizani Inayodaiwa</th>
                   <th>Status</th>
                   <th>Date</th>
                   <th>Actions</th>

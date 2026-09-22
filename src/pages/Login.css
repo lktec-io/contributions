@@ -109,34 +109,55 @@
   overflow-wrap: break-word;
 }
 
-.lp-brand-points {
-  list-style: none;
+/* Spec sheet — term left, value right, ruled like a statement */
+.lp-brand-specs {
   margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
   min-width: 0;
 }
 
-.lp-brand-point {
+.lp-spec {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
   min-width: 0;
-  padding-top: 12px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: #FFFFFF;
-  opacity: 0.94;
+  padding: 11px 0;
   border-top: 1px solid rgba(255, 255, 255, 0.16);
-  overflow-wrap: break-word;
 }
 
-.lp-brand-point svg {
+.lp-spec:last-child { border-bottom: 1px solid rgba(255, 255, 255, 0.16); }
+
+.lp-spec-term {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
-  margin-top: 1px;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  opacity: 0.72;
+}
+
+.lp-spec-term svg {
+  flex-shrink: 0;
   color: var(--accent-gold);
+  opacity: 1;
+}
+
+.lp-spec-value {
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  color: #FFFFFF;
+  overflow-wrap: break-word;
 }
 
 .lp-brand-foot {

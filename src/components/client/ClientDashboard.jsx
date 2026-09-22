@@ -27,9 +27,9 @@ import './ClientDashboard.css';
 const CLIENT_STATS = [
   { key: 'myEvents',       label: 'My Events',     Icon: FiCalendar,    color: '#A78BFA', to: '/events' },
   { key: 'myContributors', label: 'Assignments',   Icon: FiUsers,       color: '#3B82F6', to: '/contributions' },
-  { key: 'totalPledged',   label: 'Total Pledged', Icon: FiDollarSign,  color: '#FFA500', money: true, to: '/contributions' },
-  { key: 'totalPaid',      label: 'Total Paid',    Icon: FiCheckCircle, color: '#00B894', money: true, to: '/contributions' },
-  { key: 'outstanding',    label: 'Outstanding',   Icon: FiAlertCircle, color: '#FF4C4C', money: true, to: '/contributions' },
+  { key: 'totalPledged',   label: 'Jumla ya Michango ya Vikundi', Icon: FiDollarSign,  color: '#B8730B', money: true, to: '/contributions' },
+  { key: 'totalPaid',      label: 'Kiasi Kilicholipwa',           Icon: FiCheckCircle, color: '#198754', money: true, to: '/contributions' },
+  { key: 'outstanding',    label: 'Mizani Inayodaiwa',            Icon: FiAlertCircle, color: '#B42318', money: true, to: '/contributions' },
 ];
 
 // Maps URL paths to client tab IDs
