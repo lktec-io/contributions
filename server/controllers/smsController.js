@@ -391,10 +391,10 @@ async function sendMemberSms(req, res) {
 
     const message = buildCustomMessage(member.name, eventName, body);
 
-    // One SMS per Custom SMS. Rejected rather than truncated or split, so the
-    // operator decides what to shorten.
+    // Measured on the final rendered body. Rejected rather than truncated or
+    // split, so the operator decides what to shorten.
     const size = measureSms(message);
-    if (!size.withinSingle) {
+    if (!size.withinLimit) {
       return res.status(400).json({
         success: false,
         message: `This message is ${size.chars} characters (${size.segments} SMS) for `
@@ -615,8 +615,8 @@ async function resolveCampaign(req, body) {
   const eligible  = [];
   const overLimit = [];
   for (const m of sendable.filter(x => !contacted.has(x.id))) {
-    const { segments } = measureSms(buildCustomMessage(m.name, eventName, text));
-    (segments > 1 ? overLimit : eligible).push(m);
+    const { withinLimit } = measureSms(buildCustomMessage(m.name, eventName, text));
+    (withinLimit ? eligible : overLimit).push(m);
   }
 
   return {
@@ -651,11 +651,13 @@ async function previewCustomCampaign(req, res, next) {
         // Names are listed so the operator can see exactly whose message is
         // too long (usually the longest names) and shorten the template.
         overLimitNames: plan.overLimit.slice(0, 10).map(m => m.name),
+        // Spread first: measureSms also carries a `limit` (the GSM-7 segment
+        // size), and the counter must show the product limit, not that.
+        ...(sample ? measureSms(buildCustomMessage(sample.name, plan.eventName, plan.text)) : {}),
         limit:       CUSTOM_SMS_SINGLE_LIMIT,
         campaign:    limit,
         preview:     sample ? buildCustomMessage(sample.name, plan.eventName, plan.text) : '',
         previewFor:  sample ? sample.name : '',
-        ...(sample ? measureSms(buildCustomMessage(sample.name, plan.eventName, plan.text)) : {}),
       },
     });
   } catch (err) {

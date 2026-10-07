@@ -106,7 +106,11 @@ function buildCampaignKey({ userId, templateId, message, eventId }) {
     is carried as UCS-2 instead, where a segment holds only 70 — so the count
     reflects the encoding the text actually forces.                          */
 
-const CUSTOM_SMS_SINGLE_LIMIT = 160;   // the product rule: keep Custom SMS to one SMS
+/*  The product rule for Custom SMS length. This is deliberately separate from
+    the GSM-7 segment size below: the segment size is a protocol fact (160
+    characters per single segment), while this is the maximum we allow an
+    operator to send. At 180 the rendered message can span two segments.      */
+const CUSTOM_SMS_SINGLE_LIMIT = 180;
 
 const GSM7_BASIC =
   '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?'
@@ -120,7 +124,7 @@ const UCS2_LIMITS = { single: 70,  multi: 67  };
 /**
  * Measures a fully rendered SMS body.
  * @returns {{chars:number, segments:number, encoding:'GSM-7'|'UCS-2',
- *            limit:number, withinSingle:boolean}}
+ *            limit:number, withinSingle:boolean, withinLimit:boolean}}
  *          `chars` is billable length (GSM-7 extended characters count as 2).
  */
 function measureSms(text) {
@@ -150,7 +154,11 @@ function measureSms(text) {
     segments,
     encoding: gsm ? 'GSM-7' : 'UCS-2',
     limit: limits.single,
+    // Protocol truth: does this fit one segment?
     withinSingle: segments <= 1,
+    // Product rule: is it inside the Custom SMS character limit? This is the
+    // single check every Custom SMS caller enforces against.
+    withinLimit: chars <= CUSTOM_SMS_SINGLE_LIMIT,
   };
 }
 

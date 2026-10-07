@@ -91,6 +91,7 @@ async function preview(req, res, next) {
         encoding: m.encoding,
         limit: CUSTOM_SMS_SINGLE_LIMIT,
         withinSingle: m.withinSingle,
+        withinLimit: m.withinLimit,
         measuredFor: m.measuredFor,
         event: m.event,
       },
@@ -120,14 +121,15 @@ async function create(req, res, next) {
       return res.status(400).json({ success: false, message: 'Validation failed', errors });
     }
 
-    // Keep Custom SMS to one SMS. The message is never truncated — the
-    // operator is told exactly how far over it is and shortens it themselves.
+    // Measured on the final rendered body, for the longest member name. The
+    // message is never truncated — the operator is told exactly how far over
+    // it is and shortens it themselves.
     const m = await measureFor(req, message);
-    if (!m.withinSingle) {
+    if (!m.withinLimit) {
       return res.status(400).json({
         success: false,
         message: `This message renders as ${m.chars} characters (${m.segments} SMS). `
-          + `Shorten it to ${CUSTOM_SMS_SINGLE_LIMIT} characters or fewer to keep it to one SMS.`,
+          + `Shorten it to ${CUSTOM_SMS_SINGLE_LIMIT} characters or fewer.`,
         errors: [{
           field: 'message',
           message: `${m.chars} / ${CUSTOM_SMS_SINGLE_LIMIT} characters when sent to "${m.measuredFor}"`,
@@ -151,14 +153,15 @@ async function update(req, res, next) {
       return res.status(400).json({ success: false, message: 'Validation failed', errors });
     }
 
-    // Keep Custom SMS to one SMS. The message is never truncated — the
-    // operator is told exactly how far over it is and shortens it themselves.
+    // Measured on the final rendered body, for the longest member name. The
+    // message is never truncated — the operator is told exactly how far over
+    // it is and shortens it themselves.
     const m = await measureFor(req, message);
-    if (!m.withinSingle) {
+    if (!m.withinLimit) {
       return res.status(400).json({
         success: false,
         message: `This message renders as ${m.chars} characters (${m.segments} SMS). `
-          + `Shorten it to ${CUSTOM_SMS_SINGLE_LIMIT} characters or fewer to keep it to one SMS.`,
+          + `Shorten it to ${CUSTOM_SMS_SINGLE_LIMIT} characters or fewer.`,
         errors: [{
           field: 'message',
           message: `${m.chars} / ${CUSTOM_SMS_SINGLE_LIMIT} characters when sent to "${m.measuredFor}"`,

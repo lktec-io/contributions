@@ -299,7 +299,7 @@ export default function CustomSmsMembers() {
       setSmsModal({
         open: true, status: 'success',
         message: `Custom SMS campaign completed. Sent: ${sent}. Skipped: ${skipped}. Failed: ${failed}.`
-          + (overLimit ? ` ${overLimit} over the one-SMS limit and not sent.` : ''),
+          + (overLimit ? ` ${overLimit} over the character limit and not sent.` : ''),
       });
       setCampaign({ canSend: false, daysRemaining: 7 });
       setShowSendAll(false);
@@ -942,7 +942,7 @@ export default function CustomSmsMembers() {
               {campaignPlan.overLimit > 0 && (
                 <span className="csm-plan-warn">
                   {campaignPlan.overLimit} member{campaignPlan.overLimit !== 1 ? 's' : ''} over the
-                  one-SMS limit and will not be sent
+                  {' '}{campaignPlan.limit ?? 180}-character limit and will not be sent
                   {campaignPlan.overLimitNames?.length
                     ? ` (${campaignPlan.overLimitNames.join(', ')})` : ''}.
                   Shorten the message to include them.

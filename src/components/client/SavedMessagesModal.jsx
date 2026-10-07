@@ -137,8 +137,9 @@ export default function SavedMessagesModal({ isOpen, onClose, eventId, onSelect 
     return () => { alive = false; clearTimeout(t); };
   }, [draft?.message, eventId, draft]);
 
-  // Over the one-SMS limit — blocks saving until the operator shortens it.
-  const over = !!preview && preview.withinSingle === false;
+  // Over the Custom SMS character limit — blocks saving until the operator
+  // shortens it. Measured by the server on the final rendered body.
+  const over = !!preview && preview.withinLimit === false;
 
   const title = draft ? (draft.id ? 'Edit Saved Message' : 'New Saved Message') : 'Saved Messages';
 
@@ -205,7 +206,7 @@ export default function SavedMessagesModal({ isOpen, onClose, eventId, onSelect 
               {over && (
                 <p className="sm-over-note">
                   This is {preview.chars - preview.limit} character
-                  {preview.chars - preview.limit !== 1 ? 's' : ''} over one SMS
+                  {preview.chars - preview.limit !== 1 ? 's' : ''} over the {preview.limit}-character limit
                   {preview.measuredFor ? ` for your longest member name, “${preview.measuredFor}”` : ''}.
                   Shorten it to save.
                 </p>
