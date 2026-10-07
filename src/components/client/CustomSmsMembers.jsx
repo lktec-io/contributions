@@ -942,7 +942,7 @@ export default function CustomSmsMembers() {
               {campaignPlan.overLimit > 0 && (
                 <span className="csm-plan-warn">
                   {campaignPlan.overLimit} member{campaignPlan.overLimit !== 1 ? 's' : ''} over the
-                  {' '}{campaignPlan.limit ?? 180}-character limit and will not be sent
+                  {' '}{campaignPlan.limit ?? 300}-character limit and will not be sent
                   {campaignPlan.overLimitNames?.length
                     ? ` (${campaignPlan.overLimitNames.join(', ')})` : ''}.
                   Shorten the message to include them.

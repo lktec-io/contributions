@@ -108,9 +108,15 @@ function buildCampaignKey({ userId, templateId, message, eventId }) {
 
 /*  The product rule for Custom SMS length. This is deliberately separate from
     the GSM-7 segment size below: the segment size is a protocol fact (160
-    characters per single segment), while this is the maximum we allow an
-    operator to send. At 180 the rendered message can span two segments.      */
-const CUSTOM_SMS_SINGLE_LIMIT = 180;
+    characters per single segment, 153 per segment once a message is split),
+    while this is the maximum we allow an operator to send — enough room for
+    payment instructions and account numbers.
+
+    How many segments 300 characters costs depends on the encoding the text
+    forces: GSM-7 splits it across fewer segments than UCS-2, which a single
+    non-GSM character (a curly quote or emoji) is enough to trigger. The
+    segment count is always reported by measureSms, never assumed here.      */
+const CUSTOM_SMS_SINGLE_LIMIT = 300;
 
 const GSM7_BASIC =
   '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?'
