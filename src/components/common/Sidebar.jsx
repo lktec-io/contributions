@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  FiGrid, FiUsers, FiCalendar, FiList, FiHome, FiShield, FiSettings, FiArchive, FiCheckCircle, FiBell,
+  FiGrid, FiUsers, FiCalendar, FiList, FiHome, FiShield, FiSettings, FiArchive, FiCheckCircle, FiBell, FiMessageSquare,
 } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 import { BrandingContext } from '../../context/BrandingContext';
@@ -16,6 +16,7 @@ const TAB_PATHS = {
   admins:            '/admins',
   'payment-requests': '/payment-requests',
   notifications:     '/notifications',
+  'sms-logs':        '/sms-logs',
 };
 
 const ADMIN_ITEMS = [
@@ -25,6 +26,7 @@ const ADMIN_ITEMS = [
   { id: 'contributions', label: 'Contributions',    Icon: FiGrid },
   { id: 'payment-requests', label: 'Payment Requests', Icon: FiCheckCircle },
   { id: 'notifications', label: 'Notifications',    Icon: FiBell },
+  { id: 'sms-logs',      label: 'SMS Logs',       Icon: FiMessageSquare },
 ];
 
 const SUPER_ADMIN_EXTRA = [
@@ -37,6 +39,7 @@ const CLIENT_ITEMS = [
   { id: 'contributions', label: 'My Contributions', Icon: FiList },
   { id: 'payment-requests', label: 'Payment Requests', Icon: FiCheckCircle },
   { id: 'notifications', label: 'Notifications',    Icon: FiBell },
+  { id: 'sms-logs',      label: 'SMS Logs',       Icon: FiMessageSquare },
 ];
 
 // A Custom SMS account is communication-only: one Members destination, and no
@@ -45,6 +48,7 @@ const CUSTOM_SMS_ITEMS = [
   { id: 'dashboard',     label: 'Dashboard',     Icon: FiHome },
   { id: 'contributions', label: 'Members',       Icon: FiUsers },
   { id: 'notifications', label: 'Notifications', Icon: FiBell },
+  { id: 'sms-logs',      label: 'SMS Logs',       Icon: FiMessageSquare },
 ];
 
 export default function Sidebar({ isOpen, onClose, smsMode }) {

@@ -19,6 +19,7 @@ const settingsRoutes     = require('./routes/settingsRoutes');
 const publicRoutes       = require('./routes/publicRoutes');
 const paymentRequestRoutes = require('./routes/paymentRequestRoutes');
 const smsTemplateRoutes  = require('./routes/smsTemplateRoutes');
+const smsHistoryRoutes   = require('./routes/smsHistoryRoutes');
 const errorHandler       = require('./middleware/errorHandler');
 
 const app  = express();
@@ -44,6 +45,7 @@ app.use('/api/export',        exportRoutes);
 app.use('/api/dashboard',     dashboardRoutes);
 app.use('/api/sms',           smsRoutes);
 app.use('/api/sms-templates', smsTemplateRoutes);
+app.use('/api/sms-history',   smsHistoryRoutes);
 app.use('/api/admin',         adminRoutes);
 app.use('/api/settings',      settingsRoutes);
 app.use('/api/public',        publicRoutes);
@@ -126,6 +128,38 @@ async function ensureSchema() {
     if (err.errno !== 1061) {
       console.error('[migration] uq_sms_campaign_member error:', err.message);
     }
+  }
+
+  /*  Message-level SMS history (idempotent), for the SMS Logs report.
+
+      Deliberately separate from sms_logs: every row in that table is read by
+      the cooldown and Send-to-All duplicate checks, so logging a *failed*
+      attempt there would start a cooldown for a message that never arrived.
+      This table records what happened; sms_logs still decides what may be
+      sent, and its behaviour is unchanged.
+
+      Writes here are best-effort — a failure to log never affects a send.   */
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sms_history (
+        id             INT AUTO_INCREMENT PRIMARY KEY,
+        user_id        INT          NOT NULL,
+        recipient_id   INT          NULL,
+        recipient_name VARCHAR(255) NULL,
+        phone          VARCHAR(32)  NULL,
+        event_name     VARCHAR(255) NULL,
+        type           VARCHAR(50)  NOT NULL,
+        status         VARCHAR(20)  NOT NULL DEFAULT 'sent',
+        message        TEXT         NULL,
+        error_text     TEXT         NULL,
+        created_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_sms_history_user_time   (user_id, created_at),
+        INDEX idx_sms_history_user_status (user_id, status)
+      )
+    `);
+    console.log('[migration] sms_history table ready');
+  } catch (err) {
+    console.error('[migration] sms_history table error:', err.message);
   }
 
   // Saved Custom SMS templates (idempotent). Scoped per user via user_id.

@@ -7,6 +7,8 @@ const { getIsolationFilter, canAccessContribution } = require('../utils/tenantHe
 const {
   formatCustomSms, buildCampaignKey, measureSms, CUSTOM_SMS_SINGLE_LIMIT,
 } = require('../utils/smsFormatter');
+// Best-effort message-level logging. Never alters a send outcome.
+const { recordSmsHistory, describeSmsError, SENT, FAILED } = require('../utils/smsHistory');
 
 const BEEM_ENDPOINT = 'https://apisms.beem.africa/v1/send';
 
@@ -168,7 +170,23 @@ async function sendReminder(req, res) {
     const balance = pledged - paid;
     const message = buildMessage(contribution.contributor_name, pledged, paid, balance, contribution.event_name, buildPortalLink(contribution));
 
-    await sendBeemSms(phone, message);
+    const historyBase = {
+      userId: req.user.userId,
+      recipientName: contribution.contributor_name,
+      phone,
+      eventName: contribution.event_name,
+      type: 'reminder',
+      message,
+    };
+
+    try {
+      await sendBeemSms(phone, message);
+    } catch (err) {
+      await recordSmsHistory({ ...historyBase, status: FAILED, errorText: describeSmsError(err) });
+      throw err;
+    }
+
+    await recordSmsHistory({ ...historyBase, status: SENT });
 
     // Persist the sent state so the UI can disable the button permanently
     try {
@@ -239,11 +257,13 @@ async function sendBulkReminders(req, res) {
     const sentIds = [];
 
     for (const c of targets) {
+      // Declared outside the try so the catch can record what was attempted.
+      let phone;
+      let message;
       try {
-        const phone = formatPhone(c.phone);
+        phone = formatPhone(c.phone);
         if (!phone || phone.length < 12) continue;
 
-        let message;
         if (isCustom) {
           message = buildCustomMessage(c.contributor_name, c.event_name, customBody);
         } else {
@@ -270,11 +290,31 @@ async function sendBulkReminders(req, res) {
           }
         }
 
+        await recordSmsHistory({
+          userId: req.user.userId,
+          recipientName: c.contributor_name,
+          phone,
+          eventName: c.event_name,
+          type: isCustom ? 'custom' : 'bulk',
+          status: SENT,
+          message,
+        });
+
         await new Promise(r => setTimeout(r, 300));
         sent++;
         sentIds.push(c.id);
       } catch (err) {
         console.error('BEEM ERROR FULL:', err.response?.data || err.message);
+        await recordSmsHistory({
+          userId: req.user.userId,
+          recipientName: c.contributor_name,
+          phone,
+          eventName: c.event_name,
+          type: isCustom ? 'custom' : 'bulk',
+          status: FAILED,
+          message,
+          errorText: describeSmsError(err),
+        });
       }
     }
 
@@ -404,7 +444,26 @@ async function sendMemberSms(req, res) {
       });
     }
 
-    await sendBeemSms(phone, message);
+    // History is recorded either way. It never alters the outcome: on failure
+    // the error is re-thrown so the existing catch returns the same response.
+    const historyBase = {
+      userId: req.user.userId,
+      recipientId: member.id,
+      recipientName: member.name,
+      phone,
+      eventName,
+      type: 'custom_member',
+      message,
+    };
+
+    try {
+      await sendBeemSms(phone, message);
+    } catch (err) {
+      await recordSmsHistory({ ...historyBase, status: FAILED, errorText: describeSmsError(err) });
+      throw err;
+    }
+
+    await recordSmsHistory({ ...historyBase, status: SENT });
 
     try {
       await pool.query(
@@ -508,13 +567,26 @@ async function sendCustomCampaign(req, res) {
         continue;
       }
 
+      const rendered = buildCustomMessage(m.name, eventName, text);
+      const historyBase = {
+        userId: req.user.userId,
+        recipientId: m.id,
+        recipientName: m.name,
+        phone,
+        eventName,
+        type: 'custom_campaign_member',
+        message: rendered,
+      };
+
       try {
         // Name is read from the member record, never from the client.
-        await sendBeemSms(phone, buildCustomMessage(m.name, eventName, text));
+        await sendBeemSms(phone, rendered);
+        await recordSmsHistory({ ...historyBase, status: SENT });
         await new Promise(r => setTimeout(r, 300));
         sent++;
       } catch (err) {
         console.error('BEEM ERROR FULL:', err.response?.data || err.message);
+        await recordSmsHistory({ ...historyBase, status: FAILED, errorText: describeSmsError(err) });
         failed++;
         // Release the claim so a genuine provider failure can be retried.
         try {

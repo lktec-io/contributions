@@ -15,6 +15,7 @@ import Settings from './pages/Settings';
 import HiddenRecords from './pages/HiddenRecords';
 import PaymentRequests from './pages/PaymentRequests';
 import NotificationsRoom from './pages/NotificationsRoom';
+import SmsLogs from './pages/SmsLogs';
 import PublicContribution from './pages/PublicContribution';
 import NotFound from './pages/NotFound';
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -88,6 +89,10 @@ function AppRoutes() {
       <Route
         path="/notifications"
         element={<ProtectedRoute><NotificationsRoom /></ProtectedRoute>}
+      />
+      <Route
+        path="/sms-logs"
+        element={<ProtectedRoute><SmsLogs /></ProtectedRoute>}
       />
       <Route
         path="/settings"
