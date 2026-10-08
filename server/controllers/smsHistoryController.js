@@ -176,4 +176,90 @@ async function detail(req, res, next) {
   }
 }
 
-module.exports = { list, summary, detail };
+// ── GET /api/sms-history/analytics ──────────────────────────────
+// Aggregated entirely in SQL: three small result sets leave the database,
+// never the log table itself. Same ownership scope as every other read.
+async function analytics(req, res, next) {
+  try {
+    const scope = scopeFor(req);
+
+    // Window is clamped to a short set of sane periods.
+    const ALLOWED = [7, 14, 30, 90];
+    const requested = parseInt(req.query.days, 10);
+    const days = ALLOWED.includes(requested) ? requested : 30;
+
+    const since = 'h.created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)';
+    const base  = `${scope.sql} AND ${since}`;
+
+    // Daily volume, split by outcome.
+    const [trendRows] = await pool.query(
+      `SELECT DATE(h.created_at) AS day,
+              SUM(CASE WHEN h.status = 'sent'   THEN 1 ELSE 0 END) AS sent,
+              SUM(CASE WHEN h.status = 'failed' THEN 1 ELSE 0 END) AS failed
+         FROM sms_history h
+        WHERE ${base}
+        GROUP BY DATE(h.created_at)
+        ORDER BY day ASC`,
+      [...scope.params, days - 1],
+    );
+
+    // Volume per SMS type/mode — the bar chart.
+    const [typeRows] = await pool.query(
+      `SELECT h.type,
+              COUNT(*) AS total,
+              SUM(CASE WHEN h.status = 'failed' THEN 1 ELSE 0 END) AS failed
+         FROM sms_history h
+        WHERE ${base}
+        GROUP BY h.type
+        ORDER BY total DESC`,
+      [...scope.params, days - 1],
+    );
+
+    // Status split — the donut. Only statuses this system actually writes.
+    const [[statusRow]] = await pool.query(
+      `SELECT COUNT(*) AS total,
+              SUM(CASE WHEN h.status = 'sent'   THEN 1 ELSE 0 END) AS sent,
+              SUM(CASE WHEN h.status = 'failed' THEN 1 ELSE 0 END) AS failed
+         FROM sms_history h
+        WHERE ${base}`,
+      [...scope.params, days - 1],
+    );
+
+    // Days with no activity are filled with zeroes so the line has no gaps.
+    const byDay = new Map();
+    for (const r of trendRows) {
+      const key = r.day instanceof Date ? r.day.toISOString().slice(0, 10) : String(r.day).slice(0, 10);
+      byDay.set(key, { sent: Number(r.sent || 0), failed: Number(r.failed || 0) });
+    }
+    const trend = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const hit = byDay.get(key) || { sent: 0, failed: 0 };
+      trend.push({ date: key, sent: hit.sent, failed: hit.failed });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        days,
+        trend,
+        byType: typeRows.map(r => ({
+          type: r.type,
+          total: Number(r.total || 0),
+          failed: Number(r.failed || 0),
+        })),
+        status: {
+          total:  Number(statusRow.total  || 0),
+          sent:   Number(statusRow.sent   || 0),
+          failed: Number(statusRow.failed || 0),
+        },
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, summary, detail, analytics };

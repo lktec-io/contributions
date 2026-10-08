@@ -54,13 +54,14 @@ function normalizeSms(text) {
 /**
  * Builds the final Custom SMS body in the fixed order:
  *
- *   line 1  [EVENT NAME]      (uppercased, in square brackets)
+ *   line 1  EVENT NAME        (uppercased)
  *   line 2  Ndugu, NAME,      (name uppercased)
- *   line 3+ the operator's message, unchanged apart from whitespace tidy-up
+ *   blank
+ *   line 4+ the operator's message, unchanged apart from whitespace tidy-up
  *
- * The lines run consecutively — no blank line is inserted between the header
- * and the body, so the message stays compact on the handset. Blank lines the
- * operator typed inside their own text are preserved.
+ * The event name and greeting stay together as one compact header block, with
+ * a single blank line separating it from the body. Blank lines the operator
+ * typed inside their own text are preserved.
  *
  * "Ndugu," is the only greeting ever added, and no signature is appended.
  * A missing event or name drops that line rather than leaving a blank one.
@@ -77,14 +78,14 @@ function formatCustomSms({ name, event, message }) {
   const body = normalizeSms(resolved);
 
   const head = [];
-  if (ev)  head.push(`[${ev.toUpperCase()}]`);
+  if (ev)  head.push(ev.toUpperCase());
   if (who) head.push(`Ndugu, ${who.toUpperCase()},`);
 
   if (!head.length) return body;
   if (!body) return normalizeSms(head.join('\n'));
 
-  // Header and body run line-by-line with no blank line between them.
-  return normalizeSms(`${head.join('\n')}\n${body}`);
+  // Header lines stay together; one blank line separates them from the body.
+  return normalizeSms(`${head.join('\n')}\n\n${body}`);
 }
 
 /*  Deterministic identity for a Send-to-All campaign.

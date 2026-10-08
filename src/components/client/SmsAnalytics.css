@@ -1,0 +1,397 @@
+/* ══════════════════════════════════════════════════════════════
+   SMS ANALYTICS — dashboard charts
+
+   Chart containers are part of the dashboard, not floating widgets:
+   same hairlines, same 4px radii, same compact spacing.
+   ══════════════════════════════════════════════════════════════ */
+
+.sa {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sa *,
+.sa *::before,
+.sa *::after { box-sizing: border-box; }
+
+/* ── Head ────────────────────────────────────── */
+.sa-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.sa-head-copy { min-width: 0; }
+
+.sa-eyebrow {
+  margin: 0 0 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--accent-green);
+}
+
+.sa-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+  overflow-wrap: break-word;
+}
+
+/* ── Period switch ───────────────────────────── */
+.sa-periods {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 2px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+}
+
+.sa-period {
+  width: auto;
+  min-height: 30px;
+  padding: 0 11px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.sa-period.is-active {
+  color: #FFFFFF;
+  background: var(--accent-green);
+}
+
+/* ── Grid ────────────────────────────────────── */
+.sa-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.sa-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+
+/* The trend chart earns the full row */
+.sa-card--wide { grid-column: 1 / -1; }
+
+.sa-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.sa-card-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow-wrap: break-word;
+}
+
+.sa-card-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow-wrap: break-word;
+}
+
+/* ── Chart boxes ─────────────────────────────── */
+.sa-chart {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  height: 184px;
+}
+
+.sa-chart--tall { height: 232px; }
+
+/* Recharts focus ring is square; keep it inside the card */
+.sa-chart :focus-visible { outline: 2px solid var(--accent-green); outline-offset: -2px; }
+
+/* ── Donut ───────────────────────────────────── */
+.sa-donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sa-donut-wrap .sa-chart { flex: 1 1 0; height: 160px; }
+
+.sa-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  pointer-events: none;
+}
+
+.sa-donut-value {
+  display: inline-flex;
+  align-items: baseline;
+  font-size: 23px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.6px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.sa-donut-value i {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 800;
+  margin-left: 1px;
+  color: var(--text-muted);
+}
+
+.sa-donut-cap {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ── Direct labels ───────────────────────────── */
+.sa-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.sa-legend-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sa-legend-row dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.sa-legend-row dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.sa-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
+.sa-dot--sent   { background: var(--chart-sent); }
+.sa-dot--failed { background: var(--chart-failed); }
+
+/* ── Tooltip ─────────────────────────────────── */
+.sa-tip {
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.sa-tip-label {
+  margin: 0 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.sa-tip-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.sa-tip-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
+.sa-tip-name { color: var(--text-secondary); }
+
+.sa-tip-value {
+  margin-left: auto;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Skeleton / states ───────────────────────── */
+.sa-skeleton {
+  width: 100%;
+  height: 184px;
+  border-radius: var(--border-radius);
+  background: linear-gradient(90deg, var(--bg-subtle) 25%, var(--border-color) 50%, var(--bg-subtle) 75%);
+  background-size: 800px 100%;
+  animation: sa-shimmer 1.4s ease-in-out infinite;
+}
+
+.sa-card--wide .sa-skeleton { height: 232px; }
+
+@keyframes sa-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.sa-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 36px 20px;
+  text-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+
+.sa-state-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 2px;
+  color: var(--accent-green);
+  background: var(--accent-green-soft);
+  border-radius: var(--border-radius-lg);
+}
+
+.sa-state-icon--error {
+  color: var(--accent-red);
+  background: rgba(180, 35, 24, 0.09);
+}
+
+.sa-state-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.sa-state-text {
+  max-width: 340px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  overflow-wrap: break-word;
+}
+
+.sa-retry {
+  width: auto;
+  min-height: 34px;
+  margin-top: 6px;
+  padding: 0 14px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent-green);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+}
+
+.sa-retry:hover { border-color: var(--accent-green); }
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE — charts stack and stay readable
+   ══════════════════════════════════════════════ */
+
+@media (max-width: 860px) {
+  .sa-grid { grid-template-columns: minmax(0, 1fr); }
+  .sa-card { grid-column: auto; }
+  .sa-card--wide { grid-column: auto; }
+}
+
+/* Touch widths: the period switch needs a real tap target */
+@media (max-width: 768px) {
+  .sa-period { min-height: 38px; padding: 0 14px; }
+  .sa-retry  { min-height: 42px; }
+}
+
+@media (max-width: 600px) {
+  .sa-chart { height: 200px; }
+  .sa-chart--tall { height: 220px; }
+
+  /* Donut and its labels stack rather than shrinking to nothing.
+     flex-basis must be reset: in a column, `flex: 1 1 0` governs the main
+     axis and would collapse the chart box to zero height. */
+  .sa-donut-wrap { flex-direction: column; align-items: stretch; gap: 6px; }
+  .sa-donut-wrap .sa-chart { flex: 0 0 auto; height: 190px; }
+
+  .sa-legend {
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 16px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .sa-legend-row { flex-direction: column; align-items: center; gap: 2px; }
+}
+
+@media (max-width: 380px) {
+  .sa-periods { width: 100%; }
+  .sa-period { flex: 1 1 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sa-skeleton { animation: none; }
+  .sa-period { transition: none; }
+}

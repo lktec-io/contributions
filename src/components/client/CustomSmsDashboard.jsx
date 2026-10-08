@@ -10,6 +10,7 @@ import { contributorService } from '../../services/contributorService';
 import { eventService } from '../../services/eventService';
 import { getErrorMessage } from '../../utils/helpers';
 import { StatsSkeleton } from '../common/SkeletonLoader';
+import SmsAnalytics from './SmsAnalytics';
 import './CustomSmsDashboard.css';
 import './MemberPosture.css';
 
@@ -192,6 +193,9 @@ export default function CustomSmsDashboard() {
           </article>
         </div>
       </section>
+
+      {/* Charts read from sms_history, aggregated server-side */}
+      <SmsAnalytics />
 
       <section className="csd-section">
         <h3 className="csd-section-title">Quick Actions</h3>

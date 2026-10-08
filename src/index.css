@@ -45,6 +45,14 @@
      reads as near-black against white */
   --accent-green-bright: #198754;
 
+  /* Chart status colours. Validated for colour-vision deficiency against the
+     light surface; the pair sits in the 6-8 ΔE band, so every chart using it
+     also carries a legend, distinct marker shapes and direct labels. */
+  --chart-sent: #198754;
+  --chart-failed: #B42318;
+  --chart-grid: #EAEAEA;
+  --chart-axis: #8C949E;
+
   /* Metallic silver & platinum — structure, neutral badges, tracks */
   --silver-50: #F8FAFC;
   --silver-100: #F1F5F9;
@@ -107,6 +115,13 @@
   --accent-green-soft: rgba(46, 158, 107, 0.14);
   --accent-green-line: rgba(46, 158, 107, 0.34);
   --accent-green-bright: #38B77D;
+
+  /* Re-stepped for the dark surface — the light pair fails CVD separation
+     and the lightness band there, so these are chosen, not auto-flipped. */
+  --chart-sent: #35A98A;
+  --chart-failed: #E5615A;
+  --chart-grid: #23292F;
+  --chart-axis: #6B747E;
 
   --silver-50: #171E25;
   --silver-100: #1B222A;
